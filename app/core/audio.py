@@ -169,3 +169,74 @@ class AudioManager:
             deleted.append(os.path.basename(srt_path))
             
         return deleted
+
+    def scan_output_dir(self, limit: int = 50) -> list:
+        """
+        Scans output directory for existing .wav files matching the naming convention.
+        Returns a list of dictionaries with metadata.
+        """
+        output_dir = self.get_output_dir()
+        if not self.validate_output_dir(output_dir):
+            return []
+
+        files = []
+        try:
+            # Pattern: {timestamp}_{speaker}_{text_prefix}.wav
+            # but stricter check via regex later
+            wav_files = [f for f in os.listdir(output_dir) if f.endswith('.wav')]
+            
+            # Sort by modification time (newest first)
+            wav_files.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
+            
+            wav_files = wav_files[:limit]
+            
+            for f in wav_files:
+                # Regex to parse filename: digits_speaker_text.wav
+                # Note: speaker might contain underscores, but usually first part is digits
+                match = re.match(r'^(\d+)_([^_]+)_(.+)\.wav$', f)
+                if not match:
+                    continue
+                    
+                path = os.path.join(output_dir, f)
+                
+                # Basic info from filename
+                timestamp_str = match.group(1) # We probably won't use this raw timestamp for display as it is offset ms
+                speaker_name = match.group(2)
+                # Text from filename is truncated, try SRT
+                text = match.group(3)
+                
+                srt_path = path.replace(".wav", ".srt")
+                if os.path.exists(srt_path):
+                    try:
+                        with open(srt_path, 'r', encoding='utf-8') as srt:
+                            content = srt.read()
+                            # Simply extract lines that are not timestamps or indices
+                            # Standard SRT format:
+                            # 1
+                            # 00:00:00,000 --> 00:00:05,000
+                            # The Text Is Here
+                            
+                            lines = content.strip().split('\n')
+                            if len(lines) >= 3:
+                                # Join all lines after the timestamp line
+                                # Ideally we parse properly, but simple logic:
+                                # skip index (0), skip time (1), take rest
+                                text = " ".join(lines[2:])
+                    except Exception:
+                        pass # Keep filename text if read fails
+                
+                duration = self.get_wav_duration(path)
+                mtime = datetime.fromtimestamp(os.path.getmtime(path))
+                
+                files.append({
+                    "filename": f,
+                    "text": text,
+                    "speaker_name": speaker_name,
+                    "duration": duration,
+                    "timestamp": mtime
+                })
+                
+        except Exception as e:
+            print(f"Error scanning output dir: {e}")
+            
+        return files

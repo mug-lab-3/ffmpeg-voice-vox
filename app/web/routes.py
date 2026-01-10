@@ -47,6 +47,8 @@ def handle_config():
         # Handle output directory
         if "outputDir" in new_config:
             config.update("system.output_dir", new_config["outputDir"])
+            # Reload history logs from the new directory
+            processor.reload_history()
                 
         print(f"  -> Config Updated")
         

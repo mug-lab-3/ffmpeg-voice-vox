@@ -9,6 +9,58 @@ class StreamProcessor:
         self.vv_client = voicevox_client
         self.audio_manager = audio_manager
         self.received_logs = []
+        
+        # Load past files from output directory
+        self._load_history()
+
+    def _load_history(self):
+        try:
+            history_files = self.audio_manager.scan_output_dir()
+            speakers = self.vv_client.get_speakers() # {id: name}
+            # Create reverse mapping: name -> id
+            name_to_id = {v: k for k, v in speakers.items()}
+            
+            for file_data in reversed(history_files): # Add oldest first so newest is at end (append)
+                filename = file_data["filename"]
+                text = file_data["text"]
+                speaker_name = file_data["speaker_name"]
+                duration = file_data["duration"]
+                timestamp = file_data["timestamp"] # datetime object
+                
+                # Try to recover speaker ID
+                speaker_id = name_to_id.get(speaker_name, 0) # Default to 0? Or maybe we keep name in config?
+                # The frontend expects config.speaker_id to map to a name. 
+                # If we put an ID that exists, it shows the name.
+                # If we put a name in ID? No, frontend keys by ID.
+                # If not found, maybe we can't show correct speaker in UI column which relies on ID->Name map.
+                # But we can put a special ID or just 0.
+                
+                reconstructed_config = {
+                    "speaker_id": speaker_id,
+                    "speed_scale": 1.0, # Default/Unknown
+                    "pitch_scale": 0.0,
+                    "intonation_scale": 1.0,
+                    "volume_scale": 1.0
+                }
+                
+                log_entry = {
+                    "timestamp": timestamp.strftime("%H:%M:%S"),
+                    "text": text,
+                    "duration": f"{duration:.2f}s",
+                    "config": reconstructed_config,
+                    "filename": filename
+                }
+                
+                self.received_logs.append(log_entry)
+                
+        except Exception as e:
+            print(f"Error loading history: {e}")
+
+    def reload_history(self):
+        """Clear current logs and reload from invalid/new output directory."""
+        print("Reloading history logs...")
+        self.received_logs = []
+        self._load_history()
 
     def process_stream(self, stream_iterator):
         buffer = ""
