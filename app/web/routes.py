@@ -29,6 +29,19 @@ def get_resolve_client():
         _resolve_client = ResolveClient()
     return _resolve_client
 
+def cleanup_resources():
+    """Cleanup resources like ResolveClient monitor process."""
+    global _resolve_client
+    if _resolve_client:
+        print("[System] Shutting down Resolve Monitor...")
+        _resolve_client.shutdown()
+        
+    global ffmpeg_client
+    if ffmpeg_client:
+        print("[System] Shutting down FFmpeg...")
+        ffmpeg_client.stop_process()
+
+
 # Background Thread to Poll Resolve Status (Running in Main Process)
 # Checks the shared memory status of the child process
 import threading
@@ -155,16 +168,11 @@ def handle_config():
             "resolve_available": resolve_available
         })
     else:
-        # Return flattened config for frontend compatibility
-        syn_config = config.get("synthesis")
+        # Return full config structure for frontend compatibility
         resolve_available = get_resolve_client().is_available()
 
         return jsonify({
-            "speaker": syn_config["speaker_id"],
-            "speedScale": syn_config["speed_scale"],
-            "pitchScale": syn_config["pitch_scale"],
-            "intonationScale": syn_config["intonation_scale"],
-            "volumeScale": syn_config["volume_scale"],
+            "config": config.get("synthesis"),
             "outputDir": config.get("system.output_dir"),
             "ffmpeg": config.get("ffmpeg"),
             "resolve_available": resolve_available

@@ -60,6 +60,8 @@ def monitor_activity():
         elapsed = time.time() - last_activity_time
         if elapsed > SHUTDOWN_TIMEOUT:
             print(f"[Monitor] No activity for {elapsed:.0f}s. Shutting down...")
+            from app.web.routes import cleanup_resources
+            cleanup_resources()
             os._exit(0)
 
 if __name__ == '__main__':
@@ -84,4 +86,17 @@ if __name__ == '__main__':
     threading.Thread(target=open_browser).start()
     
     print(f"Starting server on {host}:{port}")
-    app.run(host=host, port=port, debug=False, threaded=True)
+    try:
+        app.run(host=host, port=port, debug=False, threaded=True)
+    finally:
+        # Cleanup on exit (whether checking, error, or clean return)
+        print("[Startup] Server stopping...")
+        try:
+            from app.web.routes import cleanup_resources
+            cleanup_resources()
+        except KeyboardInterrupt:
+            # Allow forced exit during cleanup
+            pass
+        except Exception as e:
+            print(f"[Startup] Error during cleanup: {e}")
+

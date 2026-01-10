@@ -113,6 +113,20 @@ class ResolveClient:
         )
         self._proc.start()
 
+    def shutdown(self):
+        """Cleanly shutdown the monitor process."""
+        if self._proc.is_alive():
+            self._running_event.clear()
+            try:
+                self._proc.join(timeout=2)
+            except KeyboardInterrupt:
+                # If interrupted during wait, force kill immediately
+                pass
+            
+            if self._proc.is_alive():
+                self._proc.terminate()
+
+
     def is_available(self):
         # Instant check via shared memory
         return bool(self._shared_status.value)
