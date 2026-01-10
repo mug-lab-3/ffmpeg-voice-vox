@@ -60,118 +60,150 @@
             </button>
         </div>
 
-        <fieldset class="settings-group">
-            <legend>System Settings</legend>
-            <div class="control-group">
-                <label for="outputDir">Output Directory</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="outputDir" placeholder="Select a directory..." readonly
-                        style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid #444; background-color: #333; color: var(--text); outline: none; cursor: default;">
-                    <button id="browseOutputDir" style="
-                        background-color: #444; 
-                        color: var(--text); 
-                        border: 1px solid #555; 
-                        padding: 0 20px; 
-                        border-radius: 8px; 
-                        cursor: pointer; 
-                        font-weight: bold;
-                        display: flex;
-                        align-items: center;
-                        gap: 5px;
-                        transition: background-color 0.2s;">
-                        <!-- Folder Icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
-                            </path>
-                        </svg>
-                        Browse
-                    </button>
-                </div>
-                <div id="dir-status" style="font-size: 0.8rem; margin-top: 5px; color: #888; min-height: 1.2em;"></div>
+        <div class="settings-group" id="group-system">
+            <div class="settings-header">
+                <span class="settings-title">System Settings</span>
+                <svg class="collapsible-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
             </div>
-        </fieldset>
+            <div class="settings-content">
+                <div class="control-group">
+                    <label for="outputDir">Output Directory</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="outputDir" placeholder="Select a directory..." readonly
+                            style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid #444; background-color: #333; color: var(--text); outline: none; cursor: default;">
+                        <button id="browseOutputDir" style="
+                            background-color: #444; 
+                            color: var(--text); 
+                            border: 1px solid #555; 
+                            padding: 0 20px; 
+                            border-radius: 8px; 
+                            cursor: pointer; 
+                            font-weight: bold;
+                            display: flex;
+                            align-items: center;
+                            gap: 5px;
+                            transition: background-color 0.2s;">
+                            <!-- Folder Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                                </path>
+                            </svg>
+                            Browse
+                        </button>
+                    </div>
+                    <div id="dir-status" style="font-size: 0.8rem; margin-top: 5px; color: #888; min-height: 1.2em;">
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <fieldset class="settings-group">
-            <legend>Voicevox Settings</legend>
-            <div class="control-group">
-                <label for="speaker">Speaker</label>
-                <select id="speaker">
-                    <option value="" disabled selected>Loading...</option>
-                </select>
+        <div class="settings-group" id="group-voicevox">
+            <div class="settings-header">
+                <span class="settings-title">Voicevox Settings</span>
+                <svg class="collapsible-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
             </div>
+            <div class="settings-content">
+                <div class="control-group">
+                    <label for="speaker">Speaker</label>
+                    <select id="speaker">
+                        <option value="" disabled selected>Loading...</option>
+                    </select>
+                </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="control-group">
-                    <label for="speedScale">Speed <span id="val-speedScale" class="value-display">1.00</span></label>
-                    <input type="range" id="speedScale" min="0.5" max="2.0" step="0.05" value="1.0">
-                </div>
-                <div class="control-group">
-                    <label for="pitchScale">Pitch <span id="val-pitchScale" class="value-display">0.00</span></label>
-                    <input type="range" id="pitchScale" min="-0.15" max="0.15" step="0.01" value="0.0">
-                </div>
-                <div class="control-group">
-                    <label for="intonationScale">Intonation <span id="val-intonationScale"
-                            class="value-display">1.00</span></label>
-                    <input type="range" id="intonationScale" min="0.0" max="2.0" step="0.05" value="1.0">
-                </div>
-                <div class="control-group">
-                    <label for="volumeScale">Volume <span id="val-volumeScale" class="value-display">1.00</span></label>
-                    <input type="range" id="volumeScale" min="0.0" max="2.0" step="0.05" value="1.0">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="control-group">
+                        <label for="speedScale">Speed <span id="val-speedScale"
+                                class="value-display">1.00</span></label>
+                        <input type="range" id="speedScale" min="0.5" max="2.0" step="0.05" value="1.0">
+                    </div>
+                    <div class="control-group">
+                        <label for="pitchScale">Pitch <span id="val-pitchScale"
+                                class="value-display">0.00</span></label>
+                        <input type="range" id="pitchScale" min="-0.15" max="0.15" step="0.01" value="0.0">
+                    </div>
+                    <div class="control-group">
+                        <label for="intonationScale">Intonation <span id="val-intonationScale"
+                                class="value-display">1.00</span></label>
+                        <input type="range" id="intonationScale" min="0.0" max="2.0" step="0.05" value="1.0">
+                    </div>
+                    <div class="control-group">
+                        <label for="volumeScale">Volume <span id="val-volumeScale"
+                                class="value-display">1.00</span></label>
+                        <input type="range" id="volumeScale" min="0.0" max="2.0" step="0.05" value="1.0">
+                    </div>
                 </div>
             </div>
-        </fieldset>
+        </div>
 
-        <fieldset class="settings-group">
-            <legend>FFmpeg Configuration</legend>
-            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                <div class="control-group" style="flex: 1; margin-bottom: 0;">
-                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Path to ffmpeg.exe</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="cfg-ffmpeg-path" class="modal-input" placeholder="./ffmpeg"
-                            style="margin-bottom: 0;">
-                        <button id="browse-ffmpeg-path" class="btn-browse" title="Browse File">...</button>
+        <div class="settings-group collapsed" id="group-ffmpeg">
+            <div class="settings-header">
+                <span class="settings-title">FFmpeg Configuration</span>
+                <svg class="collapsible-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </div>
+            <div class="settings-content">
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div class="control-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; margin-bottom: 2px;">Path to ffmpeg.exe</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" id="cfg-ffmpeg-path" class="modal-input" placeholder="./ffmpeg"
+                                style="margin-bottom: 0;">
+                            <button id="browse-ffmpeg-path" class="btn-browse" title="Browse File">...</button>
+                        </div>
+                    </div>
+                    <div class="control-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; margin-bottom: 2px;">Input Device Name</label>
+                        <div style="display: flex; gap: 5px;">
+                            <select id="cfg-input-device" class="modal-input" style="margin-bottom: 0;">
+                                <option value="" disabled selected>Select Device after setting FFmpeg</option>
+                            </select>
+                            <button id="refresh-devices" class="btn-browse" title="Refresh Device List">↻</button>
+                        </div>
                     </div>
                 </div>
-                <div class="control-group" style="flex: 1; margin-bottom: 0;">
-                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Input Device Name</label>
-                    <div style="display: flex; gap: 5px;">
-                        <select id="cfg-input-device" class="modal-input" style="margin-bottom: 0;">
-                            <option value="" disabled selected>Select Device after setting FFmpeg</option>
-                        </select>
-                        <button id="refresh-devices" class="btn-browse" title="Refresh Device List">↻</button>
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div class="control-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; margin-bottom: 2px;">Whisper Model Path</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" id="cfg-model-path" class="modal-input"
+                                placeholder="../models/ggml-large-v3.bin" style="margin-bottom: 0;">
+                            <button id="browse-model-path" class="btn-browse" title="Browse File">...</button>
+                        </div>
+                    </div>
+                    <div class="control-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; margin-bottom: 2px;">VAD Model Path</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" id="cfg-vad-path" class="modal-input"
+                                placeholder="../vad/ggml-silero-v6.2.0.bin" style="margin-bottom: 0;">
+                            <button id="browse-vad-path" class="btn-browse" title="Browse File">...</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="control-group">
+                        <label style="font-size: 0.8rem; margin-bottom: 2px;">Queue Length</label>
+                        <input type="number" id="cfg-queue-length" class="modal-input" placeholder="10">
+                    </div>
+                    <div class="control-group">
+                        <label style="font-size: 0.8rem; margin-bottom: 2px;">Host</label>
+                        <input type="text" id="cfg-host" class="modal-input" value="localhost">
                     </div>
                 </div>
             </div>
-            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                <div class="control-group" style="flex: 1; margin-bottom: 0;">
-                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Whisper Model Path</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="cfg-model-path" class="modal-input"
-                            placeholder="../models/ggml-large-v3.bin" style="margin-bottom: 0;">
-                        <button id="browse-model-path" class="btn-browse" title="Browse File">...</button>
-                    </div>
-                </div>
-                <div class="control-group" style="flex: 1; margin-bottom: 0;">
-                    <label style="font-size: 0.8rem; margin-bottom: 2px;">VAD Model Path</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="cfg-vad-path" class="modal-input"
-                            placeholder="../vad/ggml-silero-v6.2.0.bin" style="margin-bottom: 0;">
-                        <button id="browse-vad-path" class="btn-browse" title="Browse File">...</button>
-                    </div>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="control-group">
-                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Queue Length</label>
-                    <input type="number" id="cfg-queue-length" class="modal-input" placeholder="10">
-                </div>
-                <div class="control-group">
-                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Host</label>
-                    <input type="text" id="cfg-host" class="modal-input" value="localhost">
-                </div>
-            </div>
-        </fieldset>
+        </div>
 
 
 

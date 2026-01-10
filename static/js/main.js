@@ -220,6 +220,17 @@ function setupUIListeners() {
 
     // Start/Stop
     elements.startStopBtn.addEventListener('click', handleStartStopClick);
+
+    // Collapsible Sections
+    const headers = document.querySelectorAll('.settings-header');
+    headers.forEach(header => {
+        header.addEventListener('click', () => {
+            const group = header.closest('.settings-group');
+            if (group) {
+                group.classList.toggle('collapsed');
+            }
+        });
+    });
 }
 
 function populateDeviceSelect(devices) {
