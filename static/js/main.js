@@ -44,6 +44,7 @@ async function init() {
     await loadSpeakers();
     await loadConfig();
     await loadControlState();
+    await loadLogs();
     setupListeners();
     // Real-time updates via SSE
     setupSSE();
