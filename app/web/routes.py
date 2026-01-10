@@ -96,8 +96,16 @@ def index():
 @web.route('/', methods=['POST'])
 def whisper_receiver():
     print("--- データの受信を開始したよ！ ---")
-    processor.process_stream(request.stream)
-    return "OK", 200
+    try:
+        processor.process_stream(request.stream)
+        return "OK", 200
+    except (ConnectionResetError, OSError) as e:
+        # Expected when FFmpeg is killed/stopped
+        print(f"[API] Stream connection closed: {e}")
+        return "Stream Closed", 200
+    except Exception as e:
+        print(f"[API] Error processing stream: {e}")
+        return "Error", 500
 
 @web.route('/api/config', methods=['GET', 'POST'])
 def handle_config():

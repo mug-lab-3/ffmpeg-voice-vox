@@ -105,11 +105,7 @@ class FFmpegClient:
                 # Or we can redirect to DEVNULL if we don't want to see it in the console.
                 # If the user wants to see ffmpeg output in the main app console, we can leave it inherited.
                 # For now, let's inherit stdout/stderr so it shows up in the terminal running the server.
-                print(f"[FFmpeg] Starting process (async)...")
-                import time
-                start_t = time.time()
                 self._process = subprocess.Popen(cmd)
-                print(f"[FFmpeg] Process started in {time.time() - start_t:.4f}s")
                 return True, "Started"
             except Exception as e:
                 print(f"[FFmpeg] Start Error: {e}")
