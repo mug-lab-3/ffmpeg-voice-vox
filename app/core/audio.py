@@ -6,11 +6,12 @@ import threading
 import time
 from datetime import datetime
 
+from app.config import config
+
 class AudioManager:
-    def __init__(self, output_dir="output"):
-        self.output_dir = output_dir
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
+    def __init__(self):
+        # We no longer set a fixed output_dir here.
+        # It is retrieved dynamically from config.
         
         self.playback_status = {
             "is_playing": False,
@@ -19,6 +20,30 @@ class AudioManager:
             "duration": 0
         }
         self.playback_lock = threading.Lock()
+
+    def get_output_dir(self):
+        """Get current output directory from config."""
+        path = config.get("system.output_dir", "")
+        return path
+
+    def validate_output_dir(self, path: str) -> bool:
+        """
+        Validate if the output directory is usable.
+        Checks for existence and write permissions.
+        """
+        if not path:
+            return False
+            
+        if not os.path.exists(path):
+            try:
+                os.makedirs(path)
+            except OSError:
+                return False
+                
+        if not os.access(path, os.W_OK):
+            return False
+            
+        return True
 
     def get_wav_duration(self, filepath: str) -> float:
         try:
@@ -43,6 +68,10 @@ class AudioManager:
         Saves audio data to WAV and creates a corresponding SRT file.
         Returns (filename, duration_sec).
         """
+        output_dir = self.get_output_dir()
+        if not self.validate_output_dir(output_dir):
+            raise ValueError(f"Invalid output directory: {output_dir}")
+
         # Clean filename
         safe_text = re.sub(r'[\\/:*?"<>|]+', '', text)
         safe_text = safe_text.replace('\n', '').replace('\r', '')
@@ -52,8 +81,8 @@ class AudioManager:
         wav_filename = f"{filename_base}.wav"
         srt_filename = f"{filename_base}.srt"
         
-        wav_path = os.path.join(self.output_dir, wav_filename)
-        srt_path = os.path.join(self.output_dir, srt_filename)
+        wav_path = os.path.join(output_dir, wav_filename)
+        srt_path = os.path.join(output_dir, srt_filename)
         
         # Write WAV
         with open(wav_path, "wb") as f:
@@ -76,7 +105,8 @@ class AudioManager:
         return wav_filename, duration
 
     def play_audio(self, filename: str):
-        wav_path = os.path.join(self.output_dir, filename)
+        output_dir = self.get_output_dir()
+        wav_path = os.path.join(output_dir, filename)
         if not os.path.exists(wav_path):
             raise FileNotFoundError(f"File not found: {filename}")
             
@@ -123,7 +153,8 @@ class AudioManager:
         }
 
     def delete_file(self, filename: str) -> list:
-        wav_path = os.path.join(self.output_dir, filename)
+        output_dir = self.get_output_dir()
+        wav_path = os.path.join(output_dir, filename)
         srt_path = wav_path.replace(".wav", ".srt")
         deleted = []
         

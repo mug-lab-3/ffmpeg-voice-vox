@@ -4,6 +4,7 @@ const LOGS_API = '/api/logs';
 const CONTROL_STATE_API = "/api/control/state";
 const CONTROL_PLAY_API = "/api/control/play";
 const CONTROL_DELETE_API = "/api/control/delete";
+const SYSTEM_BROWSE_API = "/api/system/browse";
 
 const elements = {
     speaker: document.getElementById('speaker'),
@@ -13,7 +14,10 @@ const elements = {
     volumeScale: document.getElementById('volumeScale'),
     status: document.getElementById('status-msg'),
     logTableBody: document.getElementById('log-table-body'),
-    startStopBtn: document.getElementById('start-stop-btn')
+    startStopBtn: document.getElementById('start-stop-btn'),
+    outputDir: document.getElementById('outputDir'),
+    browseBtn: document.getElementById('browseOutputDir'),
+    dirStatus: document.getElementById('dir-status')
 };
 
 // Global State
@@ -247,6 +251,20 @@ async function loadConfig() {
                 }
             }
         }
+
+        // Handle Output Dir
+        if (config.outputDir) {
+            elements.outputDir.value = config.outputDir;
+            elements.dirStatus.textContent = "";
+        } else {
+            elements.dirStatus.textContent = "Please set an output directory to start.";
+            elements.dirStatus.style.color = "#ff6b6b";
+        }
+
+        // Initial UI State update happens in loadControlState->updateStartStopUI usually,
+        // but checking empty dir is needed here too.
+        checkStartability();
+
     } catch (e) {
         console.error("Failed to load config", e);
     }
@@ -270,7 +288,39 @@ function setupListeners() {
         });
     });
 
+    elements.browseBtn.addEventListener('click', async () => {
+        if (elements.browseBtn.disabled) return;
+
+        elements.browseBtn.disabled = true;
+        const originalText = elements.browseBtn.innerHTML;
+        // Simple loading state
+        elements.browseBtn.style.opacity = '0.7';
+
+        try {
+            const res = await fetch(SYSTEM_BROWSE_API, { method: 'POST' });
+            const data = await res.json();
+
+            if (data.status === 'ok') {
+                const path = data.path;
+                elements.outputDir.value = path;
+                await updateConfig('outputDir', path, true);
+            } else if (data.status === 'cancelled') {
+                // Do nothing
+            } else {
+                await showAlert("Error", data.message || "Failed to open dialog");
+            }
+        } catch (e) {
+            console.error("Browse failed", e);
+            await showAlert("Error", "Failed to trigger directory browser");
+        } finally {
+            elements.browseBtn.innerHTML = originalText;
+            elements.browseBtn.disabled = false;
+            elements.browseBtn.style.opacity = '1';
+        }
+    });
+
     elements.startStopBtn.addEventListener('click', async () => {
+        if (elements.startStopBtn.classList.contains('disabled')) return;
         await toggleControlState();
     });
 }
@@ -291,6 +341,15 @@ async function loadControlState() {
 
 async function toggleControlState() {
     const newState = !isSynthesisEnabled;
+
+    // If we are enabling, basic client-side check first (server double checks)
+    if (newState) {
+        if (!elements.outputDir.value.trim()) {
+            await showAlert("Configuration Error", "Please set an output directory first.");
+            return;
+        }
+    }
+
     try {
         const res = await fetch(CONTROL_STATE_API, {
             method: 'POST',
@@ -298,25 +357,70 @@ async function toggleControlState() {
             body: JSON.stringify({ enabled: newState })
         });
         const data = await res.json();
+
         if (data.status === 'ok') {
             isSynthesisEnabled = data.enabled;
             updateStartStopUI();
+        } else {
+            // Error from server (e.g. invalid dir)
+            await showAlert("Error", data.message || "Failed to change state");
+            // Revert UI state if needed (usually handled by next poll, but good to ensure)
+            loadControlState();
         }
     } catch (e) {
         console.error("Failed to toggle state", e);
+        await showAlert("Connection Error", "Failed to communicate with server");
     }
 }
 
 function updateStartStopUI() {
     const btn = elements.startStopBtn;
+    const dirInput = elements.outputDir;
+    const applyBtn = elements.applyOutputDir;
+
     if (isSynthesisEnabled) {
         btn.textContent = "STOP";
         btn.style.backgroundColor = "#ff6b6b"; // Red-ish for STOP action
         btn.title = "Click to Stop Synthesis";
+        btn.classList.remove('disabled');
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+
+        // Lock Input when Running
+        dirInput.disabled = true;
+        applyBtn.disabled = true;
+        applyBtn.style.opacity = '0.5';
+        dirInput.style.opacity = '0.5';
+
     } else {
         btn.textContent = "START";
         btn.style.backgroundColor = "var(--primary)"; // Green-ish for START action
         btn.title = "Click to Start Synthesis";
+
+        // Unlock Input when Stopped
+        dirInput.disabled = false;
+        applyBtn.disabled = false;
+        applyBtn.style.opacity = '1';
+        dirInput.style.opacity = '1';
+
+        checkStartability();
+    }
+}
+
+function checkStartability() {
+    const btn = elements.startStopBtn;
+    if (isSynthesisEnabled) return; // Should be handled by updateStartStopUI YES branch
+
+    const hasDir = elements.outputDir.value.trim().length > 0;
+
+    if (hasDir) {
+        btn.classList.remove('disabled');
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    } else {
+        btn.classList.add('disabled');
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
     }
 }
 
@@ -447,7 +551,7 @@ async function deleteFile(filename) {
     }
 }
 
-async function updateConfig(key, value) {
+async function updateConfig(key, value, isOutputDir = false) {
     elements.status.textContent = "Updating...";
     elements.status.classList.add('active');
 
@@ -467,10 +571,20 @@ async function updateConfig(key, value) {
             setTimeout(() => {
                 elements.status.classList.remove('active');
             }, 500);
+
+            if (isOutputDir) {
+                elements.dirStatus.textContent = "Directory Set!";
+                elements.dirStatus.style.color = "var(--primary)";
+                setTimeout(() => { elements.dirStatus.textContent = ""; }, 2000);
+                checkStartability();
+            }
         }
     } catch (e) {
         console.error("Update failed", e);
         elements.status.textContent = "Error updating";
+        if (isOutputDir) {
+            elements.dirStatus.textContent = "Update failed";
+        }
     }
 }
 

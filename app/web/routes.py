@@ -1,4 +1,5 @@
 from flask import Blueprint, request, render_template, jsonify
+import os
 from app.config import config
 from app.core.voicevox import VoiceVoxClient
 from app.core.audio import AudioManager
@@ -28,11 +29,6 @@ def handle_config():
         new_config = request.json
         print(f"[API] Config Update Request: {new_config}")
         
-        # We assume the frontend sends a flat key-value structure or matches our config structure
-        # The original code filtered specifically. Let's adapt to our config structure.
-        # Original keys were: speaker, speedScale, etc.
-        # Our config keys in config.json are under 'synthesis'.
-        
         # Mapping for backward compatibility with frontend
         mapping = {
             "speaker": "synthesis.speaker_id",
@@ -45,19 +41,27 @@ def handle_config():
         for client_key, config_key in mapping.items():
             if client_key in new_config:
                 config.update(config_key, new_config[client_key])
+
+        # Handle output directory
+        if "outputDir" in new_config:
+            config.update("system.output_dir", new_config["outputDir"])
                 
         print(f"  -> Config Updated")
-        return jsonify({"status": "ok", "config": config.get("synthesis")})
+        return jsonify({
+            "status": "ok", 
+            "config": config.get("synthesis"),
+            "outputDir": config.get("system.output_dir")
+        })
     else:
         # Return flattened config for frontend compatibility
         syn_config = config.get("synthesis")
-        # Flatten structure if needed, but original used keys like 'speaker' which match our keys if we just map them back
         return jsonify({
             "speaker": syn_config["speaker_id"],
             "speedScale": syn_config["speed_scale"],
             "pitchScale": syn_config["pitch_scale"],
             "intonationScale": syn_config["intonation_scale"],
-            "volumeScale": syn_config["volume_scale"]
+            "volumeScale": syn_config["volume_scale"],
+            "outputDir": config.get("system.output_dir")
         })
 
 @web.route('/api/speakers', methods=['GET'])
@@ -73,8 +77,21 @@ def handle_control_state():
     if request.method == 'POST':
         data = request.json
         if 'enabled' in data:
-            config.update("system.is_synthesis_enabled", bool(data['enabled']))
+            should_enable = bool(data['enabled'])
+            
+            if should_enable:
+                # Validation before enabling
+                current_output = config.get("system.output_dir")
+                if not audio_manager.validate_output_dir(current_output):
+                    print(f"[API] Enable Failed: Invalid Output Directory: '{current_output}'")
+                    return jsonify({
+                        "status": "error", 
+                        "message": "Invalid or non-writable output directory"
+                    }), 400
+            
+            config.update("system.is_synthesis_enabled", should_enable)
             print(f"[API] Synthesis State Updated: {config.get('system.is_synthesis_enabled')}")
+            
         return jsonify({"status": "ok", "enabled": config.get("system.is_synthesis_enabled")})
     else:
         status = audio_manager.get_playback_status()
@@ -124,6 +141,57 @@ def handle_control_delete():
         
     except Exception as e:
         print(f"[API] Delete Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@web.route('/api/system/browse', methods=['POST'])
+def browse_directory():
+    """
+    Opens a native directory selection dialog on the server machine.
+    Returns the selected path.
+    """
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        import winsound
+        import ctypes
+        
+        # 0. Enable High DPI Awareness (Windows)
+        try:
+            # Try newer API (Windows 8.1+)
+            # 1 = Process_System_DPI_Aware
+            # 2 = Process_Per_Monitor_DPI_Aware
+            ctypes.windll.shcore.SetProcessDpiAwareness(1) 
+        except Exception:
+            try:
+                # Fallback for older Windows
+                ctypes.windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass # Non-Windows or failure
+
+        # 1. Play a system sound to alert the user
+        winsound.MessageBeep(winsound.MB_ICONASTERISK)
+        
+        # 2. Create and force focus on the root window
+        root = tk.Tk()
+        root.withdraw() # Hide the main window
+        root.attributes('-topmost', True) # Keep on top
+        root.lift()
+        root.focus_force() # Force focus
+        
+        # 3. Open dialog with explicit parent to inherit topmost
+        path = filedialog.askdirectory(title="Select Output Directory", parent=root)
+        
+        root.destroy() # Cleanup
+        
+        if path:
+            # Normalize path separators
+            path = os.path.abspath(path)
+            return jsonify({"status": "ok", "path": path})
+        else:
+            return jsonify({"status": "cancelled"})
+            
+    except Exception as e:
+        print(f"[API] Browse Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @web.route('/api/heartbeat', methods=['GET'])

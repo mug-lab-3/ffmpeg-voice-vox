@@ -1,1 +1,3 @@
 output/
+core/__pycache__/
+logs/

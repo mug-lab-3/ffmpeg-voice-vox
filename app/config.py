@@ -20,7 +20,8 @@ class ConfigManager:
             "volume_scale": 1.0
         },
         "system": {
-            "is_synthesis_enabled": True
+            "is_synthesis_enabled": False,
+            "output_dir": ""
         }
     }
 
