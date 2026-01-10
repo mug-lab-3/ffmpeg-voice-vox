@@ -16,7 +16,7 @@ class FFmpegClient:
         Validates the FFmpeg configuration.
         Returns (True, None) if valid, (False, error_message) otherwise.
         """
-        required_keys = ["ffmpeg_path", "input_device", "model_path", "vad_model_path", "port", "queue_length"]
+        required_keys = ["ffmpeg_path", "input_device", "model_path", "vad_model_path", "queue_length"]
         for key in required_keys:
             if not config_data.get(key):
                 return False, f"Missing required setting: {key}"
@@ -27,7 +27,7 @@ class FFmpegClient:
 
         return True, None
 
-    def start_process(self, config_data):
+    def start_process(self, config_data, port_override=None):
         """
         Starts the FFmpeg process with the given configuration.
         """
@@ -44,7 +44,15 @@ class FFmpegClient:
             model_path = config_data["model_path"]
             vad_model_path = config_data["vad_model_path"]
             host = config_data["host"]
-            port = config_data["port"]
+            
+            # Resolving Port
+            # 1. Use override (from request context)
+            # 2. Use config (legacy)
+            port = port_override if port_override else config_data.get("port")
+            
+            if not port:
+                return False, "Port not specified and could not be determined."
+
             queue_length = config_data["queue_length"]
 
             # Construct command

@@ -28,8 +28,7 @@ const elements = {
         modelPath: document.getElementById('cfg-model-path'),
         vadPath: document.getElementById('cfg-vad-path'),
         queueLength: document.getElementById('cfg-queue-length'),
-        host: document.getElementById('cfg-host'),
-        port: document.getElementById('cfg-port')
+        host: document.getElementById('cfg-host')
     }
 };
 
@@ -120,8 +119,7 @@ function setupUIListeners() {
             model_path: elements.cfgInputs.modelPath.value,
             vad_model_path: elements.cfgInputs.vadPath.value,
             queue_length: elements.cfgInputs.queueLength.value,
-            host: elements.cfgInputs.host.value,
-            port: parseInt(elements.cfgInputs.port.value) || ""
+            host: elements.cfgInputs.host.value
         };
         try {
             await api.updateConfig({ ffmpeg: currentFFmpeg });
@@ -420,7 +418,6 @@ function renderConfig() {
         setIfExists(elements.cfgInputs.vadPath, config.ffmpeg.vad_model_path);
         setIfExists(elements.cfgInputs.queueLength, config.ffmpeg.queue_length);
         setIfExists(elements.cfgInputs.host, config.ffmpeg.host);
-        setIfExists(elements.cfgInputs.port, config.ffmpeg.port);
     }
 }
 

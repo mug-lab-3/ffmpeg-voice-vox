@@ -208,7 +208,12 @@ def handle_control_state():
                         }), 400
                 
                     # Start FFmpeg
-                    success, msg = ffmpeg_client.start_process(config.get("ffmpeg"))
+                    # Automatically determine port from the request (the port this server is listening on)
+                    current_port = None
+                    if ':' in request.host:
+                        current_port = request.host.split(':')[-1]
+                    
+                    success, msg = ffmpeg_client.start_process(config.get("ffmpeg"), port_override=current_port)
                     if not success:
                         print(f"[API] Enable Failed: FFmpeg start error: {msg}")
                         return jsonify({
