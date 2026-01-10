@@ -88,6 +88,11 @@ async function handleServerEvent(msg) {
 
     } else if (msg.type === "config_update") {
         await loadConfig();
+
+    } else if (msg.type === "resolve_status") {
+        updateResolveStatus(msg.data.available);
+        // Re-render logs to update button locks (enabled/disabled)
+        if (lastLogsJson) renderLogs(JSON.parse(lastLogsJson));
     }
 }
 

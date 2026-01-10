@@ -8,12 +8,13 @@ from app.core.events import event_manager
 
 web = Blueprint('web', __name__)
 
+from multiprocessing import current_process
+
 # Initialize services (Simple Dependency Injection)
 # In a larger app, we might use current_app or a proper DI framework
 from app.core.resolve import ResolveClient
 vv_client = VoiceVoxClient()
 audio_manager = AudioManager()
-processor = StreamProcessor(vv_client, audio_manager)
 processor = StreamProcessor(vv_client, audio_manager)
 
 # Lazy initialization for ResolveClient to verify preventing multiprocessing recursion
@@ -24,6 +25,43 @@ def get_resolve_client():
     if _resolve_client is None:
         _resolve_client = ResolveClient()
     return _resolve_client
+
+# Background Thread to Poll Resolve Status (Running in Main Process)
+# Checks the shared memory status of the child process
+import threading
+import time
+
+def start_resolve_poller():
+    def poll_loop():
+        last_status = False
+        while True:
+            try:
+                # Polling should only happen if we can safely access the client
+                # Double check to avoid any edge cases
+                if current_process().daemon:
+                    return
+
+                client = get_resolve_client()
+                current_status = client.is_available()
+                
+                if current_status != last_status:
+                    print(f"[System] Resolve Status Changed: {last_status} -> {current_status}")
+                    event_manager.publish("resolve_status", {"available": current_status})
+                    last_status = current_status
+                    
+            except Exception as e:
+                # Suppress expected error if somehow we get here, but log others
+                if "daemonic processes are not allowed" not in str(e):
+                    print(f"[System] Resolve Poller Error: {e}")
+            
+            time.sleep(2) # Poll UI status every 2s
+
+    t = threading.Thread(target=poll_loop, daemon=True)
+    t.start()
+
+# Only start the poller if we are NOT in a daemon process (like the Resolve monitor worker)
+if not current_process().daemon:
+    start_resolve_poller()
 
 @web.route('/api/stream')
 def stream():

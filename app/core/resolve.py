@@ -13,51 +13,74 @@ def monitor_resolve_process(shared_status, running_event):
     Continuously checks if DaVinci Resolve is reachable.
     Updates shared_status (0=No, 1=Yes).
     """
+    import sys
+    import time
+    import importlib
+    import os
+    import platform
+
+    # Setup local logger for this process
+    def log(msg):
+        try:
+            with open("resolve_monitor.log", "a", encoding="utf-8") as f:
+                import datetime
+                dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                f.write(f"[{dt}] {msg}\n")
+        except:
+            pass
+
+    log("Monitor process started")
+
     while running_event.is_set():
         success = False
         try:
-            # Try to load and connect
-            # We must duplicate the load logic here or import it 
-            # But simple is better for a process
             dvr_script = None
             
-            # 1. Try existing import
+            # Setup path just in case
+            if platform.system() == "Windows":
+                expected_path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
+                if os.path.exists(expected_path) and expected_path not in sys.path:
+                    sys.path.append(expected_path)
+
             try:
+                # Try standard import
                 import DaVinciResolveScript as dvr
-                dvr_script = dvr
-            except ImportError:
-                # 2. Try manual path loading (Windows logic primarily)
-                if platform.system() == "Windows":
-                    expected_path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
-                    if os.path.exists(expected_path) and expected_path not in sys.path:
-                        sys.path.append(expected_path)
                 
+                # Force reload to detect new instance if it was previously loaded but disconnected
+                # Note: reload might fail if the module structure is complex, but for this single file module it should be fine
                 try:
-                    import DaVinciResolveScript as dvr
-                    dvr_script = dvr
-                except ImportError:
-                    pass
+                    importlib.reload(dvr)
+                except Exception as e:
+                    log(f"Reload warning: {e}")
+                
+                dvr_script = dvr
+            except ImportError as e:
+                # log(f"ImportError: {e}") # Expected if not running
+                pass
+            except Exception as e:
+                log(f"Unexpected Import Error: {e}")
 
             if dvr_script:
-                # The heavy blocking call
-                resolve = dvr_script.scriptapp("Resolve")
-                if resolve:
-                    success = True
-        except Exception:
-            pass
+                try:
+                    resolve = dvr_script.scriptapp("Resolve")
+                    if resolve:
+                        success = True
+                except Exception as e:
+                     log(f"scriptapp error: {e}")
+                    
+        except Exception as e:
+            log(f"Probe Error: {e}")
 
         # Update shared status
         shared_status.value = 1 if success else 0
+        
+        # Debug log on status change or periodically? 
+        # log(f"Status: {success}")
 
-        # Backoff logic
-        # If success, check every 5s to detect crash quickly
-        # If fail, backoff to avoid spamming the checking mechanism
         if success:
             time.sleep(5)
         else:
-            # If not found, sleep longer (15s) to reduce CPU/GIL usage impact even in separate process?
-            # Actually separate process doesn't affect Main GIL. 
-            time.sleep(15) 
+            time.sleep(5) 
 
 class ResolveClient:
     def __init__(self):
