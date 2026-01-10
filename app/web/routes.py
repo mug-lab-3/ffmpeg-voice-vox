@@ -40,6 +40,9 @@ def cleanup_resources():
     if ffmpeg_client:
         print("[System] Shutting down FFmpeg...")
         ffmpeg_client.stop_process()
+    
+    # Signal poller to stop
+    voicevox_stop_event.set()
 
 
 # Background Thread to Poll Resolve Status (Running in Main Process)
@@ -75,9 +78,43 @@ def start_resolve_poller():
     t = threading.Thread(target=poll_loop, daemon=True)
     t.start()
 
-# Only start the poller if we are NOT in a daemon process (like the Resolve monitor worker)
+# Background Thread to Poll Voicevox Status
+voicevox_stop_event = threading.Event()
+
+def start_voicevox_poller():
+    def poll_loop():
+        last_status = False
+        while not voicevox_stop_event.is_set():
+            try:
+                current_status = vv_client.is_available()
+                
+                if current_status != last_status:
+                    print(f"[System] Voicevox Status Changed: {last_status} -> {current_status}")
+                    event_manager.publish("voicevox_status", {"available": current_status})
+                    
+                    # If lost connection and synthesis is enabled, stop it
+                    if not current_status and config.get("system.is_synthesis_enabled"):
+                        print("[System] Voicevox connection lost. Stopping synthesis...")
+                        ffmpeg_client.stop_process()
+                        config.update("system.is_synthesis_enabled", False)
+                        event_manager.publish("state_update", {"is_enabled": False})
+                        
+                    last_status = current_status
+                    
+            except Exception as e:
+                print(f"[System] Voicevox Poller Error: {e}")
+            
+            # Wait with check
+            if voicevox_stop_event.wait(timeout=2):
+                break
+
+    t = threading.Thread(target=poll_loop, daemon=True)
+    t.start()
+
+# Only start the poller if we are NOT in a daemon process
 if not current_process().daemon:
     start_resolve_poller()
+    start_voicevox_poller()
 
 @web.route('/api/stream')
 def stream():
@@ -159,23 +196,27 @@ def handle_config():
         event_manager.publish("config_update", {})
 
         resolve_available = get_resolve_client().is_available()
+        voicevox_available = vv_client.is_available()
 
         return jsonify({
             "status": "ok", 
             "config": config.get("synthesis"),
             "outputDir": config.get("system.output_dir"),
             "ffmpeg": config.get("ffmpeg"),
-            "resolve_available": resolve_available
+            "resolve_available": resolve_available,
+            "voicevox_available": voicevox_available
         })
     else:
         # Return full config structure for frontend compatibility
         resolve_available = get_resolve_client().is_available()
+        voicevox_available = vv_client.is_available()
 
         return jsonify({
             "config": config.get("synthesis"),
             "outputDir": config.get("system.output_dir"),
             "ffmpeg": config.get("ffmpeg"),
-            "resolve_available": resolve_available
+            "resolve_available": resolve_available,
+            "voicevox_available": voicevox_available
         })
 
 @web.route('/api/speakers', methods=['GET'])
@@ -199,6 +240,13 @@ def handle_control_state():
                 
                 if should_enable:
                     # Validation before enabling
+                    if not vv_client.is_available():
+                        print(f"[API] Enable Failed: VOICEVOX is not available.")
+                        return jsonify({
+                            "status": "error", 
+                            "message": "VOICEVOX is disconnected. Please start VOICEVOX."
+                        }), 400
+
                     current_output = config.get("system.output_dir")
                     if not audio_manager.validate_output_dir(current_output):
                         print(f"[API] Enable Failed: Invalid Output Directory: '{current_output}'")
@@ -235,11 +283,13 @@ def handle_control_state():
         else:
             status = audio_manager.get_playback_status()
             resolve_available = get_resolve_client().is_available()
+            voicevox_available = vv_client.is_available()
             
             return jsonify({
                 "enabled": config.get("system.is_synthesis_enabled"),
                 "playback": status,
-                "resolve_available": resolve_available
+                "resolve_available": resolve_available,
+                "voicevox_available": voicevox_available
             })
     except Exception as e:
         print(f"[API] Error in handle_control_state: {e}")

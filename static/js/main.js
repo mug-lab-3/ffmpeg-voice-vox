@@ -20,6 +20,7 @@ const elements = {
     browseBtn: document.getElementById('browseOutputDir'),
     dirStatus: document.getElementById('dir-status'),
     resolveStatus: document.getElementById('resolve-status'),
+    voicevoxStatus: document.getElementById('voicevox-status'),
 
     // Settings (Direct Inputs)
     cfgInputs: {
@@ -68,9 +69,9 @@ async function init() {
             if (configRes.data.ffmpeg) {
                 fullConfig = { ...fullConfig, ffmpeg: configRes.data.ffmpeg };
             }
-            store.setConfig(fullConfig, configRes.data.outputDir, configRes.data.resolve_available);
+            store.setConfig(fullConfig, configRes.data.outputDir, configRes.data.resolve_available, configRes.data.voicevox_available);
         }
-        if (controlRes.ok) store.setControlState(controlRes.data.enabled, controlRes.data.playback, controlRes.data.resolve_available);
+        if (controlRes.ok) store.setControlState(controlRes.data.enabled, controlRes.data.playback, controlRes.data.resolve_available, controlRes.data.voicevox_available);
         if (logsRes.ok) store.setLogs(logsRes.data);
 
     } catch (e) {
@@ -87,6 +88,7 @@ function setupStoreListeners() {
     store.addEventListener('state_updated', () => {
         renderStartStopUI();
         renderResolveStatus();
+        renderVoicevoxStatus();
         renderLogs(); // State changes affect button locks
     });
     store.addEventListener('logs_updated', renderLogs);
@@ -330,6 +332,9 @@ async function handleServerEvent(msg) {
         case "resolve_status":
             store.updateResolveStatus(msg.data.available);
             break;
+        case "voicevox_status":
+            store.updateVoicevoxStatus(msg.data.available);
+            break;
     }
 }
 
@@ -386,6 +391,8 @@ function renderConfig() {
 
     // Resolve Status
     renderResolveStatus();
+    // Voicevox Status
+    renderVoicevoxStatus();
     // Start/Stop UI dependence on config (dir)
     renderStartStopUI();
 
@@ -433,6 +440,19 @@ function renderResolveStatus() {
     }
 }
 
+function renderVoicevoxStatus() {
+    const available = store.isVoicevoxAvailable;
+    const el = elements.voicevoxStatus;
+    if (!el) return;
+    if (available) {
+        el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background-color: #a8df65;"></span> Connected`;
+        el.style.color = "#a8df65";
+    } else {
+        el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background-color: #666;"></span> Disconnected`;
+        el.style.color = "#666";
+    }
+}
+
 function renderStartStopUI() {
     const btn = elements.startStopBtn;
     const dirInput = elements.outputDir;
@@ -466,14 +486,20 @@ function renderStartStopUI() {
         dirInput.style.opacity = '1';
 
         // Check startability
-        if (hasDir) {
+        if (hasDir && store.isVoicevoxAvailable) {
             btn.classList.remove('disabled');
             btn.style.opacity = '1';
             btn.style.cursor = 'pointer';
+            btn.title = "Click to Start Synthesis";
         } else {
             btn.classList.add('disabled');
             btn.style.opacity = '0.5';
             btn.style.cursor = 'not-allowed';
+            if (!store.isVoicevoxAvailable) {
+                btn.title = "VOICEVOX is disconnected. Please start VOICEVOX.";
+            } else {
+                btn.title = "Please set an output directory to start.";
+            }
         }
     }
 }
@@ -486,7 +512,8 @@ function renderLogs() {
     const playbackKey = `${store.playbackState.is_playing}_${store.playbackState.filename}`;
     const synthesisKey = store.isSynthesisEnabled;
     const resolveKey = store.isResolveAvailable;
-    const stateKey = `${playbackKey}_${synthesisKey}_${resolveKey}`;
+    const voicevoxKey = store.isVoicevoxAvailable;
+    const stateKey = `${playbackKey}_${synthesisKey}_${resolveKey}_${voicevoxKey}`;
 
     if (currentJson === lastRenderedLogsJson && stateKey === lastRenderedStateKey) {
         return;

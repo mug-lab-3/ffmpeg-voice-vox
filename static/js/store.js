@@ -11,6 +11,7 @@ export class AppStore extends EventTarget {
             config: {},
             isSynthesisEnabled: false,
             isResolveAvailable: false,
+            isVoicevoxAvailable: false,
             serverPlaybackState: { is_playing: false, filename: null, remaining: 0 },
             logs: [],
             outputDir: ""
@@ -25,14 +26,15 @@ export class AppStore extends EventTarget {
         this._emit('speakers_updated');
     }
 
-    setConfig(config, outputDir, resolveAvailable) {
+    setConfig(config, outputDir, resolveAvailable, voicevoxAvailable) {
         this.state.config = { ...this.state.config, ...config };
         if (outputDir !== undefined) this.state.outputDir = outputDir;
         if (resolveAvailable !== undefined) this.state.isResolveAvailable = resolveAvailable;
+        if (voicevoxAvailable !== undefined) this.state.isVoicevoxAvailable = voicevoxAvailable;
         this._emit('config_updated');
     }
 
-    setControlState(enabled, playback, resolveAvailable) {
+    setControlState(enabled, playback, resolveAvailable, voicevoxAvailable) {
         let changed = false;
 
         if (this.state.isSynthesisEnabled !== enabled) {
@@ -51,6 +53,11 @@ export class AppStore extends EventTarget {
             changed = true;
         }
 
+        if (voicevoxAvailable !== undefined && this.state.isVoicevoxAvailable !== voicevoxAvailable) {
+            this.state.isVoicevoxAvailable = voicevoxAvailable;
+            changed = true;
+        }
+
         if (changed) this._emit('state_updated');
     }
 
@@ -63,6 +70,13 @@ export class AppStore extends EventTarget {
     updateResolveStatus(available) {
         if (this.state.isResolveAvailable !== available) {
             this.state.isResolveAvailable = available;
+            this._emit('state_updated');
+        }
+    }
+
+    updateVoicevoxStatus(available) {
+        if (this.state.isVoicevoxAvailable !== available) {
+            this.state.isVoicevoxAvailable = available;
             this._emit('state_updated');
         }
     }
@@ -86,6 +100,7 @@ export class AppStore extends EventTarget {
     get config() { return this.state.config; }
     get isSynthesisEnabled() { return this.state.isSynthesisEnabled; }
     get isResolveAvailable() { return this.state.isResolveAvailable; }
+    get isVoicevoxAvailable() { return this.state.isVoicevoxAvailable; }
     get playbackState() { return this.state.serverPlaybackState; }
     get logs() { return this.state.logs; }
     get outputDir() { return this.state.outputDir; }

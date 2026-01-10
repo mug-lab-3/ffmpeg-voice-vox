@@ -13,6 +13,15 @@ class VoiceVoxClient:
         port = config.get("voicevox.port", 50021)
         return f"http://{host}:{port}"
 
+    def is_available(self) -> bool:
+        try:
+            url = f"{self.base_url}/version"
+            req = urllib.request.Request(url, method='GET')
+            with urllib.request.urlopen(req, timeout=1) as res:
+                return res.getcode() == 200
+        except:
+            return False
+
     def get_speakers(self):
         # NOTE: In a real app we might want to fetch this from the API dynamically,
         # but for now we keep the existing hardcoded mapping or fetch it if needed.
