@@ -22,7 +22,13 @@ def monitor_resolve_process(shared_status, running_event):
     # Setup local logger for this process
     def log(msg):
         try:
-            with open("resolve_monitor.log", "a", encoding="utf-8") as f:
+            log_dir = "logs"
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+            
+            log_file = os.path.join(log_dir, "resolve_monitor.log")
+            
+            with open(log_file, "a", encoding="utf-8") as f:
                 import datetime
                 dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 f.write(f"[{dt}] {msg}\n")
@@ -30,6 +36,8 @@ def monitor_resolve_process(shared_status, running_event):
             pass
 
     log("Monitor process started")
+
+    last_status = None # None indicates startup/unknown
 
     while running_event.is_set():
         try:
@@ -48,15 +56,15 @@ def monitor_resolve_process(shared_status, running_event):
                     import DaVinciResolveScript as dvr
                     
                     # Force reload to detect new instance if it was previously loaded but disconnected
-                    # Note: reload might fail if the module structure is complex, but for this single file module it should be fine
                     try:
                         importlib.reload(dvr)
                     except Exception as e:
-                        log(f"Reload warning: {e}")
+                        if last_status is not False: # Only log if we weren't already disconnected to avoid spam
+                            log(f"Reload warning: {e}")
                     
                     dvr_script = dvr
                 except ImportError as e:
-                    # log(f"ImportError: {e}") # Expected if not running
+                    # Expected if not running
                     pass
                 except Exception as e:
                     log(f"Unexpected Import Error: {e}")
@@ -75,13 +83,13 @@ def monitor_resolve_process(shared_status, running_event):
             # Update shared status
             shared_status.value = 1 if success else 0
             
-            # Debug log on status change or periodically? 
-            # log(f"Status: {success}")
+            # Log on status change
+            if success != last_status:
+                status_str = "Connected" if success else "Disconnected"
+                log(f"Status Changed: {status_str}")
+                last_status = success
 
-            if success:
-                time.sleep(5)
-            else:
-                time.sleep(5) 
+            time.sleep(5)
                 
         except KeyboardInterrupt:
             # Clean exit on shutdown

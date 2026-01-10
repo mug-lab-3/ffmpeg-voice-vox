@@ -19,7 +19,22 @@ const elements = {
     outputDir: document.getElementById('outputDir'),
     browseBtn: document.getElementById('browseOutputDir'),
     dirStatus: document.getElementById('dir-status'),
-    resolveStatus: document.getElementById('resolve-status')
+    resolveStatus: document.getElementById('resolve-status'),
+
+    // Settings
+    settingsBtn: document.getElementById('settings-btn'),
+    settingsModal: document.getElementById('settings-modal'),
+    settingsSave: document.getElementById('settings-save'),
+    settingsCancel: document.getElementById('settings-cancel'),
+    cfgInputs: {
+        ffmpegPath: document.getElementById('cfg-ffmpeg-path'),
+        inputDevice: document.getElementById('cfg-input-device'),
+        modelPath: document.getElementById('cfg-model-path'),
+        vadPath: document.getElementById('cfg-vad-path'),
+        queueLength: document.getElementById('cfg-queue-length'),
+        host: document.getElementById('cfg-host'),
+        port: document.getElementById('cfg-port')
+    }
 };
 
 const valueDisplays = {
@@ -52,7 +67,14 @@ async function init() {
         ]);
 
         if (speakersRes.ok) store.setSpeakers(speakersRes.data);
-        if (configRes.ok) store.setConfig(configRes.data.config || configRes.data, configRes.data.outputDir, configRes.data.resolve_available);
+        if (speakersRes.ok) store.setSpeakers(speakersRes.data);
+        if (configRes.ok) {
+            let fullConfig = configRes.data.config || configRes.data;
+            if (configRes.data.ffmpeg) {
+                fullConfig = { ...fullConfig, ffmpeg: configRes.data.ffmpeg };
+            }
+            store.setConfig(fullConfig, configRes.data.outputDir, configRes.data.resolve_available);
+        }
         if (controlRes.ok) store.setControlState(controlRes.data.enabled, controlRes.data.playback, controlRes.data.resolve_available);
         if (logsRes.ok) store.setLogs(logsRes.data);
 
@@ -120,6 +142,42 @@ function setupUIListeners() {
 
     // Start/Stop
     elements.startStopBtn.addEventListener('click', handleStartStopClick);
+
+    // Settings Modal
+    setupSettingsModalListeners();
+}
+
+function setupSettingsModalListeners() {
+    elements.settingsBtn.addEventListener('click', () => {
+        elements.settingsModal.classList.add('active');
+    });
+
+    elements.settingsCancel.addEventListener('click', () => {
+        elements.settingsModal.classList.remove('active');
+        renderConfig(); // Reset inputs
+    });
+
+    elements.settingsSave.addEventListener('click', async () => {
+        const newCfg = {
+            ffmpeg: {
+                ffmpeg_path: elements.cfgInputs.ffmpegPath.value,
+                input_device: elements.cfgInputs.inputDevice.value,
+                model_path: elements.cfgInputs.modelPath.value,
+                vad_model_path: elements.cfgInputs.vadPath.value,
+                queue_length: elements.cfgInputs.queueLength.value,
+                host: elements.cfgInputs.host.value,
+                port: parseInt(elements.cfgInputs.port.value) || ""
+            }
+        };
+
+        elements.settingsModal.classList.remove('active');
+
+        try {
+            await api.updateConfig(newCfg);
+        } catch (e) {
+            await showAlert("Error", "Failed to save settings");
+        }
+    });
 }
 
 function setupSSE() {
@@ -186,7 +244,13 @@ async function handleServerEvent(msg) {
             break;
         case "config_update":
             const cRes = await api.getConfig();
-            if (cRes.ok) store.setConfig(cRes.data.config || cRes.data, cRes.data.outputDir, cRes.data.resolve_available);
+            if (cRes.ok) {
+                let fullConfig = cRes.data.config || cRes.data;
+                if (cRes.data.ffmpeg) {
+                    fullConfig = { ...fullConfig, ffmpeg: cRes.data.ffmpeg };
+                }
+                store.setConfig(fullConfig, cRes.data.outputDir, cRes.data.resolve_available);
+            }
             break;
         case "resolve_status":
             store.updateResolveStatus(msg.data.available);
@@ -249,6 +313,18 @@ function renderConfig() {
     renderResolveStatus();
     // Start/Stop UI dependence on config (dir)
     renderStartStopUI();
+
+    // Render FFmpeg Settings
+    if (config.ffmpeg) {
+        const setIfExists = (el, val) => { if (el && val !== undefined) el.value = val; };
+        setIfExists(elements.cfgInputs.ffmpegPath, config.ffmpeg.ffmpeg_path);
+        setIfExists(elements.cfgInputs.inputDevice, config.ffmpeg.input_device);
+        setIfExists(elements.cfgInputs.modelPath, config.ffmpeg.model_path);
+        setIfExists(elements.cfgInputs.vadPath, config.ffmpeg.vad_model_path);
+        setIfExists(elements.cfgInputs.queueLength, config.ffmpeg.queue_length);
+        setIfExists(elements.cfgInputs.host, config.ffmpeg.host);
+        setIfExists(elements.cfgInputs.port, config.ffmpeg.port);
+    }
 }
 
 function renderResolveStatus() {

@@ -13,9 +13,12 @@ from multiprocessing import current_process
 # Initialize services (Simple Dependency Injection)
 # In a larger app, we might use current_app or a proper DI framework
 from app.core.resolve import ResolveClient
+from app.core.ffmpeg import FFmpegClient
+
 vv_client = VoiceVoxClient()
 audio_manager = AudioManager()
 processor = StreamProcessor(vv_client, audio_manager)
+ffmpeg_client = FFmpegClient()
 
 # Lazy initialization for ResolveClient to verify preventing multiprocessing recursion
 _resolve_client = None
@@ -112,6 +115,12 @@ def handle_config():
             config.update("system.output_dir", new_config["outputDir"])
             # Reload history logs from the new directory
             processor.reload_history()
+            
+        # Handle FFmpeg config
+        if "ffmpeg" in new_config:
+            # We assume the frontend passes a dict for 'ffmpeg' key
+            for k, v in new_config["ffmpeg"].items():
+                config.update(f"ffmpeg.{k}", v)
                 
         print(f"  -> Config Updated")
         
@@ -124,6 +133,7 @@ def handle_config():
             "status": "ok", 
             "config": config.get("synthesis"),
             "outputDir": config.get("system.output_dir"),
+            "ffmpeg": config.get("ffmpeg"),
             "resolve_available": resolve_available
         })
     else:
@@ -138,6 +148,7 @@ def handle_config():
             "intonationScale": syn_config["intonation_scale"],
             "volumeScale": syn_config["volume_scale"],
             "outputDir": config.get("system.output_dir"),
+            "ffmpeg": config.get("ffmpeg"),
             "resolve_available": resolve_available
         })
 
@@ -169,6 +180,19 @@ def handle_control_state():
                             "status": "error", 
                             "message": "Invalid or non-writable output directory"
                         }), 400
+                
+                    # Start FFmpeg
+                    success, msg = ffmpeg_client.start_process(config.get("ffmpeg"))
+                    if not success:
+                        print(f"[API] Enable Failed: FFmpeg start error: {msg}")
+                        return jsonify({
+                            "status": "error", 
+                            "message": f"FFmpeg Start Error: {msg}"
+                        }), 400
+
+                else:
+                    # Stop FFmpeg
+                    ffmpeg_client.stop_process()
                 
                 config.update("system.is_synthesis_enabled", should_enable)
                 print(f"[API] Synthesis State Updated: {config.get('system.is_synthesis_enabled')}")

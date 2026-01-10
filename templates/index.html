@@ -31,6 +31,28 @@
                     </span>
                 </div>
             </div>
+            <button id="settings-btn" title="FFmpeg Settings" style="
+                background: transparent;
+                border: 1px solid #444;
+                color: #aaa;
+                width: 40px;
+                height: 40px;
+                border-radius: 8px;
+                cursor: pointer;
+                margin-right: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+            ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                </svg>
+            </button>
             <button id="start-stop-btn" style="
                 background-color: var(--primary); 
                 color: #222; 
@@ -128,6 +150,60 @@
                         <!-- Logs go here -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content" style="width: 500px; text-align: left;">
+            <div class="modal-title">FFmpeg Configuration</div>
+            <div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+
+                <div class="control-group">
+                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Path to ffmpeg.exe</label>
+                    <input type="text" id="cfg-ffmpeg-path" class="modal-input" placeholder="./ffmpeg">
+                </div>
+
+                <div class="control-group">
+                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Input Device Name</label>
+                    <input type="text" id="cfg-input-device" class="modal-input" placeholder="e.g. マイク (name)">
+                </div>
+
+                <div class="control-group">
+                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Whisper Model Path</label>
+                    <input type="text" id="cfg-model-path" class="modal-input"
+                        placeholder="../models/ggml-large-v3.bin">
+                </div>
+
+                <div class="control-group">
+                    <label style="font-size: 0.8rem; margin-bottom: 2px;">VAD Model Path</label>
+                    <input type="text" id="cfg-vad-path" class="modal-input"
+                        placeholder="../vad/ggml-silero-v6.2.0.bin">
+                </div>
+
+                <div class="control-group">
+                    <label style="font-size: 0.8rem; margin-bottom: 2px;">Queue Length</label>
+                    <input type="number" id="cfg-queue-length" class="modal-input" placeholder="10">
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div class="control-group" style="flex: 2;">
+                        <label style="font-size: 0.8rem; margin-bottom: 2px;">Host</label>
+                        <input type="text" id="cfg-host" class="modal-input" value="localhost">
+                    </div>
+                    <div class="control-group" style="flex: 1;">
+                        <label style="font-size: 0.8rem; margin-bottom: 2px;">Port</label>
+                        <input type="number" id="cfg-port" class="modal-input" placeholder="3000">
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="btn-modal btn-cancel" id="settings-cancel">Cancel</button>
+                <button class="btn-modal btn-primary" id="settings-save">Save Settings</button>
             </div>
         </div>
     </div>

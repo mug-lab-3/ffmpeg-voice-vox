@@ -23,6 +23,15 @@ class ConfigManager:
             "is_synthesis_enabled": False,
             "output_dir": ""
         },
+        "ffmpeg": {
+            "ffmpeg_path": "",
+            "input_device": "",
+            "model_path": "",
+            "vad_model_path": "",
+            "host": "localhost",
+            "port": "",
+            "queue_length": ""
+        },
         "resolve": {
             "enabled": False,
             "track_index": 1

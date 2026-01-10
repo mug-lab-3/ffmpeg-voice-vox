@@ -1,3 +1,4 @@
+
 import webbrowser
 import threading
 import time
@@ -6,8 +7,6 @@ import platform
 import subprocess
 from app import create_app
 from app.config import config
-
-app = create_app()
 
 def kill_existing_process(port):
     """
@@ -49,7 +48,6 @@ def kill_existing_process(port):
 last_activity_time = time.time()
 SHUTDOWN_TIMEOUT = 300  # 5 minutes
 
-@app.before_request
 def update_activity():
     global last_activity_time
     last_activity_time = time.time()
@@ -65,10 +63,15 @@ def monitor_activity():
             os._exit(0)
 
 if __name__ == '__main__':
+    # 1. Load config and kill existing process first (to free up log files/ports)
     host = config.get("server.host", "127.0.0.1")
     port = config.get("server.port", 3000)
     
     kill_existing_process(port)
+
+    # 2. Initialize App (Logging setup happens here)
+    app = create_app()
+    app.before_request(update_activity)
     
     # Start monitor thread
     threading.Thread(target=monitor_activity, daemon=True).start()
