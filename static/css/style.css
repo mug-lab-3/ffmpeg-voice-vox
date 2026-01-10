@@ -95,17 +95,7 @@ input[type=range]::-webkit-slider-runnable-track {
     font-weight: bold;
 }
 
-/* Status Indicator */
-.status {
-    text-align: center;
-    margin-top: 2rem;
-    font-size: 0.8rem;
-    color: #666;
-}
 
-.status.active {
-    color: var(--primary);
-}
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {

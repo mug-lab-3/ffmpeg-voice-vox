@@ -13,7 +13,7 @@ const elements = {
     pitchScale: document.getElementById('pitchScale'),
     intonationScale: document.getElementById('intonationScale'),
     volumeScale: document.getElementById('volumeScale'),
-    status: document.getElementById('status-msg'),
+
     logTableBody: document.getElementById('log-table-body'),
     startStopBtn: document.getElementById('start-stop-btn'),
     outputDir: document.getElementById('outputDir'),
@@ -76,7 +76,6 @@ async function init() {
 
     } catch (e) {
         console.error("Initialization failed", e);
-        elements.status.textContent = "Initialization failed. Check console.";
     }
 }
 
