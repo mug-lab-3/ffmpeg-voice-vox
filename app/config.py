@@ -22,6 +22,10 @@ class ConfigManager:
         "system": {
             "is_synthesis_enabled": False,
             "output_dir": ""
+        },
+        "resolve": {
+            "enabled": False,
+            "track_index": 1
         }
     }
 

@@ -17,7 +17,8 @@ const elements = {
     startStopBtn: document.getElementById('start-stop-btn'),
     outputDir: document.getElementById('outputDir'),
     browseBtn: document.getElementById('browseOutputDir'),
-    dirStatus: document.getElementById('dir-status')
+    dirStatus: document.getElementById('dir-status'),
+    resolveToggle: document.getElementById('resolveToggle')
 };
 
 // Global State
@@ -124,8 +125,8 @@ function renderLogs(logs) {
 
             const configCell = document.createElement('td');
             const cfg = entry.config;
-            const spName = speakerMap[cfg.speaker] || `ID:${cfg.speaker}`;
-            configCell.innerHTML = `<span style="color: var(--primary)">${spName}</span> <span style="font-size: 0.8em; color: #666;">(x${cfg.speedScale.toFixed(2)})</span>`;
+            const spName = speakerMap[cfg.speaker_id] || `ID:${cfg.speaker_id}`;
+            configCell.innerHTML = `<span style="color: var(--primary)">${spName}</span> <span style="font-size: 0.8em; color: #666;">(x${cfg.speed_scale.toFixed(2)})</span>`;
             configCell.style.padding = '8px';
 
             const playCell = document.createElement('td');
@@ -261,6 +262,13 @@ async function loadConfig() {
             elements.dirStatus.style.color = "#ff6b6b";
         }
 
+        // Handle Resolve
+        if (config.resolve && config.resolve.enabled) {
+            elements.resolveToggle.checked = true;
+        } else {
+            elements.resolveToggle.checked = false;
+        }
+
         // Initial UI State update happens in loadControlState->updateStartStopUI usually,
         // but checking empty dir is needed here too.
         checkStartability();
@@ -286,6 +294,11 @@ function setupListeners() {
             const value = (key === 'speaker') ? parseInt(e.target.value) : parseFloat(e.target.value);
             await updateConfig(key, value);
         });
+    });
+
+    elements.resolveToggle.addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+        await updateConfig('resolveEnabled', enabled);
     });
 
     elements.browseBtn.addEventListener('click', async () => {
@@ -369,14 +382,14 @@ async function toggleControlState() {
         }
     } catch (e) {
         console.error("Failed to toggle state", e);
-        await showAlert("Connection Error", "Failed to communicate with server");
+        await showAlert("Connection Error", `Failed to communicate with server: ${e.message}`);
     }
 }
 
 function updateStartStopUI() {
     const btn = elements.startStopBtn;
     const dirInput = elements.outputDir;
-    const applyBtn = elements.applyOutputDir;
+    const browseBtn = elements.browseBtn;
 
     if (isSynthesisEnabled) {
         btn.textContent = "STOP";
@@ -388,8 +401,8 @@ function updateStartStopUI() {
 
         // Lock Input when Running
         dirInput.disabled = true;
-        applyBtn.disabled = true;
-        applyBtn.style.opacity = '0.5';
+        browseBtn.disabled = true;
+        browseBtn.style.opacity = '0.5';
         dirInput.style.opacity = '0.5';
 
     } else {
@@ -399,8 +412,8 @@ function updateStartStopUI() {
 
         // Unlock Input when Stopped
         dirInput.disabled = false;
-        applyBtn.disabled = false;
-        applyBtn.style.opacity = '1';
+        browseBtn.disabled = false;
+        browseBtn.style.opacity = '1';
         dirInput.style.opacity = '1';
 
         checkStartability();

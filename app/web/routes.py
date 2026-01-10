@@ -35,12 +35,23 @@ def handle_config():
             "speedScale": "synthesis.speed_scale",
             "pitchScale": "synthesis.pitch_scale",
             "intonationScale": "synthesis.intonation_scale",
-            "volumeScale": "synthesis.volume_scale"
+            "volumeScale": "synthesis.volume_scale",
+            "resolveEnabled": "resolve.enabled"
         }
         
         for client_key, config_key in mapping.items():
             if client_key in new_config:
-                config.update(config_key, new_config[client_key])
+                val = new_config[client_key]
+                print(f"[API] Config Update: {client_key} = {val} (Type: {type(val)})")
+                
+                # Force boolean for specific keys if string passed
+                if config_key == "resolve.enabled":
+                    if isinstance(val, str):
+                        val = (val.lower() == "true")
+                    else:
+                        val = bool(val)
+                
+                config.update(config_key, val)
 
         # Handle output directory
         if "outputDir" in new_config:

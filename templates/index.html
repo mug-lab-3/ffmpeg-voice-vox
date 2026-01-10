@@ -12,7 +12,38 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h1 style="margin: 0;">VOICEVOX Ctrl</h1>
+            <div>
+                <h1 style="margin: 0;">VOICEVOX Ctrl</h1>
+                <div style="margin-top: 5px; display: flex; align-items: center; gap: 8px;">
+                    <label class="switch" style="position: relative; display: inline-block; width: 34px; height: 20px;">
+                        <input type="checkbox" id="resolveToggle">
+                        <span class="slider round"
+                            style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                        <style>
+                            .slider:before {
+                                position: absolute;
+                                content: "";
+                                height: 14px;
+                                width: 14px;
+                                left: 3px;
+                                bottom: 3px;
+                                background-color: white;
+                                transition: .4s;
+                                border-radius: 50%;
+                            }
+
+                            input:checked+.slider {
+                                background-color: #2196F3;
+                            }
+
+                            input:checked+.slider:before {
+                                transform: translateX(14px);
+                            }
+                        </style>
+                    </label>
+                    <span style="font-size: 0.8rem; color: #888;">DaVinci Link</span>
+                </div>
+            </div>
             <button id="start-stop-btn" style="
                 background-color: var(--primary); 
                 color: #222; 

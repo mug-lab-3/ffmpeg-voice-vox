@@ -87,6 +87,18 @@ class AudioManager:
         # Write WAV
         with open(wav_path, "wb") as f:
             f.write(audio_data)
+
+        # Insert to DaVinci Resolve if enabled
+        if config.get("resolve.enabled", False):
+            try:
+                from app.core.resolve import ResolveClient
+                # Determine absolute path for Resolve
+                abs_wav_path = os.path.abspath(wav_path)
+                # Run in a separate thread to avoid blocking audio saving/playback
+                import threading
+                threading.Thread(target=ResolveClient().insert_file, args=(abs_wav_path,)).start()
+            except Exception as e:
+                print(f"[Audio] Resolve Integration Error: {e}")
             
         # Calculate duration
         # Default to JSON duration if WAV calculation fails, but try WAV first
