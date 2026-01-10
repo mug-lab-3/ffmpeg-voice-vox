@@ -43,38 +43,58 @@ def monitor_resolve_process(shared_status, running_event):
     while running_event.is_set():
         try:
             success = False
+            
+            # STEP 0: Check if Resolve process even exists before doing heavy API calls
+            is_running = False
+            import subprocess
             try:
-                # Setup path just in case (only once)
                 if platform.system() == "Windows":
-                    expected_path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
-                    if os.path.exists(expected_path) and expected_path not in sys.path:
-                        sys.path.append(expected_path)
+                    # Using tasklist is faster and lighter than scripting API probes
+                    cmd = 'tasklist /FI "IMAGENAME eq Resolve.exe" /NH'
+                    out = subprocess.check_output(cmd, shell=True, creationflags=0x08000000).decode('cp932', errors='ignore')
+                    if "Resolve.exe" in out:
+                        is_running = True
+                else:
+                    is_running = True # Fallback for other OS
+            except:
+                is_running = True # If command fails, fall back to probe
 
-                # Try to import/reload only if not connected or not yet imported
-                if dvr_module is None:
-                    try:
-                        import DaVinciResolveScript as dvr
-                        dvr_module = dvr
-                    except ImportError:
-                        pass
-                elif not last_status: # If module exists but was disconnected, try reload
-                    try:
-                        importlib.reload(dvr_module)
-                    except:
-                        pass
+            if is_running:
+                try:
+                    # Setup path just in case (only once)
+                    if platform.system() == "Windows":
+                        expected_path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
+                        if os.path.exists(expected_path) and expected_path not in sys.path:
+                            sys.path.append(expected_path)
 
-                if dvr_module:
-                    try:
-                        resolve = dvr_module.scriptapp("Resolve")
-                        if resolve:
-                            success = True
-                    except:
-                        pass
-                        
-            except Exception as e:
-                # Only log probe errors if they seem critical or status changed
-                if last_status is not False:
-                    log(f"Probe Error: {e}")
+                    # Try to import/reload only if not connected or not yet imported
+                    if dvr_module is None:
+                        try:
+                            import DaVinciResolveScript as dvr
+                            dvr_module = dvr
+                        except ImportError:
+                            pass
+                    elif not last_status: # If module exists but was disconnected, try reload
+                        try:
+                            importlib.reload(dvr_module)
+                        except:
+                            pass
+
+                    if dvr_module:
+                        try:
+                            resolve = dvr_module.scriptapp("Resolve")
+                            if resolve:
+                                success = True
+                        except:
+                            pass
+                            
+                except Exception as e:
+                    # Only log probe errors if status changed
+                    if last_status is not False:
+                        log(f"Probe Error: {e}")
+            else:
+                # Resolve is not even in task list, definitely not success
+                success = False
 
             # Update shared status
             shared_status.value = 1 if success else 0
