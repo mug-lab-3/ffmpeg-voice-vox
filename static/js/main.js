@@ -209,6 +209,7 @@ function renderLogs(logs) {
                         playBtn.style.cursor = 'not-allowed';
                         playBtn.title = "Stop server to replay";
                     } else {
+                        playBtn.title = "Play audio";
                         playBtn.onmouseover = () => { playBtn.style.backgroundColor = 'rgba(168, 223, 101, 0.1)'; };
                         playBtn.onmouseout = () => { playBtn.style.backgroundColor = 'transparent'; };
                         playBtn.onclick = () => playAudio(entry.filename, playBtn);
@@ -237,6 +238,7 @@ function renderLogs(logs) {
                 delBtn.style.opacity = '0.7';
                 delBtn.style.transition = 'opacity 0.2s';
 
+                delBtn.title = "Delete file";
                 delBtn.onmouseover = () => { delBtn.style.opacity = '1'; };
                 delBtn.onmouseout = () => { delBtn.style.opacity = '0.7'; };
 
