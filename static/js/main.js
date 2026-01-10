@@ -29,6 +29,8 @@ let serverPlaybackState = { is_playing: false, filename: null, remaining: 0 };
 
 // Speaker name cache
 let speakerMap = {};
+// Log cache for optimization
+let lastLogsJson = "";
 
 const valueDisplays = {
     speedScale: document.getElementById('val-speedScale'),
@@ -79,6 +81,37 @@ async function loadLogs() {
     try {
         const res = await fetch(LOGS_API);
         const logs = await res.json();
+        const currentJson = JSON.stringify(logs);
+
+        // Optimize: Only render if data changed or we suspect a state change needs re-render (e.g. playback update handled separately but logs might reflect it)
+        // Usually playback state is separate, but we use it in renderLogs. 
+        // Ideally we should also check if serverPlaybackState changed meaningfully for rendering.
+        // For now, strict log content check plus explicit re-render calls when playback starts are enough, 
+        // as polling will pick up log updates. 
+        // If we want to animate play button via re-render, we need to be careful. 
+        // Actually, we should just update the class of the existing button if only playback state changes, but full re-render is simpler.
+        // To fix flickering, CSS handles hover. Re-rendering is fine if it doesn't happen 60fps, but 1s is okay IF styles are CSS.
+        // But preventing unnecessary DOM thrashing is still good.
+        if (currentJson === lastLogsJson && !window.forceLogRender) {
+            // We still need to update play buttons state if playback changed but logs didn't?
+            // renderLogs uses serverPlaybackState. 
+            // Let's rely on forceLogRender or just check if playback state changed.
+            // For simplicity to fix flicker: The CSS fix solves flicker even with re-render.
+            // Optimization: skip re-render if identical.
+            // But we need to update 'playing' class if playback state changed.
+            // Let's just always render for now, but rely on CSS for stable hover.
+            // actually, the user specifically mentioned flickering, which even with CSS might happen if DOM node is replaced under cursor.
+            // So: preventing re-render is CRITICAL for stable hover if we replace DOM.
+            // We need to compare logs AND playback state.
+            const playbackKey = `${serverPlaybackState.is_playing}_${serverPlaybackState.filename}`;
+            if (currentJson === lastLogsJson && window.lastPlaybackKey === playbackKey) {
+                return;
+            }
+            window.lastPlaybackKey = playbackKey;
+        }
+
+        lastLogsJson = currentJson;
+        window.forceLogRender = false;
         renderLogs(logs);
     } catch (e) {
         console.error("Log fetch failed", e);
@@ -139,30 +172,17 @@ function renderLogs(logs) {
                 const rsvBtn = document.createElement('button');
                 // Film/Timeline Icon
                 const rsvIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>`;
+                rsvBtn.className = 'btn-icon-resolve';
                 rsvBtn.innerHTML = rsvIcon;
-
-                rsvBtn.style.backgroundColor = 'transparent';
-                rsvBtn.style.border = 'none';
-                rsvBtn.style.padding = '4px';
-                rsvBtn.style.transition = 'all 0.2s';
 
                 if (isSynthesisEnabled) {
                     // Disabled when synthesis is running
                     rsvBtn.disabled = true;
-                    rsvBtn.style.opacity = '0.3';
-                    rsvBtn.style.color = '#555';
-                    rsvBtn.style.cursor = 'not-allowed';
                     rsvBtn.title = "Stop server to insert";
                 } else {
                     // Enabled when stopped
                     rsvBtn.disabled = false;
-                    rsvBtn.style.opacity = '0.7';
-                    rsvBtn.style.color = '#a8df65'; // Green-ish
-                    rsvBtn.style.cursor = 'pointer';
                     rsvBtn.title = "Insert to DaVinci Resolve";
-
-                    rsvBtn.onmouseover = () => { rsvBtn.style.opacity = '1'; };
-                    rsvBtn.onmouseout = () => { rsvBtn.style.opacity = '0.7'; };
                     rsvBtn.onclick = () => insertToResolve(entry.filename, rsvBtn);
                 }
 
@@ -179,39 +199,26 @@ function renderLogs(logs) {
                 // Play Icon (SVG)
                 // Visually fix center alignment by nudging right
                 const playIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+                playBtn.className = 'btn-icon-play';
                 playBtn.innerHTML = playIcon;
-
-                playBtn.style.backgroundColor = 'transparent';
-                playBtn.style.color = 'var(--primary)';
-                playBtn.style.border = '1px solid var(--primary)';
-                playBtn.style.borderRadius = '50%';
-                playBtn.style.width = '32px';
-                playBtn.style.height = '32px';
-                playBtn.style.padding = '0';
-                playBtn.style.display = 'inline-flex';
-                playBtn.style.alignItems = 'center';
-                playBtn.style.justifyContent = 'center';
-                playBtn.style.cursor = 'pointer';
-                playBtn.style.transition = 'all 0.2s';
 
                 // Determine if this file is currently playing
                 const isThisPlaying = serverPlaybackState.is_playing && serverPlaybackState.filename === entry.filename;
 
                 if (isThisPlaying) {
-                    setPlayingStyle(playBtn);
+                    // setPlayingStyle(playBtn);
+                    playBtn.classList.add('playing', 'playing-anim');
+                    playBtn.disabled = true;
+                    // Actually playing state might want to allow stop? but API control/play is just play.
+                    // For now match previous logic: disabled style but active look.
                 } else {
                     // Replay is only enabled when synthesis is STOPPED
                     if (isSynthesisEnabled) {
                         playBtn.disabled = true;
-                        playBtn.style.opacity = '0.3';
-                        playBtn.style.borderColor = '#555';
-                        playBtn.style.color = '#555';
-                        playBtn.style.cursor = 'not-allowed';
                         playBtn.title = "Stop server to replay";
                     } else {
                         playBtn.title = "Play audio";
-                        playBtn.onmouseover = () => { playBtn.style.backgroundColor = 'rgba(168, 223, 101, 0.1)'; };
-                        playBtn.onmouseout = () => { playBtn.style.backgroundColor = 'transparent'; };
+                        playBtn.disabled = false;
                         playBtn.onclick = () => playAudio(entry.filename, playBtn);
                     }
                 }
@@ -230,18 +237,9 @@ function renderLogs(logs) {
                 const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
                 delBtn.innerHTML = trashIcon;
 
-                delBtn.style.backgroundColor = 'transparent';
-                delBtn.style.color = '#ff6b6b'; // Red
-                delBtn.style.border = 'none';
-                delBtn.style.cursor = 'pointer';
-                delBtn.style.padding = '4px';
-                delBtn.style.opacity = '0.7';
-                delBtn.style.transition = 'opacity 0.2s';
-
+                delBtn.className = 'btn-icon-delete';
+                delBtn.innerHTML = trashIcon;
                 delBtn.title = "Delete file";
-                delBtn.onmouseover = () => { delBtn.style.opacity = '1'; };
-                delBtn.onmouseout = () => { delBtn.style.opacity = '0.7'; };
-
                 delBtn.onclick = () => deleteFile(entry.filename);
 
                 deleteCell.appendChild(delBtn);
@@ -556,33 +554,8 @@ function checkStartability() {
 
 
 function setPlayingStyle(btnElement) {
-    const playingIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="playing-anim"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
-
-    btnElement.innerHTML = playingIcon;
-    btnElement.disabled = true;
-    btnElement.style.opacity = '1';
-    btnElement.style.color = '#fff';
-    btnElement.style.backgroundColor = 'var(--primary)';
-    btnElement.style.borderColor = 'var(--primary)';
-    btnElement.onmouseover = null;
-    btnElement.onmouseout = null;
-
-    // Add animation style if not present
-    if (!document.getElementById('playing-style')) {
-        const style = document.createElement('style');
-        style.id = 'playing-style';
-        style.innerHTML = `
-            @keyframes pulse-opacity {
-                0% { opacity: 0.6; }
-                50% { opacity: 1; }
-                100% { opacity: 0.6; }
-            }
-            .playing-anim {
-                animation: pulse-opacity 1s infinite;
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    // Legacy support or fallback if needed, but now handled by CSS classes
+    btnElement.classList.add('playing', 'playing-anim');
 }
 
 async function playAudio(filename, btnElement) {
