@@ -222,6 +222,37 @@ class ResolveClient:
         except Exception as e:
             self._log(f"Timecode conversion error: {e}")
             return 0
+    def _frames_to_timecode(self, total_frames, fps_str):
+        """Convert frame count back to HH:MM:SS:FF timecode."""
+        try:
+            fps = float(fps_str)
+            if 29.0 < fps < 30.0: fps = 30 
+            elif 59.0 < fps < 60.0: fps = 60 
+            elif 23.0 < fps < 24.0: fps = 24 
+            fps = int(round(fps))
+            
+            h = total_frames // (3600 * fps)
+            m = (total_frames // (60 * fps)) % 60
+            s = (total_frames // fps) % 60
+            f = total_frames % fps
+            
+            return f"{h:02}:{m:02}:{s:02}:{f:02}"
+        except Exception as e:
+            self._log(f"Frames to timecode conversion error: {e}")
+            return "00:00:00:00"
+
+    def _srt_time_to_frames(self, srt_time, fps_str):
+        """Convert SRT time string HH:MM:SS,mmm to frame count."""
+        try:
+            fps = float(fps_str)
+            # "00:00:05,123"
+            parts = srt_time.replace(',', ':').split(':')
+            h, m, s, ms = map(int, parts)
+            total_seconds = h * 3600 + m * 60 + s + (ms / 1000.0)
+            return int(round(total_seconds * fps))
+        except Exception as e:
+            self._log(f"SRT time conversion error: {e}")
+            return 0
 
     def insert_file(self, file_path):
         """
@@ -248,6 +279,75 @@ class ResolveClient:
                 if not media_pool:
                     self._log("Failed to get Media Pool")
                     return False
+
+                # --- 0. Template Management (Simplified & Safe) ---
+                from app.config import config
+                target_bin_name = config.get("resolve.template_bin", "VoiceVox Captions")
+                target_clip_name = config.get("resolve.template_name", "DefaultTemplate")
+                
+                root_folder = media_pool.GetRootFolder()
+                template_item = None
+                target_bin = None
+                
+                # Step 1: Search for the target bin
+                for sub in root_folder.GetSubFolderList():
+                    if sub.GetName() == target_bin_name:
+                        target_bin = sub
+                        break
+                
+                # Step 2: Auto-create the bin if missing (SAFE)
+                if not target_bin:
+                    try:
+                        target_bin = media_pool.AddSubFolder(root_folder, target_bin_name)
+                        self._log(f"Created Bin: {target_bin_name}")
+                    except Exception as e:
+                        self._log(f"Failed to create bin: {e}")
+                
+                # Step 3: Find template inside the target bin
+                if target_bin:
+                    clips = target_bin.GetClipList()
+                    self._log(f"Searching bin '{target_bin_name}' (Clip count: {len(clips)})")
+                    
+                    for clip in clips:
+                        c_name = clip.GetClipProperty("Clip Name")
+                        c_type = clip.GetClipProperty("Type")
+                        c_path = clip.GetClipProperty("File Path")
+                        self._log(f"Checking clip: '{c_name}' (Type: '{c_type}', Path: '{c_path}')")
+                        
+                        # Priority 1: Specific Name
+                        if c_name == target_clip_name:
+                            template_item = clip
+                            self._log(f"Match found by name: {target_clip_name}")
+                            break
+                    
+                    # Priority 2: Any Text+ in that bin (Name-agnostic)
+                    if not template_item:
+                        for clip in clips:
+                            c_type = clip.GetClipProperty("Type")
+                            c_path = clip.GetClipProperty("File Path")
+                            # If it's a generator (empty path) and contains 'Text' or is 'Fusion Title'
+                            if c_path == "" and ("Text" in c_type or "Fusion" in c_type):
+                                template_item = clip
+                                self._log(f"Using first compatible Text+ as template: {clip.GetClipProperty('Clip Name')}")
+                                break
+                
+                # Step 4: Final fallback - Global recursive search by name
+                if not template_item:
+                    self._log(f"Global recursive search for '{target_clip_name}'...")
+                    def find_template_recursive(folder):
+                        for clip in folder.GetClipList():
+                            if clip.GetClipProperty("Clip Name") == target_clip_name:
+                                return clip
+                        for sub in folder.GetSubFolderList():
+                            res = find_template_recursive(sub)
+                            if res: return res
+                        return None
+                    template_item = find_template_recursive(root_folder)
+                    if template_item:
+                        self._log(f"Global match found: {template_item.GetClipProperty('Clip Name')}")
+
+                if not template_item:
+                    self._log(f"INFO: No template found in '{target_bin_name}' or globally. Please ensure a Text+ clip is in the Media Pool.")
 
                 # 1. Import Media
                 items = media_pool.ImportMedia([file_path])
@@ -320,9 +420,127 @@ class ResolveClient:
                 # Since AppendToTimeline returns list of appended items, empty list means failure
                 if appended and len(appended) > 0:
                     self._log(f"Success. Appended: {appended}")
+                    
+                    # --- SRT Insertion (Optimized AppendToTimeline Method) ---
+                    srt_path = file_path.replace(".wav", ".srt")
+                    if os.path.exists(srt_path):
+                        try:
+                            self._log(f"Parsing SRT for optimized insertion: {srt_path}")
+                            with open(srt_path, 'r', encoding='utf-8') as f:
+                                srt_content = f.read()
+                            
+                            import re
+                            blocks = re.split(r'\n\s*\n', srt_content.strip())
+                            
+                            timeline = project.GetCurrentTimeline()
+                            if not timeline:
+                                self._log("Timeline lost")
+                                return True
+
+                            # --- 1. Duration Multiplier Calibration (Inspired by Snap Captions) ---
+                            duration_multiplier = 1.0
+                            if template_item:
+                                test_duration = 100
+                                test_clip_info = {
+                                    "mediaPoolItem": template_item,
+                                    "startFrame": 0,
+                                    "endFrame": test_duration - 1,
+                                    "recordFrame": record_frame,
+                                    "trackIndex": 3, # Use a higher track for test
+                                    "mediaType": 1,
+                                }
+                                try:
+                                    self._log(f"Starting calibration with template: {template_item.GetClipProperty('Clip Name')}")
+                                    test_items = media_pool.AppendToTimeline([test_clip_info])
+                                    if test_items and len(test_items) > 0:
+                                        real_duration = test_items[0].GetDuration()
+                                        if real_duration > 0:
+                                            duration_multiplier = test_duration / real_duration
+                                            self._log(f"Calibrated Duration Multiplier: {duration_multiplier} (Test: {test_duration}, Real: {real_duration})")
+                                        else:
+                                            self._log("Calibration: real_duration is 0")
+                                        timeline.DeleteClips(test_items, False)
+                                    else:
+                                        self._log("Calibration: AppendToTimeline returned None or empty")
+                                except Exception as cal_e:
+                                    import traceback
+                                    self._log(f"Calibration failed: {cal_e}\n{traceback.format_exc()}")
+
+                            # --- 2. Bulk Insert Setup ---
+                            clips_to_insert = []
+                            subtitle_texts = []
+                            
+                            # Determine track index
+                            # If track Index 2 does not exist, AppendToTimeline might fail.
+                            # Ensure enough tracks exist.
+                            video_track_count = timeline.GetTrackCount("video")
+                            target_track_index = 2
+                            if video_track_count < target_track_index:
+                                self._log(f"Video track count ({video_track_count}) is less than target ({target_track_index}). Defaulting to track 1 or adding might be needed.")
+                                # Note: AppendToTimeline usually creates tracks if needed, but let's be safe.
+
+                            for block in blocks:
+                                lines = block.strip().split('\n')
+                                if len(lines) < 3: continue
+                                
+                                # Use more robust time partition in case of variations
+                                time_line = lines[1]
+                                if " --> " not in time_line: continue
+                                
+                                times = time_line.split(" --> ")
+                                start_tc = times[0].strip()
+                                end_tc = times[1].strip()
+                                text = "\n".join(lines[2:])
+                                
+                                # Snap Captions style normalization
+                                text = text.replace('\u2028', '\n') 
+                                
+                                start_frame_rel = self._srt_time_to_frames(start_tc, fps_str)
+                                end_frame_rel = self._srt_time_to_frames(end_tc, fps_str)
+                                duration_raw = end_frame_rel - start_frame_rel
+                                if duration_raw <= 0: duration_raw = 1
+                                
+                                # Apply multiplier
+                                duration_adjusted = int(round(duration_raw * duration_multiplier))
+                                
+                                target_frame = record_frame + start_frame_rel
+                                
+                                clip_info_sub = {
+                                    "mediaPoolItem": template_item or "Text+", 
+                                    "startFrame": 0,
+                                    "endFrame": duration_adjusted - 1,
+                                    "recordFrame": target_frame,
+                                    "trackIndex": target_track_index,
+                                    "mediaType": 1, # Explicitly Video
+                                }
+                                clips_to_insert.append(clip_info_sub)
+                                subtitle_texts.append(text)
+
+                            # --- 3. Execute Insertion ---
+                            if clips_to_insert:
+                                if template_item:
+                                    self._log(f"Bulk inserting {len(clips_to_insert)} subtitle clips via AppendToTimeline")
+                                    timeline_items = media_pool.AppendToTimeline(clips_to_insert)
+                                    
+                                    if timeline_items:
+                                        self._log(f"Successfully appended {len(timeline_items)} items.")
+                                        for i, item in enumerate(timeline_items):
+                                            if i >= len(subtitle_texts): break
+                                            self._update_fusion_text(item, subtitle_texts[i])
+                                    else:
+                                        self._log("AppendToTimeline failed. Verification: Ensure Video Track 2 is not locked or too many tracks.")
+                                else:
+                                    self._log("SRT insertion aborted: No valid Text+ template_item available.")
+
+                        except Exception as srt_e:
+                            import traceback
+                            self._log(f"SRT Insertion Process Error: {srt_e}\n{traceback.format_exc()}")
+                        
+                        self._log("SRT process completed.")
+                    
                     return True
                 else:
-                    self._log("AppendToTimeline returned failure (empty list or None)")
+                    self._log("AppendToTimeline (Audio) returned failure")
                     return False
 
             except Exception as e:
@@ -331,5 +549,31 @@ class ResolveClient:
                 self._log(f"Exception during insertion: {e}\n{tb}")
                 return False
 
- 
+    def _update_fusion_text(self, item, text):
+        """Helper to update TextPlus content."""
+        def update_task():
+            try:
+                # Brief wait to ensure Resolve has initialized the Fusion comp for the new item
+                time.sleep(0.05)
+                comp = item.GetFusionCompByIndex(1)
+                if comp:
+                    tool = comp.FindTool("Template")
+                    if not tool:
+                        tools = comp.GetToolList(False, "TextPlus")
+                        if tools:
+                            tool = list(tools.values())[0] if isinstance(tools, dict) else tools[0]
+                    if tool:
+                        tool.SetInput("StyledText", text)
+                    else:
+                        self._log("No TextPlus tool found in Fusion comp")
+                else:
+                    self._log("GetFusionCompByIndex(1) returned None")
+            except Exception as e:
+                self._log(f"Fusion update error: {e}")
+        
+        # We can run this in a small thread if needed, but sequential is safer for now
+        update_task()
 
+    def _insert_sequential(self, timeline, texts, clip_infos, fps_str):
+        # (This method is now effectively deprecated by mandatory template rule)
+        pass

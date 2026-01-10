@@ -32,7 +32,9 @@ class ConfigManager:
         },
         "resolve": {
             "enabled": False,
-            "track_index": 1
+            "track_index": 1,
+            "template_bin": "VoiceVox Captions",
+            "template_name": "DefaultTemplate"
         }
     }
 
