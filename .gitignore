@@ -1,4 +1,15 @@
-output/
-**/__pycache__/
+# System
 logs/
 config.json
+dummy
+val_output/
+
+# Python
+**/__pycache__/
+*.pyc
+
+# IDE / Env
+.vscode/
+.idea/
+venv/
+.venv/
