@@ -80,7 +80,7 @@ def handle_config():
         # Publish event
         event_manager.publish("config_update", {})
 
-        resolve_available = resolve_client.is_available()
+        resolve_available = get_resolve_client().is_available()
 
         return jsonify({
             "status": "ok", 

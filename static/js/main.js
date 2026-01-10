@@ -124,6 +124,11 @@ function renderLogs(logs) {
     // Previously we reversed it, so now we just take it as is.
     const displayLogs = logs.slice();
 
+    const container = elements.logTableBody.closest('div');
+    // Capture current scroll position BEFORE modifying DOM
+    const previousScrollTop = container ? container.scrollTop : 0;
+    const previousScrollHeight = container ? container.scrollHeight : 0;
+
     const tableBody = elements.logTableBody;
     const existingRows = new Map();
 
@@ -156,10 +161,6 @@ function renderLogs(logs) {
             updateLogRow(row, entry);
         }
 
-        // Check scroll position BEFORE appending
-        const container = elements.logTableBody.closest('div');
-        const isAtBottom = container ? (container.scrollHeight - container.scrollTop - container.clientHeight < 50) : true;
-
         // Append moves the element to the end of the list, ensuring correct order
         tableBody.appendChild(row);
     });
@@ -167,9 +168,18 @@ function renderLogs(logs) {
     // Remove remaining rows (deleted files)
     existingRows.forEach(row => row.remove());
 
-    // Auto-scroll only if new item added AND user was already at bottom
-    if (hasNewItem && isAtBottom) {
+    // Auto-scroll policy:
+    // - START (Enabled): Always scroll to bottom to show latest
+    // - STOP (Disabled): 
+    //   - If NO new items (just update/delete), maintain position implicitly or restore explicitly
+    //   - Implementation: Restore position unless we force scroll to bottom
+
+    if (hasNewItem && isSynthesisEnabled) {
         scrollToBottom();
+    } else if (container) {
+        // Restore scroll position to prevent "jump to top" when re-appending rows
+        // Even if items were deleted, restoring the same pixel value is safe and standard behavior
+        container.scrollTop = previousScrollTop;
     }
 }
 
