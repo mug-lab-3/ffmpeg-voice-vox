@@ -28,14 +28,6 @@
         </div>
 
         <div class="control-group">
-            <label for="speaker">Speaker</label>
-            <select id="speaker">
-                <!-- Populated by JS -->
-                <option value="" disabled selected>Loading...</option>
-            </select>
-        </div>
-
-        <div class="control-group">
             <label for="outputDir">Output Directory</label>
             <div style="display: flex; gap: 10px;">
                 <input type="text" id="outputDir" placeholder="Select a directory..." readonly
@@ -61,6 +53,14 @@
                 </button>
             </div>
             <div id="dir-status" style="font-size: 0.8rem; margin-top: 5px; color: #888; min-height: 1.2em;"></div>
+        </div>
+
+        <div class="control-group">
+            <label for="speaker">Speaker</label>
+            <select id="speaker">
+                <!-- Populated by JS -->
+                <option value="" disabled selected>Loading...</option>
+            </select>
         </div>
 
         <div class="control-group">
