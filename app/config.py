@@ -43,7 +43,11 @@ class ConfigManager:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 loaded_config = json.load(f)
                 # Merge with defaults to ensure all keys exist
-                return self._merge_configs(self.DEFAULT_CONFIG.copy(), loaded_config)
+                final_config = self._merge_configs(self.DEFAULT_CONFIG.copy(), loaded_config)
+                # Force reset synthesis state to False on startup
+                if "system" in final_config:
+                    final_config["system"]["is_synthesis_enabled"] = False
+                return final_config
         except Exception as e:
             print(f"Error loading config: {e}. Using defaults.")
             return self.DEFAULT_CONFIG.copy()

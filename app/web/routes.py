@@ -9,9 +9,11 @@ web = Blueprint('web', __name__)
 
 # Initialize services (Simple Dependency Injection)
 # In a larger app, we might use current_app or a proper DI framework
+from app.core.resolve import ResolveClient
 vv_client = VoiceVoxClient()
 audio_manager = AudioManager()
 processor = StreamProcessor(vv_client, audio_manager)
+resolve_client = ResolveClient()
 
 @web.route('/', methods=['GET'])
 def index():
@@ -52,8 +54,7 @@ def handle_config():
                 
         print(f"  -> Config Updated")
         
-        from app.core.resolve import ResolveClient
-        resolve_available = ResolveClient().is_available()
+        resolve_available = resolve_client.is_available()
 
         return jsonify({
             "status": "ok", 
@@ -64,8 +65,7 @@ def handle_config():
     else:
         # Return flattened config for frontend compatibility
         syn_config = config.get("synthesis")
-        from app.core.resolve import ResolveClient
-        resolve_available = ResolveClient().is_available()
+        resolve_available = resolve_client.is_available()
 
         return jsonify({
             "speaker": syn_config["speaker_id"],
@@ -87,35 +87,41 @@ def get_logs():
 
 @web.route('/api/control/state', methods=['GET', 'POST'])
 def handle_control_state():
-    if request.method == 'POST':
-        data = request.json
-        if 'enabled' in data:
-            should_enable = bool(data['enabled'])
+    try:
+        if request.method == 'POST':
+            data = request.json
+            if data is None:
+                return jsonify({"status": "error", "message": "Invalid JSON"}), 400
+
+            if 'enabled' in data:
+                should_enable = bool(data['enabled'])
+                
+                if should_enable:
+                    # Validation before enabling
+                    current_output = config.get("system.output_dir")
+                    if not audio_manager.validate_output_dir(current_output):
+                        print(f"[API] Enable Failed: Invalid Output Directory: '{current_output}'")
+                        return jsonify({
+                            "status": "error", 
+                            "message": "Invalid or non-writable output directory"
+                        }), 400
+                
+                config.update("system.is_synthesis_enabled", should_enable)
+                print(f"[API] Synthesis State Updated: {config.get('system.is_synthesis_enabled')}")
+                
+            return jsonify({"status": "ok", "enabled": config.get("system.is_synthesis_enabled")})
+        else:
+            status = audio_manager.get_playback_status()
+            resolve_available = resolve_client.is_available()
             
-            if should_enable:
-                # Validation before enabling
-                current_output = config.get("system.output_dir")
-                if not audio_manager.validate_output_dir(current_output):
-                    print(f"[API] Enable Failed: Invalid Output Directory: '{current_output}'")
-                    return jsonify({
-                        "status": "error", 
-                        "message": "Invalid or non-writable output directory"
-                    }), 400
-            
-            config.update("system.is_synthesis_enabled", should_enable)
-            print(f"[API] Synthesis State Updated: {config.get('system.is_synthesis_enabled')}")
-            
-        return jsonify({"status": "ok", "enabled": config.get("system.is_synthesis_enabled")})
-    else:
-        status = audio_manager.get_playback_status()
-        from app.core.resolve import ResolveClient
-        resolve_available = ResolveClient().is_available()
-        
-        return jsonify({
-            "enabled": config.get("system.is_synthesis_enabled"),
-            "playback": status,
-            "resolve_available": resolve_available
-        })
+            return jsonify({
+                "enabled": config.get("system.is_synthesis_enabled"),
+                "playback": status,
+                "resolve_available": resolve_available
+            })
+    except Exception as e:
+        print(f"[API] Error in handle_control_state: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @web.route('/api/control/resolve_insert', methods=['POST'])
 def handle_resolve_insert():
@@ -130,14 +136,11 @@ def handle_resolve_insert():
         abs_path = os.path.join(output_dir, filename)
         abs_path = os.path.abspath(abs_path)
         
-        from app.core.resolve import ResolveClient
-        client = ResolveClient()
-        
-        if not client.is_available():
+        if not resolve_client.is_available():
             # Try reloading once more
-            client._load_module()
+            resolve_client._load_module()
             
-        if client.insert_file(abs_path):
+        if resolve_client.insert_file(abs_path):
              return jsonify({"status": "ok"})
         else:
              return jsonify({"status": "error", "message": "Failed to insert into Resolve timeline"}), 500

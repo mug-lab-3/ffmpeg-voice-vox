@@ -6,10 +6,14 @@ class ResolveClient:
     def __init__(self):
         self.resolve = None
         self.script_module = None
+        self.last_attempt = 0
+        self.RETRY_INTERVAL = 10  # Seconds between connection attempts
         self._load_module()
 
     def _load_module(self):
         """Load the DaVinci Resolve script module dynamically with env support."""
+        self.last_attempt = __import__('time').time()
+        
         try:
             # Check for existing module (e.g. running inside Resolve Console)
             try:
@@ -17,6 +21,7 @@ class ResolveClient:
                 self.script_module = dvr_script
                 self.resolve = dvr_script.scriptapp("Resolve")
                 if self.resolve:
+                    print("[Resolve] Successfully connected to existing module.")
                     return
             except ImportError:
                 pass
@@ -39,18 +44,33 @@ class ResolveClient:
                     sys.path.append(lib_path)
                 
                 try:
+                    # Force reload if it was previously failed/None to ensure fresh state
+                    if 'DaVinciResolveScript' in sys.modules:
+                        del sys.modules['DaVinciResolveScript']
+                        
                     import DaVinciResolveScript as dvr_script
                     self.script_module = dvr_script
                     self.resolve = dvr_script.scriptapp("Resolve")
+                    if self.resolve:
+                        print("[Resolve] Connected successfully.")
                 except ImportError as e:
-                     print(f"[Resolve] Failed to import module from {lib_path}: {e}")
+                     # Only log verbose errors occasionally or if debugging
+                     pass 
             else:
-                 print(f"[Resolve] Module path not found: {lib_path}")
+                 pass
 
         except Exception as e:
             print(f"[Resolve] Failed to initialize: {e}")
 
     def is_available(self):
+        if self.resolve:
+            return True
+            
+        # If not connected, retry periodically
+        import time
+        if time.time() - self.last_attempt > self.RETRY_INTERVAL:
+            self._load_module()
+            
         return self.resolve is not None
 
     def _log(self, message):
