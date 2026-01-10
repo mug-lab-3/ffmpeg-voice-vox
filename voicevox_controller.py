@@ -106,8 +106,11 @@ if __name__ == '__main__':
     
     # Open browser logic
     def open_browser():
-        time.sleep(1)
-        webbrowser.open(f'http://{host}:{port}')
+        print("[Startup] Browser thread started", flush=True)
+        time.sleep(2)
+        url = f'http://{host}:{port}'
+        print(f"[Startup] Opening browser at {url}", flush=True)
+        webbrowser.open(url)
 
     threading.Thread(target=open_browser).start()
     
