@@ -45,35 +45,48 @@ async function init() {
     await loadConfig();
     await loadControlState();
     setupListeners();
-    // Poll log and control state more frequently for smooth sync
-    startPolling();
+    // Real-time updates via SSE
+    setupSSE();
 }
 
-function startPolling() {
-    setInterval(async () => {
-        // Background tabs shouldn't poll logs to save resources
-        // Instead, send a lightweight heartbeat to keep server alive
-        if (document.hidden) {
-            await sendHeartbeat();
-            return;
-        }
+// SSE Setup
+function setupSSE() {
+    const evtSource = new EventSource("/api/stream");
 
-        await loadControlState(); // Check state first
-        await loadLogs();
-    }, 1000); // 1s polling
-}
-
-async function sendHeartbeat() {
-    // Heartbeat every 10 seconds effectively (since we return early above loop)
-    // But setInterval is 1s. Simple counter or timestamp check is better.
-    const now = Date.now();
-    if (!window.lastHeartbeat || now - window.lastHeartbeat > 10000) {
-        window.lastHeartbeat = now;
+    evtSource.onmessage = (e) => {
         try {
-            await fetch('/api/heartbeat');
-        } catch (e) {
-            // Ignore errors in background
+            const msg = JSON.parse(e.data);
+            handleServerEvent(msg);
+        } catch (err) {
+            console.error("SSE Parse Error", err);
         }
+    };
+
+    evtSource.onerror = (err) => {
+        console.warn("SSE Error, reconnecting...", err);
+        // EventSource attempts reconnect automatically
+    };
+}
+
+async function handleServerEvent(msg) {
+    if (msg.type === "playback_change") {
+        serverPlaybackState = {
+            is_playing: msg.data.is_playing,
+            filename: msg.data.filename
+        };
+        // Re-render logs to update button locks
+        renderLogs(JSON.parse(lastLogsJson || "[]"));
+
+    } else if (msg.type === "state_update") {
+        isSynthesisEnabled = msg.data.is_enabled;
+        updateStartStopUI();
+        if (lastLogsJson) renderLogs(JSON.parse(lastLogsJson));
+
+    } else if (msg.type === "log_update") {
+        await loadLogs();
+
+    } else if (msg.type === "config_update") {
+        await loadConfig();
     }
 }
 
@@ -250,11 +263,22 @@ function updateLogRow(row, entry) {
     const rsvBtn = row.querySelector('.btn-icon-resolve');
     const delBtn = row.querySelector('.btn-icon-delete');
 
+    // Check Global Locks
+    const isGlobalPlaybackActive = serverPlaybackState.is_playing;
+    const isLocked = isSynthesisEnabled || isGlobalPlaybackActive;
+
+    // Helper for disabled title
+    const getDisabledTitle = (baseAction) => {
+        if (isGlobalPlaybackActive) return `Wait for playback to finish to ${baseAction}`;
+        if (isSynthesisEnabled) return `Stop server to ${baseAction}`;
+        return "";
+    };
+
     // Update Resolve Button State
     if (rsvBtn) {
-        if (isSynthesisEnabled) {
+        if (isLocked) {
             rsvBtn.disabled = true;
-            rsvBtn.title = "Stop server to insert";
+            rsvBtn.title = getDisabledTitle("insert");
         } else {
             rsvBtn.disabled = false;
             rsvBtn.title = "Insert to DaVinci Resolve";
@@ -263,13 +287,12 @@ function updateLogRow(row, entry) {
 
     // Update Delete Button State
     if (delBtn) {
-        if (isSynthesisEnabled) {
+        if (isLocked) {
             delBtn.disabled = true;
-            delBtn.title = "Stop server to delete";
+            delBtn.title = getDisabledTitle("delete");
         } else {
             delBtn.disabled = false;
             delBtn.title = "Delete file";
-            // allow CSS to handle opacity (0.7 -> 1.0 on hover)
             delBtn.style.opacity = '';
             delBtn.style.cursor = '';
         }
@@ -283,16 +306,16 @@ function updateLogRow(row, entry) {
         if (playBtn.innerHTML !== playingIcon) playBtn.innerHTML = playingIcon;
 
         playBtn.classList.add('playing', 'playing-anim');
-        playBtn.disabled = true;
+        playBtn.disabled = true; // Playing button is also disabled (cannot stop/restart per request)
     } else {
         const playIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
         if (playBtn.innerHTML !== playIcon) playBtn.innerHTML = playIcon;
 
         playBtn.classList.remove('playing', 'playing-anim');
 
-        if (isSynthesisEnabled) {
+        if (isLocked) {
             playBtn.disabled = true;
-            playBtn.title = "Stop server to replay";
+            playBtn.title = getDisabledTitle("play");
             playBtn.onclick = null;
         } else {
             playBtn.disabled = false;
@@ -521,13 +544,16 @@ async function loadControlState() {
 async function toggleControlState() {
     const newState = !isSynthesisEnabled;
 
-    // If we are enabling, basic client-side check first (server double checks)
     if (newState) {
         if (!elements.outputDir.value.trim()) {
             await showAlert("Configuration Error", "Please set an output directory first.");
             return;
         }
     }
+
+    // UI Feedback: Mark as processing but DO NOT toggle state yet
+    elements.startStopBtn.classList.add('disabled-temp');
+    elements.startStopBtn.textContent = "Processing...";
 
     try {
         const res = await fetch(CONTROL_STATE_API, {
@@ -538,17 +564,18 @@ async function toggleControlState() {
         const data = await res.json();
 
         if (data.status === 'ok') {
-            isSynthesisEnabled = data.enabled;
-            updateStartStopUI();
+            // SUCCESS: Do NOTHING here. 
+            // We wait for the SSE 'state_update' event to actually flip the switch.
+            // This ensures strict synchronization.
         } else {
-            // Error from server (e.g. invalid dir)
             await showAlert("Error", data.message || "Failed to change state");
-            // Revert UI state if needed (usually handled by next poll, but good to ensure)
-            loadControlState();
+            // If failed, revert UI lock
+            updateStartStopUI();
         }
     } catch (e) {
         console.error("Failed to toggle state", e);
         await showAlert("Connection Error", `Failed to communicate with server: ${e.message}`);
+        updateStartStopUI();
     }
 }
 

@@ -144,6 +144,10 @@ class StreamProcessor:
         if len(self.received_logs) > 50:
             self.received_logs.pop(0)
         self.received_logs.append(log_entry)
+        
+        # Notify WebUI
+        from app.core.events import event_manager
+        event_manager.publish("log_update", {})
 
     def get_logs(self):
         return self.received_logs

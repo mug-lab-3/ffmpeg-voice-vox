@@ -1,9 +1,10 @@
-from flask import Blueprint, request, render_template, jsonify
+from flask import Blueprint, request, render_template, jsonify, Response
 import os
 from app.config import config
 from app.core.voicevox import VoiceVoxClient
 from app.core.audio import AudioManager
 from app.core.processor import StreamProcessor
+from app.core.events import event_manager
 
 web = Blueprint('web', __name__)
 
@@ -14,6 +15,19 @@ vv_client = VoiceVoxClient()
 audio_manager = AudioManager()
 processor = StreamProcessor(vv_client, audio_manager)
 resolve_client = ResolveClient()
+
+@web.route('/api/stream')
+def stream():
+    def generator():
+        q = event_manager.subscribe()
+        try:
+            while True:
+                data = q.get()
+                yield data
+        except GeneratorExit:
+            event_manager.unsubscribe(q)
+            
+    return Response(generator(), mimetype='text/event-stream')
 
 @web.route('/', methods=['GET'])
 def index():
@@ -54,6 +68,9 @@ def handle_config():
                 
         print(f"  -> Config Updated")
         
+        # Publish event
+        event_manager.publish("config_update", {})
+
         resolve_available = resolve_client.is_available()
 
         return jsonify({
@@ -108,6 +125,9 @@ def handle_control_state():
                 
                 config.update("system.is_synthesis_enabled", should_enable)
                 print(f"[API] Synthesis State Updated: {config.get('system.is_synthesis_enabled')}")
+                
+                 # Notify clients
+                event_manager.publish("state_update", {"is_enabled": should_enable})
                 
             return jsonify({"status": "ok", "enabled": config.get("system.is_synthesis_enabled")})
         else:
@@ -184,6 +204,9 @@ def handle_control_delete():
         
         # Delete files
         deleted_files = audio_manager.delete_file(filename)
+        
+        # Notify clients to refresh logs
+        event_manager.publish("log_update", {})
                 
         print(f"[API] Deleted: {deleted_files}")
         return jsonify({"status": "ok", "deleted": deleted_files})

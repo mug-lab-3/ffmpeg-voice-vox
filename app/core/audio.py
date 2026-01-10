@@ -115,23 +115,43 @@ class AudioManager:
         duration = self.get_wav_duration(wav_path)
         start_time = time.time()
         
+        # Use a unique ID to prevent race conditions
+        import uuid
+        playback_id = str(uuid.uuid4())
+
         with self.playback_lock:
             self.playback_status["is_playing"] = True
             self.playback_status["filename"] = filename
-            self.playback_status["start_time"] = start_time
-            self.playback_status["duration"] = duration
-
-        def play_worker(path):
+            self.playback_status["playback_id"] = playback_id
+            
+        def play_worker(path, dur, pid):
+            from app.core.events import event_manager
             try:
-                winsound.PlaySound(path, winsound.SND_FILENAME)
+                # Notify Start
+                event_manager.publish("playback_change", {
+                    "is_playing": True, 
+                    "filename": filename
+                })
+
+                # Use ASYNC to fire playback immediately via filename
+                winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+                
+                # Sleep manually to maintain 'is_playing' state for the duration
+                time.sleep(dur)
             except Exception as e:
                 print(f"Play Worker Error: {e}")
             finally:
                 with self.playback_lock:
-                    if self.playback_status["filename"] == filename:
+                    if self.playback_status.get("playback_id") == pid:
                         self.playback_status["is_playing"] = False
+                        
+                        # Notify End
+                        event_manager.publish("playback_change", {
+                            "is_playing": False, 
+                            "filename": None
+                        })
         
-        threading.Thread(target=play_worker, args=(wav_path,), daemon=True).start()
+        threading.Thread(target=play_worker, args=(wav_path, duration, playback_id), daemon=True).start()
         return duration, start_time
 
     def get_playback_status(self):

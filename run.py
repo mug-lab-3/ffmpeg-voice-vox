@@ -81,4 +81,4 @@ if __name__ == '__main__':
     threading.Thread(target=open_browser).start()
     
     print(f"Starting server on {host}:{port}")
-    app.run(host=host, port=port, debug=False)
+    app.run(host=host, port=port, debug=False, threaded=True)
