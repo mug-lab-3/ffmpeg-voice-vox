@@ -35,22 +35,13 @@ def handle_config():
             "speedScale": "synthesis.speed_scale",
             "pitchScale": "synthesis.pitch_scale",
             "intonationScale": "synthesis.intonation_scale",
-            "volumeScale": "synthesis.volume_scale",
-            "resolveEnabled": "resolve.enabled"
+            "volumeScale": "synthesis.volume_scale"
         }
         
         for client_key, config_key in mapping.items():
             if client_key in new_config:
                 val = new_config[client_key]
                 print(f"[API] Config Update: {client_key} = {val} (Type: {type(val)})")
-                
-                # Force boolean for specific keys if string passed
-                if config_key == "resolve.enabled":
-                    if isinstance(val, str):
-                        val = (val.lower() == "true")
-                    else:
-                        val = bool(val)
-                
                 config.update(config_key, val)
 
         # Handle output directory
@@ -58,21 +49,30 @@ def handle_config():
             config.update("system.output_dir", new_config["outputDir"])
                 
         print(f"  -> Config Updated")
+        
+        from app.core.resolve import ResolveClient
+        resolve_available = ResolveClient().is_available()
+
         return jsonify({
             "status": "ok", 
             "config": config.get("synthesis"),
-            "outputDir": config.get("system.output_dir")
+            "outputDir": config.get("system.output_dir"),
+            "resolve_available": resolve_available
         })
     else:
         # Return flattened config for frontend compatibility
         syn_config = config.get("synthesis")
+        from app.core.resolve import ResolveClient
+        resolve_available = ResolveClient().is_available()
+
         return jsonify({
             "speaker": syn_config["speaker_id"],
             "speedScale": syn_config["speed_scale"],
             "pitchScale": syn_config["pitch_scale"],
             "intonationScale": syn_config["intonation_scale"],
             "volumeScale": syn_config["volume_scale"],
-            "outputDir": config.get("system.output_dir")
+            "outputDir": config.get("system.output_dir"),
+            "resolve_available": resolve_available
         })
 
 @web.route('/api/speakers', methods=['GET'])
@@ -106,10 +106,43 @@ def handle_control_state():
         return jsonify({"status": "ok", "enabled": config.get("system.is_synthesis_enabled")})
     else:
         status = audio_manager.get_playback_status()
+        from app.core.resolve import ResolveClient
+        resolve_available = ResolveClient().is_available()
+        
         return jsonify({
             "enabled": config.get("system.is_synthesis_enabled"),
-            "playback": status
+            "playback": status,
+            "resolve_available": resolve_available
         })
+
+@web.route('/api/control/resolve_insert', methods=['POST'])
+def handle_resolve_insert():
+    try:
+        data = request.json
+        filename = data.get('filename')
+        
+        if not filename:
+             return jsonify({"status": "error", "message": "No filename provided"}), 400
+             
+        output_dir = audio_manager.get_output_dir()
+        abs_path = os.path.join(output_dir, filename)
+        abs_path = os.path.abspath(abs_path)
+        
+        from app.core.resolve import ResolveClient
+        client = ResolveClient()
+        
+        if not client.is_available():
+            # Try reloading once more
+            client._load_module()
+            
+        if client.insert_file(abs_path):
+             return jsonify({"status": "ok"})
+        else:
+             return jsonify({"status": "error", "message": "Failed to insert into Resolve timeline"}), 500
+             
+    except Exception as e:
+        print(f"[API] Resolve Insert Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @web.route('/api/control/play', methods=['POST'])
 def handle_control_play():

@@ -4,6 +4,7 @@ const LOGS_API = '/api/logs';
 const CONTROL_STATE_API = "/api/control/state";
 const CONTROL_PLAY_API = "/api/control/play";
 const CONTROL_DELETE_API = "/api/control/delete";
+const CONTROL_RESOLVE_INSERT_API = "/api/control/resolve_insert";
 const SYSTEM_BROWSE_API = "/api/system/browse";
 
 const elements = {
@@ -18,11 +19,12 @@ const elements = {
     outputDir: document.getElementById('outputDir'),
     browseBtn: document.getElementById('browseOutputDir'),
     dirStatus: document.getElementById('dir-status'),
-    resolveToggle: document.getElementById('resolveToggle')
+    resolveStatus: document.getElementById('resolve-status')
 };
 
 // Global State
 let isSynthesisEnabled = true;
+let isResolveAvailable = false;
 let serverPlaybackState = { is_playing: false, filename: null, remaining: 0 };
 
 // Speaker name cache
@@ -129,6 +131,44 @@ function renderLogs(logs) {
             configCell.innerHTML = `<span style="color: var(--primary)">${spName}</span> <span style="font-size: 0.8em; color: #666;">(x${cfg.speed_scale.toFixed(2)})</span>`;
             configCell.style.padding = '8px';
 
+            const resolveCell = document.createElement('td');
+            resolveCell.style.padding = '8px';
+            resolveCell.style.textAlign = 'center';
+
+            if (entry.filename && entry.filename !== "Error" && isResolveAvailable) {
+                const rsvBtn = document.createElement('button');
+                // Film/Timeline Icon
+                const rsvIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>`;
+                rsvBtn.innerHTML = rsvIcon;
+
+                rsvBtn.style.backgroundColor = 'transparent';
+                rsvBtn.style.border = 'none';
+                rsvBtn.style.padding = '4px';
+                rsvBtn.style.transition = 'all 0.2s';
+
+                if (isSynthesisEnabled) {
+                    // Disabled when synthesis is running
+                    rsvBtn.disabled = true;
+                    rsvBtn.style.opacity = '0.3';
+                    rsvBtn.style.color = '#555';
+                    rsvBtn.style.cursor = 'not-allowed';
+                    rsvBtn.title = "Stop server to insert";
+                } else {
+                    // Enabled when stopped
+                    rsvBtn.disabled = false;
+                    rsvBtn.style.opacity = '0.7';
+                    rsvBtn.style.color = '#a8df65'; // Green-ish
+                    rsvBtn.style.cursor = 'pointer';
+                    rsvBtn.title = "Insert to DaVinci Resolve";
+
+                    rsvBtn.onmouseover = () => { rsvBtn.style.opacity = '1'; };
+                    rsvBtn.onmouseout = () => { rsvBtn.style.opacity = '0.7'; };
+                    rsvBtn.onclick = () => insertToResolve(entry.filename, rsvBtn);
+                }
+
+                resolveCell.appendChild(rsvBtn);
+            }
+
             const playCell = document.createElement('td');
             playCell.style.padding = '8px';
             playCell.style.textAlign = 'center';
@@ -210,6 +250,7 @@ function renderLogs(logs) {
             row.appendChild(textCell);
             row.appendChild(durCell);
             row.appendChild(configCell);
+            row.appendChild(resolveCell);
             row.appendChild(deleteCell);
 
             // Insert Play at beginning
@@ -262,11 +303,9 @@ async function loadConfig() {
             elements.dirStatus.style.color = "#ff6b6b";
         }
 
-        // Handle Resolve
-        if (config.resolve && config.resolve.enabled) {
-            elements.resolveToggle.checked = true;
-        } else {
-            elements.resolveToggle.checked = false;
+        // Handle Resolve Status Update
+        if (config.resolve_available !== undefined) {
+            updateResolveStatus(config.resolve_available);
         }
 
         // Initial UI State update happens in loadControlState->updateStartStopUI usually,
@@ -296,10 +335,7 @@ function setupListeners() {
         });
     });
 
-    elements.resolveToggle.addEventListener('change', async (e) => {
-        const enabled = e.target.checked;
-        await updateConfig('resolveEnabled', enabled);
-    });
+
 
     elements.browseBtn.addEventListener('click', async () => {
         if (elements.browseBtn.disabled) return;
@@ -345,6 +381,9 @@ async function loadControlState() {
         isSynthesisEnabled = data.enabled;
         if (data.playback) {
             serverPlaybackState = data.playback;
+        }
+        if (data.resolve_available !== undefined) {
+            updateResolveStatus(data.resolve_available);
         }
         updateStartStopUI();
     } catch (e) {
@@ -561,6 +600,64 @@ async function deleteFile(filename) {
     } catch (e) {
         console.error("Delete request failed", e);
         await showAlert("Error", "Delete request failed");
+    }
+}
+
+async function insertToResolve(filename, btnElement) {
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.style.opacity = '0.5';
+    }
+
+    try {
+        const res = await fetch(CONTROL_RESOLVE_INSERT_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: filename })
+        });
+        const data = await res.json();
+
+        if (data.status === 'ok') {
+            // Success animation or feedback could go here
+            if (btnElement) {
+                btnElement.style.color = '#fff';
+                setTimeout(() => {
+                    // Re-enable if still stopped? Wait for rerender or just reset style
+                    // Actually, renderLogs runs frequently, so state resets.
+                    // Just purely for visual feedback:
+                    btnElement.style.color = '#a8df65';
+                    btnElement.disabled = false;
+                    btnElement.style.opacity = '1';
+                }, 1000);
+            }
+        } else {
+            await showAlert("Insert Failed", data.message || "Unknown error");
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.style.opacity = '1';
+            }
+        }
+    } catch (e) {
+        console.error("Resolve insert failed", e);
+        await showAlert("Error", "Failed to communicate with server");
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.style.opacity = '1';
+        }
+    }
+}
+
+function updateResolveStatus(available) {
+    isResolveAvailable = available;
+    const el = elements.resolveStatus;
+    if (available) {
+        el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background-color: #a8df65;"></span> Connected`;
+        el.style.color = "#a8df65";
+        el.style.borderColor = "#a8df65";
+    } else {
+        el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background-color: #555;"></span> Not Found`;
+        el.style.color = "#666";
+        el.style.borderColor = "#444";
     }
 }
 

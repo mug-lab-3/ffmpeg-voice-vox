@@ -68,14 +68,17 @@ class StreamProcessor:
                 
                 print(f"  -> Generated: {generated_file} ({actual_duration:.2f}s)")
                 
+                # Log entry - only when synthesis happened
+                self._add_log(text, actual_duration, generated_file)
+                
             except Exception as e:
                 print(f"Synthesis Error: {e}")
                 generated_file = "Error"
+                self._add_log(text, 0, generated_file)
         else:
             print("  -> Synthesis Skipped (Disabled)")
-            
-        # Log entry
-        self._add_log(text, actual_duration, generated_file)
+            # Do NOT add to logs if disabled
+
 
     def _add_log(self, text, duration, filename):
         log_entry = {
