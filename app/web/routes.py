@@ -68,16 +68,26 @@ if not current_process().daemon:
 
 @web.route('/api/stream')
 def stream():
+    remote_addr = request.remote_addr
     def generator():
+        print(f"[Stream] New connection from {remote_addr}")
         q = event_manager.subscribe()
         try:
             while True:
                 data = q.get()
+                # print(f"[Stream] Yielding data to {remote_addr}") # Too noisy for heartbeat
                 yield data
         except GeneratorExit:
+            print(f"[Stream] Client disconnected: {remote_addr}")
+            event_manager.unsubscribe(q)
+        except Exception as e:
+            print(f"[Stream] Error: {e}")
             event_manager.unsubscribe(q)
             
-    return Response(generator(), mimetype='text/event-stream')
+    response = Response(generator(), mimetype='text/event-stream')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['X-Accel-Buffering'] = 'no'
+    return response
 
 @web.route('/', methods=['GET'])
 def index():
@@ -332,6 +342,71 @@ def browse_directory():
             
     except Exception as e:
         print(f"[API] Browse Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@web.route('/api/system/browse_file', methods=['POST'])
+def browse_file():
+    """
+    Opens a native file selection dialog on the server machine.
+    Returns the selected path.
+    """
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        import winsound
+        import ctypes
+        
+        # 0. Enable High DPI Awareness (Windows)
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1) 
+        except Exception:
+            try:
+                ctypes.windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass 
+
+        # 1. Play a system sound
+        winsound.MessageBeep(winsound.MB_ICONASTERISK)
+        
+        # 2. Create and force focus on the root window
+        root = tk.Tk()
+        root.withdraw() 
+        root.attributes('-topmost', True) 
+        root.lift()
+        root.focus_force() 
+        
+        # 3. Open dialog
+        # We can accept filters if needed, but generic for now
+        file_types = [("All Files", "*.*"), ("Executables", "*.exe"), ("Models", "*.bin")]
+        path = filedialog.askopenfilename(title="Select File", parent=root, filetypes=file_types)
+        
+        root.destroy() 
+        
+        if path:
+            path = os.path.abspath(path)
+            return jsonify({"status": "ok", "path": path})
+        else:
+            return jsonify({"status": "cancelled"})
+            
+    except Exception as e:
+        print(f"[API] Browse File Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@web.route('/api/ffmpeg/devices', methods=['GET'])
+def get_audio_devices():
+    try:
+        # User requirement: API should use server-side state (config)
+        ffmpeg_path = config.get("ffmpeg.ffmpeg_path")
+             
+        if not ffmpeg_path:
+            return jsonify({"status": "error", "message": "FFmpeg path not configured on server"}), 400
+            
+        devices = ffmpeg_client.list_audio_devices(ffmpeg_path)
+        print(f"[API] Devices (repr): {repr(devices)}")
+        return jsonify({"status": "ok", "devices": devices})
+        
+    except Exception as e:
+        print(f"[API] Get Devices Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @web.route('/api/heartbeat', methods=['GET'])

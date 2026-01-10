@@ -334,7 +334,9 @@ input[type=range]::-webkit-slider-runnable-track {
     opacity: 0.3;
     color: #555;
     cursor: not-allowed;
-}.modal-input {
+}
+
+.modal-input {
     width: 100%;
     padding: 8px;
     border-radius: 6px;
@@ -349,4 +351,54 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .modal-input:focus {
     border-color: var(--primary);
+}
+
+fieldset.settings-group {
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: #2a2a2a;
+}
+
+fieldset.settings-group legend {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--primary);
+    padding: 0 10px;
+}
+
+.btn-browse {
+    background-color: #444;
+    color: var(--text);
+    border: 1px solid #555;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 12px;
+    height: 34px;
+    /* Match input height roughly */
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-browse:hover {
+    background-color: #555;
+    border-color: #666;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.rotating {
+    animation: rotate 1s linear infinite;
+    pointer-events: none;
+    opacity: 0.7;
 }

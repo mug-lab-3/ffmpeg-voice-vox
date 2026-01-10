@@ -48,20 +48,44 @@ class FFmpegClient:
             queue_length = config_data["queue_length"]
 
             # Construct command
-            # ./ffmpeg -f dshow -i audio="[input_device]" -vn -af 'whisper=model=[model_path]:queue=[queue]:destination=http\://[host]\:[port]:format=json:vad_model=[vad_model_path]' -f null -
             
-            # Note: On Windows, simple string command with shell=False or formatted list is safer/cleaner.
-            # However, the user provided example uses quotes for the filter string which might need careful handling.
-            # We will use a list of arguments for subprocess.
+            if not os.path.exists(model_path):
+                print(f"[FFmpeg] WARNING: Model path not found: {model_path}")
+            def _escape(path):
+                if not path: return "''"
+                # Pattern based on user provided working example:
+                # model='C\:\\Users...'
+                # destination=http\\://...
+                
+                # 1. Escape backslashes (literal \ -> \\)
+                # We must do this FIRST so we don't escape the backslashes we add for colons later.
+                p = path.replace('\\', '\\\\')
+                # 2. Escape colons (literal : -> \:)
+                p = p.replace(':', '\\:')
+                
+                return f"'{p}'"
             
-            # Audio filter string
-            # Important: Escape generated colons if needed, though here we are constructing it.
-            # The destination URL needs escaped colons in the filter string syntax if passed directly in some shells,
-            # but usually in subprocess list, we just pass the string.
-            # However, ffmpeg filter syntax often requires escaping colons as \:
+            def _escape_url(path):
+                # Using double backslash for URL colons to match user example
+                # destination=http\\://...
+                p = path.replace('\\', '\\\\')
+                p = p.replace(':', '\\\\:')
+                return p
+
+            model_path_esc = _escape(model_path)
+            vad_model_path_esc = _escape(vad_model_path)
             
-            dest_url = f"http\\://{host}\\:{port}"
-            filter_arg = f"whisper=model={model_path}:queue={queue_length}:destination={dest_url}:format=json:vad_model={vad_model_path}"
+            # Destination URL construction
+            # http://localhost:3000 -> http\\://localhost\\:3000
+            dest_url_base = f"http://{host}:{port}"
+            dest_url = _escape_url(dest_url_base)
+
+            # Enclose the entire filter argument in double quotes as requested -> NO, this breaks subprocess
+            # We revert to raw string but keep the inner escaping
+            # raw_filter = f"whisper=model={model_path_esc}:queue={queue_length}:destination={dest_url}:format=json:vad_model={vad_model_path_esc}"
+            # filter_arg = f'"{raw_filter}"'
+            
+            filter_arg = f"whisper=model={model_path_esc}:queue={queue_length}:destination={dest_url}:format=json:vad_model={vad_model_path_esc}"
             
             cmd = [
                 ffmpeg_path,
@@ -70,7 +94,7 @@ class FFmpegClient:
                 "-vn",
                 "-af", filter_arg,
                 "-f", "null",
-                "-"
+                "NUL" # Use NUL on Windows to discard output safely
             ]
             
             print(f"[FFmpeg] Starting with command: {' '.join(cmd)}")
@@ -81,7 +105,11 @@ class FFmpegClient:
                 # Or we can redirect to DEVNULL if we don't want to see it in the console.
                 # If the user wants to see ffmpeg output in the main app console, we can leave it inherited.
                 # For now, let's inherit stdout/stderr so it shows up in the terminal running the server.
+                print(f"[FFmpeg] Starting process (async)...")
+                import time
+                start_t = time.time()
                 self._process = subprocess.Popen(cmd)
+                print(f"[FFmpeg] Process started in {time.time() - start_t:.4f}s")
                 return True, "Started"
             except Exception as e:
                 print(f"[FFmpeg] Start Error: {e}")
@@ -111,3 +139,56 @@ class FFmpegClient:
     def is_running(self):
         with self._lock:
             return self._process is not None and self._process.poll() is None
+
+    def list_audio_devices(self, ffmpeg_path):
+        """
+        Lists available DirectShow audio devices.
+        Returns a list of device names.
+        """
+        if not ffmpeg_path or not os.path.exists(ffmpeg_path):
+             print(f"[FFmpeg] Path not found or empty: {ffmpeg_path}")
+             return []
+
+        cmd = [ffmpeg_path, "-list_devices", "true", "-f", "dshow", "-i", "dummy"]
+        
+        try:
+            # Capture as bytes to handle encoding manually
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            raw_output = result.stderr # device list is in stderr
+
+            output = ""
+            # Try utf-8 strict first. 
+            # UTF-8 is stricter than CP932. If bytes are valid UTF-8, it's likely UTF-8.
+            # If input is Shift-JIS (e.g. 0x83...), utf-8 strict will fail.
+            try:
+                output = raw_output.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    output = raw_output.decode('cp932')
+                except UnicodeDecodeError:
+                    output = raw_output.decode('utf-8', errors='replace')
+
+            devices = []
+            
+            # Simple parsing: Look for lines with "(audio)" and quotes
+            for line in output.splitlines():
+                if "(audio)" in line:
+                    import re
+                    match = re.search(r'\"(.+?)\"', line)
+                    if match:
+                        device_name = match.group(1)
+                        if device_name != "dummy": 
+                            devices.append(device_name)
+            
+            print(f"[FFmpeg] Found devices: {devices}")
+            if not devices:
+                 try:
+                     print(f"[FFmpeg] Raw output (decoded): {output}")
+                 except:
+                     print(f"[FFmpeg] Raw output (bytes): {raw_output}")
+
+            return devices
+
+        except Exception as e:
+            print(f"[FFmpeg] List Devices Error: {e}")
+            return []

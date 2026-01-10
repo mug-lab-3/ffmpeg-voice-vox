@@ -11,6 +11,8 @@ const ENDPOINTS = {
     CONTROL_DELETE: '/api/control/delete',
     CONTROL_RESOLVE_INSERT: '/api/control/resolve_insert',
     SYSTEM_BROWSE: '/api/system/browse',
+    SYSTEM_BROWSE_FILE: '/api/system/browse_file',
+    FFMPEG_DEVICES: '/api/ffmpeg/devices',
     STREAM: '/api/stream'
 };
 
@@ -101,5 +103,15 @@ export class ApiClient {
         return this._fetchJson(this.endpoints.SYSTEM_BROWSE, {
             method: 'POST'
         });
+    }
+
+    async browseFile() {
+        return this._fetchJson(this.endpoints.SYSTEM_BROWSE_FILE, {
+            method: 'POST'
+        });
+    }
+
+    async getAudioDevices() {
+        return this._fetchJson(this.endpoints.FFMPEG_DEVICES);
     }
 }

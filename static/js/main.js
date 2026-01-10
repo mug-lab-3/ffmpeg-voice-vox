@@ -21,11 +21,7 @@ const elements = {
     dirStatus: document.getElementById('dir-status'),
     resolveStatus: document.getElementById('resolve-status'),
 
-    // Settings
-    settingsBtn: document.getElementById('settings-btn'),
-    settingsModal: document.getElementById('settings-modal'),
-    settingsSave: document.getElementById('settings-save'),
-    settingsCancel: document.getElementById('settings-cancel'),
+    // Settings (Direct Inputs)
     cfgInputs: {
         ffmpegPath: document.getElementById('cfg-ffmpeg-path'),
         inputDevice: document.getElementById('cfg-input-device'),
@@ -98,9 +94,9 @@ function setupStoreListeners() {
 }
 
 function setupUIListeners() {
-    // Config Inputs
-    const keys = ['speaker', 'speedScale', 'pitchScale', 'intonationScale', 'volumeScale'];
-    keys.forEach(key => {
+    // Voicevox Config Inputs
+    const vvKeys = ['speaker', 'speedScale', 'pitchScale', 'intonationScale', 'volumeScale'];
+    vvKeys.forEach(key => {
         elements[key].addEventListener('input', (e) => {
             if (valueDisplays[key]) {
                 valueDisplays[key].textContent = Number(e.target.value).toFixed(2);
@@ -109,10 +105,93 @@ function setupUIListeners() {
 
         elements[key].addEventListener('change', async (e) => {
             const val = (key === 'speaker') ? parseInt(e.target.value) : parseFloat(e.target.value);
-            // Optimistic UI update could happen here, but we rely on simple fetch for now
             await api.updateConfig({ [key]: val });
         });
     });
+
+
+    // FFmpeg Config Inputs (Auto-save)
+    const ffmpegKeys = Object.keys(elements.cfgInputs);
+    // Helper to saves config
+    const saveFFmpegConfig = async () => {
+        const currentFFmpeg = {
+            ffmpeg_path: elements.cfgInputs.ffmpegPath.value,
+            input_device: elements.cfgInputs.inputDevice.value,
+            model_path: elements.cfgInputs.modelPath.value,
+            vad_model_path: elements.cfgInputs.vadPath.value,
+            queue_length: elements.cfgInputs.queueLength.value,
+            host: elements.cfgInputs.host.value,
+            port: parseInt(elements.cfgInputs.port.value) || ""
+        };
+        try {
+            await api.updateConfig({ ffmpeg: currentFFmpeg });
+        } catch (e) {
+            console.error("Auto-save failed", e);
+        }
+    };
+
+    ffmpegKeys.forEach(key => {
+        const input = elements.cfgInputs[key];
+        input.addEventListener('change', saveFFmpegConfig);
+    });
+
+    // Device Refresh
+    const refreshBtn = document.getElementById('refresh-devices');
+    refreshBtn.addEventListener('click', async () => {
+        const ffmpegPath = elements.cfgInputs.ffmpegPath.value;
+        if (!ffmpegPath) {
+            await showAlert("Notice", "Please set FFmpeg path first");
+            return;
+        }
+
+        refreshBtn.classList.add('rotating'); // Add rotation class if we have one, or just disable
+        refreshBtn.disabled = true;
+
+        try {
+            const res = await api.getAudioDevices(ffmpegPath);
+            if (res.ok && res.data.status === 'ok') {
+                populateDeviceSelect(res.data.devices);
+            } else {
+                await showAlert("Error", res.data.message || "Failed to list devices");
+            }
+        } catch (e) {
+            await showAlert("Error", "Failed to fetch device list");
+        } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove('rotating');
+        }
+    });
+
+    // Browse Buttons
+    const setupBrowse = (btnId, inputKey) => {
+        const btn = document.getElementById(btnId);
+        btn.addEventListener('click', async () => {
+            try {
+                const res = await api.browseFile();
+                if (res.ok && res.data.status === 'ok') {
+                    elements.cfgInputs[inputKey].value = res.data.path;
+                    // Trigger save
+                    await saveFFmpegConfig();
+
+                    // If we just set ffmpeg path, might want to refresh devices
+                    if (inputKey === 'ffmpegPath') {
+                        // Auto-trigger refresh handled by user click for now, or we can do it automatically?
+                        // Let's do it if device list is empty
+                        if (elements.cfgInputs.inputDevice.options.length <= 1) {
+                            refreshBtn.click();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Browse failed", e);
+            }
+        });
+    };
+
+    setupBrowse('browse-ffmpeg-path', 'ffmpegPath');
+    setupBrowse('browse-model-path', 'modelPath');
+    setupBrowse('browse-vad-path', 'vadPath');
+
 
     // Output Directory Browse
     elements.browseBtn.addEventListener('click', async () => {
@@ -124,7 +203,7 @@ function setupUIListeners() {
             if (res.ok && res.data.status === 'ok') {
                 const path = res.data.path;
                 elements.outputDir.value = path;
-                // Server reloads logs automatically on config change, but we trigger standard flow
+                // Server reloads logs automatically on config change
                 await api.updateConfig({ outputDir: path });
 
                 // Refresh logs specifically after dir change
@@ -142,43 +221,41 @@ function setupUIListeners() {
 
     // Start/Stop
     elements.startStopBtn.addEventListener('click', handleStartStopClick);
-
-    // Settings Modal
-    setupSettingsModalListeners();
 }
 
-function setupSettingsModalListeners() {
-    elements.settingsBtn.addEventListener('click', () => {
-        elements.settingsModal.classList.add('active');
+function populateDeviceSelect(devices) {
+    const select = elements.cfgInputs.inputDevice;
+    const currentValue = select.value; // Try to preserve selection if possible or logic relies on config
+
+    // Clear (keep first placeholder)
+    select.innerHTML = '<option value="" disabled>Select Device</option>';
+
+    if (!devices || devices.length === 0) {
+        const opt = document.createElement('option');
+        opt.disabled = true;
+        opt.textContent = "No devices found";
+        select.appendChild(opt);
+        return;
+    }
+
+    devices.forEach(dev => {
+        const opt = document.createElement('option');
+        opt.value = dev;
+        opt.textContent = dev;
+        select.appendChild(opt);
     });
 
-    elements.settingsCancel.addEventListener('click', () => {
-        elements.settingsModal.classList.remove('active');
-        renderConfig(); // Reset inputs
-    });
-
-    elements.settingsSave.addEventListener('click', async () => {
-        const newCfg = {
-            ffmpeg: {
-                ffmpeg_path: elements.cfgInputs.ffmpegPath.value,
-                input_device: elements.cfgInputs.inputDevice.value,
-                model_path: elements.cfgInputs.modelPath.value,
-                vad_model_path: elements.cfgInputs.vadPath.value,
-                queue_length: elements.cfgInputs.queueLength.value,
-                host: elements.cfgInputs.host.value,
-                port: parseInt(elements.cfgInputs.port.value) || ""
-            }
-        };
-
-        elements.settingsModal.classList.remove('active');
-
-        try {
-            await api.updateConfig(newCfg);
-        } catch (e) {
-            await showAlert("Error", "Failed to save settings");
-        }
-    });
+    // Restore value from store if matches, or current value if just refreshing 
+    // Actually store.config has the authoritative value. 
+    // But if we just opened app, renderConfig might have set value but options weren't there.
+    if (store.config?.ffmpeg?.input_device) {
+        select.value = store.config.ffmpeg.input_device;
+    } else if (currentValue) {
+        select.value = currentValue;
+    }
 }
+
+
 
 function setupSSE() {
     const evtSource = new EventSource(api.getStreamUrl());
@@ -318,7 +395,27 @@ function renderConfig() {
     if (config.ffmpeg) {
         const setIfExists = (el, val) => { if (el && val !== undefined) el.value = val; };
         setIfExists(elements.cfgInputs.ffmpegPath, config.ffmpeg.ffmpeg_path);
-        setIfExists(elements.cfgInputs.inputDevice, config.ffmpeg.input_device);
+
+        // Special handling for Select element to ensure value is visible
+        if (config.ffmpeg.input_device) {
+            const sel = elements.cfgInputs.inputDevice;
+            // Check if option exists
+            let exists = false;
+            for (let i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === config.ffmpeg.input_device) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                const opt = document.createElement('option');
+                opt.value = config.ffmpeg.input_device;
+                opt.textContent = config.ffmpeg.input_device;
+                sel.appendChild(opt);
+            }
+            sel.value = config.ffmpeg.input_device;
+        }
+
         setIfExists(elements.cfgInputs.modelPath, config.ffmpeg.model_path);
         setIfExists(elements.cfgInputs.vadPath, config.ffmpeg.vad_model_path);
         setIfExists(elements.cfgInputs.queueLength, config.ffmpeg.queue_length);
