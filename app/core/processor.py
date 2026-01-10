@@ -121,23 +121,31 @@ class StreamProcessor:
                 print(f"  -> Generated: {generated_file} ({actual_duration:.2f}s)")
                 
                 # Log entry - only when synthesis happened
-                self._add_log(text, actual_duration, generated_file)
+                self._add_log(text, actual_duration, generated_file, speaker_id)
                 
             except Exception as e:
                 print(f"Synthesis Error: {e}")
                 generated_file = "Error"
-                self._add_log(text, 0, generated_file)
+                self._add_log(text, 0, generated_file, speaker_id)
         else:
             print("  -> Synthesis Skipped (Disabled)")
             # Do NOT add to logs if disabled
 
 
-    def _add_log(self, text, duration, filename):
+    def _add_log(self, text, duration, filename, speaker_id=None):
+        # Always use a copy to avoid reference sharing
+        current_config = config.get("synthesis")
+        log_config = current_config.copy() if current_config else {}
+        
+        # If speaker_id was provided (from when synthesis happened), ensure it's in the log config
+        if speaker_id is not None:
+            log_config["speaker_id"] = speaker_id
+
         log_entry = {
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "text": text,
             "duration": f"{duration:.2f}s",
-            "config": config.get("synthesis"), 
+            "config": log_config, 
             "filename": filename if filename else "Error"
         }
         
