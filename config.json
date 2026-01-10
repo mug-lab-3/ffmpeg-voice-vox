@@ -1,0 +1,20 @@
+{
+    "server": {
+        "host": "127.0.0.1",
+        "port": 3000
+    },
+    "voicevox": {
+        "host": "127.0.0.1",
+        "port": 50021
+    },
+    "synthesis": {
+        "speaker_id": 2,
+        "speed_scale": 1,
+        "pitch_scale": 0.0,
+        "intonation_scale": 1,
+        "volume_scale": 1.0
+    },
+    "system": {
+        "is_synthesis_enabled": false
+    }
+}

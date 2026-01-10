@@ -4,43 +4,44 @@
 
 ## 1. メイン処理フロー (受信〜合成)
 
-`server.py` の `whisper_receiver` 関数がエントリーポイントとなります。
+`app/core/processor.py` の `StreamProcessor.process_stream` がストリーム処理の中心となります。
 
 1.  **ストリーム受信**:
-    *   `POST /` に対してデータがチャンク形式で送られてくると、サーバーはバッファ(`buffer`)にデータを蓄積します。
-    *   デリミタ（`}`）を検出するたびに、そこまでを1つのJSONオブジェクトとみなして切り出します。
+    *   `POST /` (定義: `app/web/routes.py`) に対してデータが送られてくると、`StreamProcessor` にストリームが渡されます。
+    *   デリミタ（`}`）を検出するたびに、そこまでを1つのJSONオブジェクトとして切り出します。
 
 2.  **JSON解析 (Parsing)**:
-    *   切り出した文字列を `json.loads` でパースします。
-    *   必須キー (`text`, `start`, `end`) が存在するかチェックします。キーが不足している場合はスキップします。
+    *   `_process_json_chunk` メソッドでパースします。
+    *   必須キー (`text`, `start`, `end`) の存在確認を行います。
 
 3.  **合成判定 (Switching)**:
-    *   グローバル変数 `is_synthesis_enabled` を確認します。
+    *   設定マネージャー (`app.config.ConfigManager`) の `system.is_synthesis_enabled` 値を確認します。
     *   **ONの場合**: Voicevox連携処理に進みます。
-    *   **OFFの場合**: ログに "Synthesis Skipped" を出力し、合成を行わずにデータを破棄します。
+    *   **OFFの場合**: ログにスキップ情報を出力し、処理を中断します。
 
 4.  **Voicevox連携＆保存**:
-    *   **Audio Query**: 現在の設定(`current_config`)とテキストをエンドポイント `/audio_query` に送信し、合成パラメータを取得します。
-    *   **Synthesis**: パラメータを `/synthesis` に送信し、WAVデータをバイナリで受け取ります。
-    *   **保存**: `output/` フォルダに WAVファイルとSRTファイルを保存します。ファイル名は入力のタイムスタンプとテキストに基づいて一意に生成されます。
+    *   **Audio Query**: `VoiceVoxClient.audio_query` を呼び出し、パラメータを取得します。
+    *   **Synthesis**: `VoiceVoxClient.synthesis` で音声データを生成します。設定値（speed, pitch等）は `config.json` からロードされた値を適用します。
+    *   **保存**: `AudioManager.save_audio` が `output/` フォルダへの保存とSRT生成を担当します。
 
 5.  **ログ更新**:
-    *   処理結果（成功時のファイル名、所要時間など）をインメモリのログリスト(`received_logs`)に追加します。古いログは50件を超えると削除されます。
+    *   処理結果はメモリ上のリスト(`received_logs`)に追加されると同時に、Python標準の `logging` モジュールを通じて `logs/app.log` にも記録されます。
 
 ## 2. 状態管理 (State Management)
 
-### 2.1 音声合成スイッチ
-*   Web UIの「START/STOP」ボタンにより `is_synthesis_enabled` フラグが切り替わります。
-*   このフラグはメモリ上に保持され、サーバー再起動でリセット(デフォルトON)されます。
+### 2.1 設定とステート
+*   設定値は `app/config.py` の `ConfigManager` クラスで一元管理されます。
+*   ファイル(`config.json`)と同期しており、アプリケーション内で共有されるシングルトンインスタンスとして機能します。
 
 ### 2.2 再生管理 (Playback)
-*   **排他制御**: 複数のブラウザや再生リクエストが競合しないよう、`playback_lock` (Threading Lock) を使用して再生状態(`playback_status`)を管理しています。
-*   **非同期実行**: 再生処理(`winsound.PlaySound`)はブロッキング操作であるため、別スレッドで実行されます。これにより再生中もAPIのレスポンスがブロックされません。
+*   **モジュール**: `app/core/audio.py` の `AudioManager` クラスが担当。
+*   **排他制御**: `playback_lock` を使用してスレッドセーフに再生状態を管理します。
+*   **非同期実行**: `winsound` による再生は別スレッドで行われ、Web APIの応答をブロックしません。
 
 ## 3. 自動監視 (Watchdog)
-*   別スレッドで `monitor_activity` 関数が常時稼働しています。
-*   `last_activity_time` 変数を最後のリクエスト時刻で更新し続け、**300秒(5分)** 以上更新がない場合、`os._exit(0)` を呼び出しプロセスを強制終了します。
+*   **エントリーポイント**: `run.py` 内で監視スレッドが起動します。
+*   **仕組み**: `last_activity_time` を監視し、**300秒(5分)** 無操作状態が続くとプロセスを終了します。
 
 ## 4. エラーハンドリング
-*   **JSONデコードエラー**: 分割されたチャンクが不正なJSONの場合、そのブロックは破棄されますがサーバーは停止しません。
-*   **Voicevox接続エラー**: Voicevoxが起動していない場合などは例外をキャッチし、サーバーのクラッシュを防ぎます。
+*   **モジュール間の分離**: `StreamProcessor` 内で例外をキャッチし、一部のデータ不良がサーバー全体の停止につながらないように設計されています。
+*   **ログ**: 予期しないエラーは `logs/app.log` にスタックトレースと共に記録されます。
