@@ -276,9 +276,17 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 
 @keyframes pulse-opacity {
-    0% { opacity: 0.6; }
-    50% { opacity: 1; }
-    100% { opacity: 0.6; }
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
 }
 
 .playing-anim {
@@ -297,6 +305,12 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .btn-icon-delete:hover {
     opacity: 1;
+}
+
+.btn-icon-delete:disabled {
+    opacity: 0.3;
+    color: #555;
+    cursor: not-allowed;
 }
 
 .btn-icon-resolve {

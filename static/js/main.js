@@ -83,32 +83,20 @@ async function loadLogs() {
         const logs = await res.json();
         const currentJson = JSON.stringify(logs);
 
-        // Optimize: Only render if data changed or we suspect a state change needs re-render (e.g. playback update handled separately but logs might reflect it)
-        // Usually playback state is separate, but we use it in renderLogs. 
-        // Ideally we should also check if serverPlaybackState changed meaningfully for rendering.
-        // For now, strict log content check plus explicit re-render calls when playback starts are enough, 
-        // as polling will pick up log updates. 
-        // If we want to animate play button via re-render, we need to be careful. 
-        // Actually, we should just update the class of the existing button if only playback state changes, but full re-render is simpler.
-        // To fix flickering, CSS handles hover. Re-rendering is fine if it doesn't happen 60fps, but 1s is okay IF styles are CSS.
-        // But preventing unnecessary DOM thrashing is still good.
-        if (currentJson === lastLogsJson && !window.forceLogRender) {
-            // We still need to update play buttons state if playback changed but logs didn't?
-            // renderLogs uses serverPlaybackState. 
-            // Let's rely on forceLogRender or just check if playback state changed.
-            // For simplicity to fix flicker: The CSS fix solves flicker even with re-render.
-            // Optimization: skip re-render if identical.
-            // But we need to update 'playing' class if playback state changed.
-            // Let's just always render for now, but rely on CSS for stable hover.
-            // actually, the user specifically mentioned flickering, which even with CSS might happen if DOM node is replaced under cursor.
-            // So: preventing re-render is CRITICAL for stable hover if we replace DOM.
-            // We need to compare logs AND playback state.
-            const playbackKey = `${serverPlaybackState.is_playing}_${serverPlaybackState.filename}`;
-            if (currentJson === lastLogsJson && window.lastPlaybackKey === playbackKey) {
-                return;
-            }
-            window.lastPlaybackKey = playbackKey;
+        // Optimize: Only render if data changed or we suspect a state change needs re-render
+        // Check logs, playback state, AND synthesis state (enabled/disabled)
+        const playbackKey = `${serverPlaybackState.is_playing}_${serverPlaybackState.filename}`;
+        const synthesisKey = isSynthesisEnabled;
+
+        if (currentJson === lastLogsJson &&
+            window.lastPlaybackKey === playbackKey &&
+            window.lastSynthesisKey === synthesisKey &&
+            !window.forceLogRender) {
+            return;
         }
+
+        window.lastPlaybackKey = playbackKey;
+        window.lastSynthesisKey = synthesisKey;
 
         lastLogsJson = currentJson;
         window.forceLogRender = false;
@@ -119,145 +107,204 @@ async function loadLogs() {
 }
 
 function renderLogs(logs) {
-    elements.logTableBody.innerHTML = '';
-    // Newest first
-    const reversed = logs.slice().reverse();
+    // Ascending order (oldest first) - assuming server sends oldest first
+    // Previously we reversed it, so now we just take it as is.
+    const displayLogs = logs.slice();
 
-    reversed.forEach(entry => {
-        const row = document.createElement('tr');
-        row.style.borderBottom = '1px solid #333';
+    const tableBody = elements.logTableBody;
+    const existingRows = new Map();
 
-        if (typeof entry === 'string') {
-            // Legacy support
-            const cell = document.createElement('td');
-            cell.colSpan = 7;
-            cell.textContent = entry;
-            cell.style.padding = '8px';
-            cell.style.color = '#888';
-            row.appendChild(cell);
+    // Index existing rows
+    Array.from(tableBody.children).forEach(row => {
+        const filename = row.getAttribute('data-filename');
+        if (filename) {
+            existingRows.set(filename, row);
         } else {
-            // Structured log
-            const timeCell = document.createElement('td');
-            timeCell.textContent = entry.timestamp;
-            timeCell.style.padding = '8px';
-            timeCell.style.color = '#888';
-
-            const fileCell = document.createElement('td');
-            fileCell.textContent = entry.filename || '-';
-            fileCell.style.padding = '8px';
-            fileCell.style.color = '#aaa';
-            fileCell.style.fontSize = '0.85em';
-
-            const textCell = document.createElement('td');
-            textCell.textContent = entry.text;
-            textCell.style.padding = '8px';
-            textCell.style.fontWeight = 'bold';
-
-            const durCell = document.createElement('td');
-            durCell.textContent = entry.duration;
-            durCell.style.padding = '8px';
-            durCell.style.color = '#aaa';
-
-            const configCell = document.createElement('td');
-            const cfg = entry.config;
-            const spName = speakerMap[cfg.speaker_id] || `ID:${cfg.speaker_id}`;
-            configCell.innerHTML = `<span style="color: var(--primary)">${spName}</span> <span style="font-size: 0.8em; color: #666;">(x${cfg.speed_scale.toFixed(2)})</span>`;
-            configCell.style.padding = '8px';
-
-            const resolveCell = document.createElement('td');
-            resolveCell.style.padding = '8px';
-            resolveCell.style.textAlign = 'center';
-
-            if (entry.filename && entry.filename !== "Error" && isResolveAvailable) {
-                const rsvBtn = document.createElement('button');
-                // Film/Timeline Icon
-                const rsvIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>`;
-                rsvBtn.className = 'btn-icon-resolve';
-                rsvBtn.innerHTML = rsvIcon;
-
-                if (isSynthesisEnabled) {
-                    // Disabled when synthesis is running
-                    rsvBtn.disabled = true;
-                    rsvBtn.title = "Stop server to insert";
-                } else {
-                    // Enabled when stopped
-                    rsvBtn.disabled = false;
-                    rsvBtn.title = "Insert to DaVinci Resolve";
-                    rsvBtn.onclick = () => insertToResolve(entry.filename, rsvBtn);
-                }
-
-                resolveCell.appendChild(rsvBtn);
-            }
-
-            const playCell = document.createElement('td');
-            playCell.style.padding = '8px';
-            playCell.style.textAlign = 'center';
-
-            if (entry.filename && entry.filename !== "Error" && entry.filename !== "Skipped") {
-                const playBtn = document.createElement('button');
-                playBtn.id = `btn-${entry.filename}`; // Add ID for easier selection
-                // Play Icon (SVG)
-                // Visually fix center alignment by nudging right
-                const playIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
-                playBtn.className = 'btn-icon-play';
-                playBtn.innerHTML = playIcon;
-
-                // Determine if this file is currently playing
-                const isThisPlaying = serverPlaybackState.is_playing && serverPlaybackState.filename === entry.filename;
-
-                if (isThisPlaying) {
-                    // setPlayingStyle(playBtn);
-                    playBtn.classList.add('playing', 'playing-anim');
-                    playBtn.disabled = true;
-                    // Actually playing state might want to allow stop? but API control/play is just play.
-                    // For now match previous logic: disabled style but active look.
-                } else {
-                    // Replay is only enabled when synthesis is STOPPED
-                    if (isSynthesisEnabled) {
-                        playBtn.disabled = true;
-                        playBtn.title = "Stop server to replay";
-                    } else {
-                        playBtn.title = "Play audio";
-                        playBtn.disabled = false;
-                        playBtn.onclick = () => playAudio(entry.filename, playBtn);
-                    }
-                }
-
-                playCell.appendChild(playBtn);
-            }
-
-            // Delete Button
-            const deleteCell = document.createElement('td');
-            deleteCell.style.padding = '8px';
-            deleteCell.style.textAlign = 'center';
-
-            if (entry.filename && entry.filename !== "Error") {
-                const delBtn = document.createElement('button');
-                // Trash Icon
-                const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-                delBtn.innerHTML = trashIcon;
-
-                delBtn.className = 'btn-icon-delete';
-                delBtn.innerHTML = trashIcon;
-                delBtn.title = "Delete file";
-                delBtn.onclick = () => deleteFile(entry.filename);
-
-                deleteCell.appendChild(delBtn);
-            }
-
-            row.appendChild(timeCell);
-            row.appendChild(fileCell);
-            row.appendChild(textCell);
-            row.appendChild(durCell);
-            row.appendChild(configCell);
-            row.appendChild(resolveCell);
-            row.appendChild(deleteCell);
-
-            // Insert Play at beginning
-            row.insertBefore(playCell, row.firstChild);
+            // Remove legacy rows or non-data rows immediately
+            row.remove();
         }
-        elements.logTableBody.appendChild(row);
     });
+
+    let hasNewItem = false;
+
+    displayLogs.forEach(entry => {
+        if (typeof entry === 'string') return; // Skip legacy string logs
+
+        const filename = entry.filename;
+        if (!filename) return;
+
+        let row = existingRows.get(filename);
+
+        if (!row) {
+            row = createLogRow(entry);
+            hasNewItem = true;
+        } else {
+            existingRows.delete(filename); // Mark as visited
+            updateLogRow(row, entry);
+        }
+
+        // Append moves the element to the end of the list, ensuring correct order
+        tableBody.appendChild(row);
+    });
+
+    // Remove remaining rows (deleted files)
+    existingRows.forEach(row => row.remove());
+
+    // Auto-scroll to bottom if new item added
+    if (hasNewItem) {
+        scrollToBottom();
+    }
+}
+
+function createLogRow(entry) {
+    const row = document.createElement('tr');
+    row.style.borderBottom = '1px solid #333';
+    row.setAttribute('data-filename', entry.filename);
+
+    const playBtn = document.createElement('button');
+    playBtn.className = 'btn-icon-play';
+    // Content set in updateLogRow
+
+    const timeCell = document.createElement('td');
+    timeCell.textContent = entry.timestamp;
+    timeCell.style.padding = '8px';
+    timeCell.style.color = '#888';
+
+    const fileCell = document.createElement('td');
+    fileCell.textContent = entry.filename || '-';
+    fileCell.style.padding = '8px';
+    fileCell.style.color = '#aaa';
+    fileCell.style.fontSize = '0.85em';
+
+    const textCell = document.createElement('td');
+    textCell.textContent = entry.text;
+    textCell.style.padding = '8px';
+    textCell.style.fontWeight = 'bold';
+
+    const durCell = document.createElement('td');
+    durCell.textContent = entry.duration;
+    durCell.style.padding = '8px';
+    durCell.style.color = '#aaa';
+
+    const configCell = document.createElement('td');
+    const cfg = entry.config;
+    const spName = speakerMap[cfg.speaker_id] || `ID:${cfg.speaker_id}`;
+    configCell.innerHTML = `<span style="color: var(--primary)">${spName}</span> <span style="font-size: 0.8em; color: #666;">(x${cfg.speed_scale.toFixed(2)})</span>`;
+    configCell.style.padding = '8px';
+
+    const rsvBtn = document.createElement('button');
+    rsvBtn.className = 'btn-icon-resolve';
+    rsvBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>`;
+    rsvBtn.onclick = () => insertToResolve(entry.filename, rsvBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-icon-delete';
+    delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+    delBtn.title = "Delete file";
+    delBtn.onclick = () => deleteFile(entry.filename);
+
+    // Cells
+    const playCell = document.createElement('td');
+    playCell.className = 'col-play';
+    playCell.style.padding = '8px';
+    playCell.style.textAlign = 'center';
+    playCell.appendChild(playBtn);
+
+    const resolveCell = document.createElement('td');
+    resolveCell.className = 'col-resolve';
+    resolveCell.style.padding = '8px';
+    resolveCell.style.textAlign = 'center';
+    if (entry.filename && entry.filename !== "Error" && isResolveAvailable) {
+        resolveCell.appendChild(rsvBtn);
+    }
+
+    const deleteCell = document.createElement('td');
+    deleteCell.style.padding = '8px';
+    deleteCell.style.textAlign = 'center';
+    if (entry.filename && entry.filename !== "Error") {
+        deleteCell.appendChild(delBtn);
+    }
+
+    // Append cells in correct order
+    row.appendChild(playCell);
+    row.appendChild(timeCell);
+    row.appendChild(fileCell);
+    row.appendChild(textCell);
+    row.appendChild(durCell);
+    row.appendChild(configCell);
+    row.appendChild(resolveCell);
+    row.appendChild(deleteCell);
+
+    // Initial state set
+    updateLogRow(row, entry);
+
+    return row;
+}
+
+function updateLogRow(row, entry) {
+    const playBtn = row.querySelector('.btn-icon-play');
+    const rsvBtn = row.querySelector('.btn-icon-resolve');
+    const delBtn = row.querySelector('.btn-icon-delete');
+
+    // Update Resolve Button State
+    if (rsvBtn) {
+        if (isSynthesisEnabled) {
+            rsvBtn.disabled = true;
+            rsvBtn.title = "Stop server to insert";
+        } else {
+            rsvBtn.disabled = false;
+            rsvBtn.title = "Insert to DaVinci Resolve";
+        }
+    }
+
+    // Update Delete Button State
+    if (delBtn) {
+        if (isSynthesisEnabled) {
+            delBtn.disabled = true;
+            delBtn.title = "Stop server to delete";
+        } else {
+            delBtn.disabled = false;
+            delBtn.title = "Delete file";
+            // allow CSS to handle opacity (0.7 -> 1.0 on hover)
+            delBtn.style.opacity = '';
+            delBtn.style.cursor = '';
+        }
+    }
+
+    // Play Button Logic
+    const isThisPlaying = serverPlaybackState.is_playing && serverPlaybackState.filename === entry.filename;
+
+    if (isThisPlaying) {
+        const playingIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="playing-anim"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+        if (playBtn.innerHTML !== playingIcon) playBtn.innerHTML = playingIcon;
+
+        playBtn.classList.add('playing', 'playing-anim');
+        playBtn.disabled = true;
+    } else {
+        const playIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+        if (playBtn.innerHTML !== playIcon) playBtn.innerHTML = playIcon;
+
+        playBtn.classList.remove('playing', 'playing-anim');
+
+        if (isSynthesisEnabled) {
+            playBtn.disabled = true;
+            playBtn.title = "Stop server to replay";
+            playBtn.onclick = null;
+        } else {
+            playBtn.disabled = false;
+            playBtn.title = "Play audio";
+            playBtn.onclick = () => playAudio(entry.filename, playBtn);
+        }
+    }
+}
+
+function scrollToBottom() {
+    // The table is inside a scrollable div. We need to find it.
+    // In index.html: <div style="max-height: 200px; overflow-y: auto;"> <table>...
+    const container = elements.logTableBody.closest('div');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
 }
 
 async function loadSpeakers() {
