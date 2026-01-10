@@ -23,7 +23,7 @@ const elements = {
 };
 
 // Global State
-let isSynthesisEnabled = false;
+let isSynthesisEnabled = true;
 let isResolveAvailable = false;
 let serverPlaybackState = { is_playing: false, filename: null, remaining: 0 };
 
@@ -50,44 +50,17 @@ async function init() {
 }
 
 function startPolling() {
-    // Start recursive polling
-    pollLoop();
-}
-
-let isPolling = false;
-async function pollLoop() {
-    if (isPolling) return; // Safety check
-    isPolling = true;
-
-    try {
-        if (!document.hidden) {
-            await loadControlState();
-            await loadLogs();
-            updateConnectionStatus(true);
-        } else {
+    setInterval(async () => {
+        // Background tabs shouldn't poll logs to save resources
+        // Instead, send a lightweight heartbeat to keep server alive
+        if (document.hidden) {
             await sendHeartbeat();
+            return;
         }
-    } catch (e) {
-        console.error("Poll error", e);
-        updateConnectionStatus(false);
-    } finally {
-        isPolling = false;
-        // Schedule next poll only after current finishes
-        setTimeout(pollLoop, 1000);
-    }
-}
 
-function updateConnectionStatus(isOnline) {
-    const statusEl = elements.status;
-    if (isOnline) {
-        if (statusEl.textContent === "Connection Lost") {
-            statusEl.textContent = "State: Ready";
-            statusEl.style.color = "#666";
-        }
-    } else {
-        statusEl.textContent = "Connection Lost";
-        statusEl.style.color = "#ff6b6b";
-    }
+        await loadControlState(); // Check state first
+        await loadLogs();
+    }, 1000); // 1s polling
 }
 
 async function sendHeartbeat() {
@@ -170,6 +143,10 @@ function renderLogs(logs) {
             updateLogRow(row, entry);
         }
 
+        // Check scroll position BEFORE appending
+        const container = elements.logTableBody.closest('div');
+        const isAtBottom = container ? (container.scrollHeight - container.scrollTop - container.clientHeight < 50) : true;
+
         // Append moves the element to the end of the list, ensuring correct order
         tableBody.appendChild(row);
     });
@@ -177,8 +154,8 @@ function renderLogs(logs) {
     // Remove remaining rows (deleted files)
     existingRows.forEach(row => row.remove());
 
-    // Auto-scroll to bottom if new item added
-    if (hasNewItem) {
+    // Auto-scroll only if new item added AND user was already at bottom
+    if (hasNewItem && isAtBottom) {
         scrollToBottom();
     }
 }
@@ -442,18 +419,12 @@ function setupListeners() {
     });
 
     elements.startStopBtn.addEventListener('click', async () => {
-        console.log("Button Clicked!");
-        if (elements.startStopBtn.classList.contains('disabled')) {
-            console.log("Button is disabled, ignoring click.");
-            return;
-        }
-        console.log("Button enabled, toggling state...");
+        if (elements.startStopBtn.classList.contains('disabled')) return;
         await toggleControlState();
     });
 }
 
 function setUILocked(locked, message = "") {
-    console.log(`setUILocked: ${locked}, msg: ${message}`);
     let overlay = document.getElementById('loading-overlay');
 
     // Create overlay if not exists
@@ -530,13 +501,7 @@ function setUILocked(locked, message = "") {
     }
 }
 
-
-let isToggling = false;
-
 async function loadControlState() {
-    // If user is toggling, don't overwrite optimistic UI with potentially stale server state
-    if (isToggling) return;
-
     try {
         const res = await fetch(CONTROL_STATE_API);
         const data = await res.json();
@@ -564,13 +529,6 @@ async function toggleControlState() {
         }
     }
 
-    isToggling = true;
-
-    // Optimistic UI Update
-    const previousState = isSynthesisEnabled;
-    isSynthesisEnabled = newState;
-    updateStartStopUI(); // Update UI immediately
-
     try {
         const res = await fetch(CONTROL_STATE_API, {
             method: 'POST',
@@ -580,24 +538,17 @@ async function toggleControlState() {
         const data = await res.json();
 
         if (data.status === 'ok') {
-            // Confirm state from server
             isSynthesisEnabled = data.enabled;
-            // updateStartStopUI(); // Already updated, but syncing is fine.
-        } else {
-            // Error from server (e.g. invalid dir), Revert
-            console.error("Server rejected state change:", data.message);
-            isSynthesisEnabled = previousState;
             updateStartStopUI();
+        } else {
+            // Error from server (e.g. invalid dir)
             await showAlert("Error", data.message || "Failed to change state");
+            // Revert UI state if needed (usually handled by next poll, but good to ensure)
+            loadControlState();
         }
     } catch (e) {
         console.error("Failed to toggle state", e);
-        // Revert on network error
-        isSynthesisEnabled = previousState;
-        updateStartStopUI();
         await showAlert("Connection Error", `Failed to communicate with server: ${e.message}`);
-    } finally {
-        isToggling = false;
     }
 }
 
