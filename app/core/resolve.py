@@ -32,55 +32,60 @@ def monitor_resolve_process(shared_status, running_event):
     log("Monitor process started")
 
     while running_event.is_set():
-        success = False
         try:
-            dvr_script = None
-            
-            # Setup path just in case
-            if platform.system() == "Windows":
-                expected_path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
-                if os.path.exists(expected_path) and expected_path not in sys.path:
-                    sys.path.append(expected_path)
-
+            success = False
             try:
-                # Try standard import
-                import DaVinciResolveScript as dvr
+                dvr_script = None
                 
-                # Force reload to detect new instance if it was previously loaded but disconnected
-                # Note: reload might fail if the module structure is complex, but for this single file module it should be fine
-                try:
-                    importlib.reload(dvr)
-                except Exception as e:
-                    log(f"Reload warning: {e}")
-                
-                dvr_script = dvr
-            except ImportError as e:
-                # log(f"ImportError: {e}") # Expected if not running
-                pass
-            except Exception as e:
-                log(f"Unexpected Import Error: {e}")
+                # Setup path just in case
+                if platform.system() == "Windows":
+                    expected_path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
+                    if os.path.exists(expected_path) and expected_path not in sys.path:
+                        sys.path.append(expected_path)
 
-            if dvr_script:
                 try:
-                    resolve = dvr_script.scriptapp("Resolve")
-                    if resolve:
-                        success = True
-                except Exception as e:
-                     log(f"scriptapp error: {e}")
+                    # Try standard import
+                    import DaVinciResolveScript as dvr
                     
-        except Exception as e:
-            log(f"Probe Error: {e}")
+                    # Force reload to detect new instance if it was previously loaded but disconnected
+                    # Note: reload might fail if the module structure is complex, but for this single file module it should be fine
+                    try:
+                        importlib.reload(dvr)
+                    except Exception as e:
+                        log(f"Reload warning: {e}")
+                    
+                    dvr_script = dvr
+                except ImportError as e:
+                    # log(f"ImportError: {e}") # Expected if not running
+                    pass
+                except Exception as e:
+                    log(f"Unexpected Import Error: {e}")
 
-        # Update shared status
-        shared_status.value = 1 if success else 0
-        
-        # Debug log on status change or periodically? 
-        # log(f"Status: {success}")
+                if dvr_script:
+                    try:
+                        resolve = dvr_script.scriptapp("Resolve")
+                        if resolve:
+                            success = True
+                    except Exception as e:
+                         log(f"scriptapp error: {e}")
+                        
+            except Exception as e:
+                log(f"Probe Error: {e}")
 
-        if success:
-            time.sleep(5)
-        else:
-            time.sleep(5) 
+            # Update shared status
+            shared_status.value = 1 if success else 0
+            
+            # Debug log on status change or periodically? 
+            # log(f"Status: {success}")
+
+            if success:
+                time.sleep(5)
+            else:
+                time.sleep(5) 
+                
+        except KeyboardInterrupt:
+            # Clean exit on shutdown
+            break 
 
 class ResolveClient:
     def __init__(self):
