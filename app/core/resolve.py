@@ -104,64 +104,6 @@ class ResolveClient:
                 
         return self.resolve is not None
 
-    def insert_file(self, file_path):
-        if not self.is_available():
-            return False
-            
-        with self._lock:
-            if not self._ensure_connected():
-                return False
-                
-            try:
-                project_manager = self.resolve.GetProjectManager()
-                project = project_manager.GetCurrentProject()
-                if not project: return False
-                
-                mediapool = project.GetMediaPool()
-                folder = mediapool.GetCurrentFolder()
-                
-                # Import
-                items = mediapool.ImportMedia([file_path])
-                if not items: return False
-                
-                # Append to timeline (simplified)
-                timeline = project.GetCurrentTimeline()
-                if not timeline:
-                    # Create one? Or just add to pool?
-                    # User request implies "Insert". 
-                    # If no timeline, maybe just pool is enough.
-                    pass
-                else:
-                    timeline.AppendToTimeline(items)
-                
-                return True
-            except Exception as e:
-                print(f"[Resolve] Insert Error: {e}")
-                self.resolve = None # Reset connection
-                return False
-
-# Global instance
-resolve_client = ResolveClient() 
-        
-        # The actual insert logic is large, so I need to preserve it.
-        # But wait, insert_file in original code calls _load_module if not resolve.
-        # Here we should rely on background thread OR try simple check?
-        # If user clicks Insert, we want immediate attempt?
-        # But for 'status' check, we want non-blocking.
-        
-        # Ideally, insert_file should be blocking/direct because user requested action.
-        # But is_available (status check) should be non-blocking.
-        
-        return self._do_insert(file_path)
-
-    def _do_insert(self, file_path):
-        # ... logic from original insert_file ...
-        # I cannot replace the whole file easily with replace_file_content if I change structure too much.
-        # I will keep the original structure but update __init__ and is_available.
-        # And remove the 'retry' logic from is_available.
-        pass
-
-
     def _log(self, message):
         """Log to a file since console might be hidden/inaccessible."""
         try:
@@ -205,102 +147,107 @@ resolve_client = ResolveClient()
         """
         self._log(f"Attempting to insert: {file_path}")
         
-        if not self.resolve:
-            self._load_module()
-            if not self.resolve:
+        if not self.is_available():
+            return False
+            
+        with self._lock:
+            if not self._ensure_connected():
                 self._log("Resolve not connected")
                 return False
 
-        try:
-            project_manager = self.resolve.GetProjectManager()
-            project = project_manager.GetCurrentProject()
-            if not project:
-                self._log("No project open")
-                return False
+            try:
+                project_manager = self.resolve.GetProjectManager()
+                project = project_manager.GetCurrentProject()
+                if not project:
+                    self._log("No project open")
+                    return False
 
-            media_pool = project.GetMediaPool()
-            if not media_pool:
-                self._log("Failed to get Media Pool")
-                return False
+                media_pool = project.GetMediaPool()
+                if not media_pool:
+                    self._log("Failed to get Media Pool")
+                    return False
 
-            # 1. Import Media
-            items = media_pool.ImportMedia([file_path])
-            if not items or len(items) == 0:
-                self._log(f"Failed to import media: {file_path}")
-                return False
-            
-            media_item = items[0]
-            frames_prop = media_item.GetClipProperty("Frames")
-            self._log(f"Imported Media Frames: {frames_prop}")
-
-            # 2. Add to Timeline at Playhead
-            timeline = project.GetCurrentTimeline()
-            if not timeline:
-                self._log("No timeline open")
-                return False
-
-            # Get settings for position calculation
-            fps_str = timeline.GetSetting("timelineFrameRate")
-            current_tc = timeline.GetCurrentTimecode()
-            self._log(f"Timeline FPS: {fps_str}, TC: {current_tc}")
-            
-            # Calculate absolute frames for recordFrame (Target Position)
-            record_frame = self._timecode_to_frames(current_tc, fps_str)
-            self._log(f"Calculated Record Frame: {record_frame}")
-            
-            # Determine Clip Duration in frames
-            # 'Frames' property might be empty for some audio files
-            frames_prop = media_item.GetClipProperty("Frames")
-            duration_frames = 0
-            
-            if frames_prop and str(frames_prop).strip():
-                try:
-                    duration_frames = int(frames_prop)
-                except ValueError:
-                    pass
-            
-            if duration_frames == 0:
-                # Fallback to Duration timecode
-                duration_tc = media_item.GetClipProperty("Duration")
-                self._log(f"Frames property empty, using Duration TC: {duration_tc}")
-                # Use timeline FPS for audio frame count calculation (audio is frame-agnostic but aligned to timeline)
-                duration_frames = self._timecode_to_frames(duration_tc, fps_str)
+                # 1. Import Media
+                items = media_pool.ImportMedia([file_path])
+                if not items or len(items) == 0:
+                    self._log(f"Failed to import media: {file_path}")
+                    return False
                 
-            self._log(f"Final Clip Duration Frames: {duration_frames}")
+                media_item = items[0]
+                frames_prop = media_item.GetClipProperty("Frames")
+                self._log(f"Imported Media Frames: {frames_prop}")
 
-            if duration_frames <= 0:
-                 self._log("Failed to determine clip duration")
-                 return False
-            
-            # From app config
-            from app.config import config
-            track_index = config.get("resolve.track_index", 1) 
-            
-            # Construct Clip Info definition
-            clip_info = {
-                "mediaPoolItem": media_item,
-                "startFrame": 0,
-                "endFrame": duration_frames - 1,
-                "trackIndex": track_index,
-                "recordFrame": record_frame,
-                "mediaType": 2 # 1=Video, 2=Audio
-            }
-            self._log(f"Clip Info: {clip_info}")
+                # 2. Add to Timeline at Playhead
+                timeline = project.GetCurrentTimeline()
+                if not timeline:
+                    self._log("No timeline open")
+                    return False
 
-            # Note: AppendToTimeline signature checks
-            # If this method signature is [clipInfo] (list of dicts)
-            appended = media_pool.AppendToTimeline([clip_info])
-            
-            # Since AppendToTimeline returns list of appended items, empty list means failure
-            if appended and len(appended) > 0:
-                self._log(f"Success. Appended: {appended}")
-                return True
-            else:
-                self._log("AppendToTimeline returned failure (empty list or None)")
+                # Get settings for position calculation
+                fps_str = timeline.GetSetting("timelineFrameRate")
+                current_tc = timeline.GetCurrentTimecode()
+                self._log(f"Timeline FPS: {fps_str}, TC: {current_tc}")
+                
+                # Calculate absolute frames for recordFrame (Target Position)
+                record_frame = self._timecode_to_frames(current_tc, fps_str)
+                self._log(f"Calculated Record Frame: {record_frame}")
+                
+                # Determine Clip Duration in frames
+                # 'Frames' property might be empty for some audio files
+                frames_prop = media_item.GetClipProperty("Frames")
+                duration_frames = 0
+                
+                if frames_prop and str(frames_prop).strip():
+                    try:
+                        duration_frames = int(frames_prop)
+                    except ValueError:
+                        pass
+                
+                if duration_frames == 0:
+                    # Fallback to Duration timecode
+                    duration_tc = media_item.GetClipProperty("Duration")
+                    self._log(f"Frames property empty, using Duration TC: {duration_tc}")
+                    # Use timeline FPS for audio frame count calculation (audio is frame-agnostic but aligned to timeline)
+                    duration_frames = self._timecode_to_frames(duration_tc, fps_str)
+                    
+                self._log(f"Final Clip Duration Frames: {duration_frames}")
+
+                if duration_frames <= 0:
+                     self._log("Failed to determine clip duration")
+                     return False
+                
+                # From app config
+                from app.config import config
+                track_index = config.get("resolve.track_index", 1) 
+                
+                # Construct Clip Info definition
+                clip_info = {
+                    "mediaPoolItem": media_item,
+                    "startFrame": 0,
+                    "endFrame": duration_frames - 1,
+                    "trackIndex": track_index,
+                    "recordFrame": record_frame,
+                    "mediaType": 2 # 1=Video, 2=Audio
+                }
+                self._log(f"Clip Info: {clip_info}")
+
+                # Note: AppendToTimeline signature checks
+                # If this method signature is [clipInfo] (list of dicts)
+                appended = media_pool.AppendToTimeline([clip_info])
+                
+                # Since AppendToTimeline returns list of appended items, empty list means failure
+                if appended and len(appended) > 0:
+                    self._log(f"Success. Appended: {appended}")
+                    return True
+                else:
+                    self._log("AppendToTimeline returned failure (empty list or None)")
+                    return False
+
+            except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
+                self._log(f"Exception during insertion: {e}\n{tb}")
                 return False
 
-        except Exception as e:
-            import traceback
-            tb = traceback.format_exc()
-            self._log(f"Exception during insertion: {e}\n{tb}")
-            return False
+ 
+

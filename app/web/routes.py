@@ -14,7 +14,16 @@ from app.core.resolve import ResolveClient
 vv_client = VoiceVoxClient()
 audio_manager = AudioManager()
 processor = StreamProcessor(vv_client, audio_manager)
-resolve_client = ResolveClient()
+processor = StreamProcessor(vv_client, audio_manager)
+
+# Lazy initialization for ResolveClient to verify preventing multiprocessing recursion
+_resolve_client = None
+
+def get_resolve_client():
+    global _resolve_client
+    if _resolve_client is None:
+        _resolve_client = ResolveClient()
+    return _resolve_client
 
 @web.route('/api/stream')
 def stream():
@@ -82,7 +91,7 @@ def handle_config():
     else:
         # Return flattened config for frontend compatibility
         syn_config = config.get("synthesis")
-        resolve_available = resolve_client.is_available()
+        resolve_available = get_resolve_client().is_available()
 
         return jsonify({
             "speaker": syn_config["speaker_id"],
@@ -132,7 +141,7 @@ def handle_control_state():
             return jsonify({"status": "ok", "enabled": config.get("system.is_synthesis_enabled")})
         else:
             status = audio_manager.get_playback_status()
-            resolve_available = resolve_client.is_available()
+            resolve_available = get_resolve_client().is_available()
             
             return jsonify({
                 "enabled": config.get("system.is_synthesis_enabled"),
@@ -156,11 +165,8 @@ def handle_resolve_insert():
         abs_path = os.path.join(output_dir, filename)
         abs_path = os.path.abspath(abs_path)
         
-        if not resolve_client.is_available():
-            # Try reloading once more
-            resolve_client._load_module()
-            
-        if resolve_client.insert_file(abs_path):
+        client = get_resolve_client()
+        if client.insert_file(abs_path):
              return jsonify({"status": "ok"})
         else:
              return jsonify({"status": "error", "message": "Failed to insert into Resolve timeline"}), 500
