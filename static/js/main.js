@@ -431,26 +431,39 @@ function renderConfig() {
 function renderResolveStatus() {
     const available = store.isResolveAvailable;
     const el = elements.resolveStatus;
-    if (available) {
-        el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background-color: #a8df65;"></span> Connected`;
-        el.style.color = "#a8df65";
-    } else {
-        el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background-color: #666;"></span> Disconnected`;
-        el.style.color = "#666";
-    }
+    if (!el) return;
+
+    // Icon color
+    const color = available ? "#a8df65" : "#666";
+    const statusText = available ? "CONNECTED" : "DISCONNECTED";
+
+    el.innerHTML = `
+        <span style="color: ${color}; display: flex; align-items: center; gap: 4px;">
+            ${SvgIcons.resolve}
+            <span style="font-size: 0.70rem; font-weight: bold; margin-left: 2px;">RESOLVE: ${statusText}</span>
+        </span>
+    `;
+    el.style.color = color;
+    el.style.borderColor = available ? "#555" : "#444";
 }
 
 function renderVoicevoxStatus() {
     const available = store.isVoicevoxAvailable;
     const el = elements.voicevoxStatus;
     if (!el) return;
-    if (available) {
-        el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background-color: #a8df65;"></span> Connected`;
-        el.style.color = "#a8df65";
-    } else {
-        el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background-color: #666;"></span> Disconnected`;
-        el.style.color = "#666";
-    }
+
+    // Color: Green if connected, Red if disconnected (to warn start is impossible)
+    const color = available ? "#a8df65" : "#ff6b6b";
+    const statusText = available ? "CONNECTED" : "DISCONNECTED";
+
+    el.innerHTML = `
+        <span style="color: ${color}; display: flex; align-items: center; gap: 4px;">
+            ${SvgIcons.voicevox}
+            <span style="font-size: 0.70rem; font-weight: bold; margin-left: 2px;">VOICEVOX: ${statusText}</span>
+        </span>
+    `;
+    el.style.color = color;
+    el.style.borderColor = available ? "#555" : "#644"; // Suble red border if disconnected
 }
 
 function renderStartStopUI() {
@@ -821,8 +834,9 @@ function showAlert(title, message) {
 
 // Icons
 const SvgIcons = {
-    resolve: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>`,
-    delete: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`
+    resolve: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>`,
+    delete: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+    voicevox: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>`
 };
 
 const PlayIcons = {

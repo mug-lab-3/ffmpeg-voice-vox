@@ -38,62 +38,64 @@ def monitor_resolve_process(shared_status, running_event):
     log("Monitor process started")
 
     last_status = None # None indicates startup/unknown
+    dvr_module = None
 
     while running_event.is_set():
         try:
             success = False
             try:
-                dvr_script = None
-                
-                # Setup path just in case
+                # Setup path just in case (only once)
                 if platform.system() == "Windows":
                     expected_path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
                     if os.path.exists(expected_path) and expected_path not in sys.path:
                         sys.path.append(expected_path)
 
-                try:
-                    # Try standard import
-                    import DaVinciResolveScript as dvr
-                    
-                    # Force reload to detect new instance if it was previously loaded but disconnected
+                # Try to import/reload only if not connected or not yet imported
+                if dvr_module is None:
                     try:
-                        importlib.reload(dvr)
-                    except Exception as e:
-                        if last_status is not False: # Only log if we weren't already disconnected to avoid spam
-                            log(f"Reload warning: {e}")
-                    
-                    dvr_script = dvr
-                except ImportError as e:
-                    # Expected if not running
-                    pass
-                except Exception as e:
-                    log(f"Unexpected Import Error: {e}")
+                        import DaVinciResolveScript as dvr
+                        dvr_module = dvr
+                    except ImportError:
+                        pass
+                elif not last_status: # If module exists but was disconnected, try reload
+                    try:
+                        importlib.reload(dvr_module)
+                    except:
+                        pass
 
-                if dvr_script:
+                if dvr_module:
                     try:
-                        resolve = dvr_script.scriptapp("Resolve")
+                        resolve = dvr_module.scriptapp("Resolve")
                         if resolve:
                             success = True
-                    except Exception as e:
-                         log(f"scriptapp error: {e}")
+                    except:
+                        pass
                         
             except Exception as e:
-                log(f"Probe Error: {e}")
+                # Only log probe errors if they seem critical or status changed
+                if last_status is not False:
+                    log(f"Probe Error: {e}")
 
             # Update shared status
             shared_status.value = 1 if success else 0
             
-            # Log on status change
+            # Log on status change ONLY
             if success != last_status:
                 status_str = "Connected" if success else "Disconnected"
                 log(f"Status Changed: {status_str}")
                 last_status = success
 
-            time.sleep(5)
+            # Sleep with more sensitivity to running_event
+            for _ in range(50): # 5 seconds total, but check every 0.1s
+                if not running_event.is_set():
+                    break
+                time.sleep(0.1)
                 
         except KeyboardInterrupt:
-            # Clean exit on shutdown
-            break 
+            break
+        except Exception as e:
+            log(f"Monitor process critical error: {e}")
+            time.sleep(5)
 
 class ResolveClient:
     def __init__(self):
@@ -115,16 +117,26 @@ class ResolveClient:
 
     def shutdown(self):
         """Cleanly shutdown the monitor process."""
-        if self._proc.is_alive():
+        if hasattr(self, '_proc') and self._proc.is_alive():
+            print("[Resolve] Stopping monitor process...")
             self._running_event.clear()
-            try:
-                self._proc.join(timeout=2)
-            except KeyboardInterrupt:
-                # If interrupted during wait, force kill immediately
-                pass
+            
+            # Wait for clean exit
+            self._proc.join(timeout=3.0)
             
             if self._proc.is_alive():
+                print("[Resolve] Monitor process did not stop, terminating...")
                 self._proc.terminate()
+                self._proc.join(timeout=1.0)
+                
+            if self._proc.is_alive():
+                print("[Resolve] Monitor process still alive, killing...")
+                try:
+                    import os
+                    import signal
+                    os.kill(self._proc.pid, signal.SIGTERM)
+                except:
+                    pass
 
 
     def is_available(self):
