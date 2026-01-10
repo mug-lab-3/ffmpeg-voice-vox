@@ -338,12 +338,9 @@ function setupListeners() {
 
 
     elements.browseBtn.addEventListener('click', async () => {
-        if (elements.browseBtn.disabled) return;
+        if (elements.browseBtn.classList.contains('disabled') || elements.browseBtn.disabled) return;
 
-        elements.browseBtn.disabled = true;
-        const originalText = elements.browseBtn.innerHTML;
-        // Simple loading state
-        elements.browseBtn.style.opacity = '0.7';
+        setUILocked(true, "Selecting Directory...");
 
         try {
             const res = await fetch(SYSTEM_BROWSE_API, { method: 'POST' });
@@ -353,6 +350,10 @@ function setupListeners() {
                 const path = data.path;
                 elements.outputDir.value = path;
                 await updateConfig('outputDir', path, true);
+
+                // UX Refinement: Wait for logs to be fetched and rendered BEFORE unlocking
+                // The server has already reloaded the history in updateConfig call
+                await loadLogs();
             } else if (data.status === 'cancelled') {
                 // Do nothing
             } else {
@@ -362,9 +363,7 @@ function setupListeners() {
             console.error("Browse failed", e);
             await showAlert("Error", "Failed to trigger directory browser");
         } finally {
-            elements.browseBtn.innerHTML = originalText;
-            elements.browseBtn.disabled = false;
-            elements.browseBtn.style.opacity = '1';
+            setUILocked(false);
         }
     });
 
@@ -372,6 +371,83 @@ function setupListeners() {
         if (elements.startStopBtn.classList.contains('disabled')) return;
         await toggleControlState();
     });
+}
+
+function setUILocked(locked, message = "") {
+    let overlay = document.getElementById('loading-overlay');
+
+    // Create overlay if not exists
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loading-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        overlay.style.zIndex = '9999';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.backdropFilter = 'blur(2px)';
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.3s';
+        overlay.style.pointerEvents = 'none'; // Initially click-through but becomes blocking when active
+
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner'; // Assuming no spinner css exists, we add inline
+        spinner.style.width = '40px';
+        spinner.style.height = '40px';
+        spinner.style.border = '4px solid rgba(255, 255, 255, 0.3)';
+        spinner.style.borderTop = '4px solid var(--primary, #a8df65)';
+        spinner.style.borderRadius = '50%';
+        spinner.style.marginBottom = '15px';
+
+        // Add spinner animation
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .spinner { animation: spin 1s linear infinite; }
+        `;
+        document.head.appendChild(style);
+
+        const msgEl = document.createElement('div');
+        msgEl.id = 'loading-msg';
+        msgEl.style.color = 'white';
+        msgEl.style.fontSize = '1.2em';
+        msgEl.style.fontWeight = '500';
+
+        overlay.appendChild(spinner);
+        overlay.appendChild(msgEl);
+        document.body.appendChild(overlay);
+    }
+
+    const msgEl = document.getElementById('loading-msg');
+
+    if (locked) {
+        if (msgEl) msgEl.textContent = message;
+        overlay.style.pointerEvents = 'all';
+        overlay.style.opacity = '1';
+
+        // Disable main buttons
+        elements.browseBtn.disabled = true;
+        elements.startStopBtn.classList.add('disabled-temp');
+        elements.outputDir.disabled = true;
+    } else {
+        overlay.style.opacity = '0';
+        overlay.style.pointerEvents = 'none';
+
+        // Re-enable
+        elements.browseBtn.disabled = false;
+        elements.startStopBtn.classList.remove('disabled-temp');
+        elements.outputDir.disabled = false;
+
+        // Restore logical state
+        checkStartability();
+        updateStartStopUI(); // Ensure consistent state
+    }
 }
 
 async function loadControlState() {
