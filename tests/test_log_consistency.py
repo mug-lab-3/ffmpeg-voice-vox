@@ -11,6 +11,8 @@ class TestLogConsistency(unittest.TestCase):
         # Mock scan_output_dir to return empty list
         self.audio_manager.scan_output_dir.return_value = []
         self.processor = StreamProcessor(self.vv_client, self.audio_manager)
+        # Clear logs to ensure test starts with 0 logs despite existing DB entries
+        self.processor.received_logs = []
 
     def test_log_config_is_copy(self):
         # 1. Set initial speaker
