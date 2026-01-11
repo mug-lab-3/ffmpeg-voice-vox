@@ -1,9 +1,11 @@
 import os
 import re
 import wave
-import winsound
+import wave
 import threading
 import time
+import sounddevice as sd
+import soundfile as sf
 from datetime import datetime
 
 from app.config import config
@@ -115,11 +117,18 @@ class AudioManager:
                     "filename": filename
                 })
 
-                # Use ASYNC to fire playback immediately via filename
-                winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+                # Use sounddevice + soundfile for cross-platform playback
+                # Read file
+                data, fs = sf.read(path)
+                # Play (async)
+                sd.play(data, fs)
                 
                 # Sleep manually to maintain 'is_playing' state for the duration
+                # sd.wait() would block, which is fine in a thread, but we use sleep pattern here
                 time.sleep(dur)
+                
+                # Stop if needed (though sleep should match duration)
+                sd.stop()
             except Exception as e:
                 print(f"Play Worker Error: {e}")
             finally:
