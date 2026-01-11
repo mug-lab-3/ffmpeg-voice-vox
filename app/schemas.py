@@ -63,7 +63,7 @@ class ResolveConfig(BaseModel):
     enabled: bool = False
     audio_track_index: Annotated[int, Field(ge=1, le=50)] = 1
     subtitle_track_index: Annotated[int, Field(ge=1, le=50)] = 2
-    template_bin: str = "VoiceVox Captions"
+    target_bin: str = "VoiceVox Captions"
     template_name: str = "DefaultTemplate"
 
 

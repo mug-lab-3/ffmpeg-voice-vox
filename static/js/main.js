@@ -33,7 +33,7 @@ const elements = {
         host: document.getElementById('cfg-host'),
         audioTrackIndex: document.getElementById('cfg-audio-track-index'),
         subtitleTrackIndex: document.getElementById('cfg-subtitle-track-index'),
-        templateBin: document.getElementById('cfg-template-bin'),
+        targetBin: document.getElementById('cfg-target-bin'),
         templateName: document.getElementById('cfg-template-name')
     }
 };
@@ -159,8 +159,8 @@ function setupUIListeners() {
                 if (!isNaN(audioIdx)) updates.audio_track_index = audioIdx;
                 if (!isNaN(subIdx)) updates.subtitle_track_index = subIdx;
 
-                if (elements.cfgInputs.templateBin.value.trim())
-                    updates.template_bin = elements.cfgInputs.templateBin.value;
+                if (elements.cfgInputs.targetBin.value.trim())
+                    updates.target_bin = elements.cfgInputs.targetBin.value;
                 if (elements.cfgInputs.templateName.value.trim())
                     updates.template_name = elements.cfgInputs.templateName.value;
 
@@ -183,7 +183,7 @@ function setupUIListeners() {
     ffmpegKeys.forEach(key => {
         const input = elements.cfgInputs[key];
         input.addEventListener('change', () => {
-            const domain = ['audioTrackIndex', 'subtitleTrackIndex', 'templateBin', 'templateName'].includes(key) ? 'resolve' : 'ffmpeg';
+            const domain = ['audioTrackIndex', 'subtitleTrackIndex', 'targetBin', 'templateName'].includes(key) ? 'resolve' : 'ffmpeg';
             saveDomainConfig(domain);
         });
     });
@@ -212,6 +212,32 @@ function setupUIListeners() {
         } finally {
             refreshBtn.disabled = false;
             refreshBtn.classList.remove('rotating');
+        }
+    });
+
+    // Resolve Bins Refresh
+    const refreshBinsBtn = document.getElementById('refresh-resolve-bins');
+    refreshBinsBtn.addEventListener('click', async () => {
+        if (!store.isResolveAvailable) {
+            await showAlert("Notice", "DaVinci Resolve is not connected");
+            return;
+        }
+
+        refreshBinsBtn.classList.add('rotating');
+        refreshBinsBtn.disabled = true;
+
+        try {
+            const res = await api.getResolveBins();
+            if (res.ok && res.data.status === 'ok') {
+                populateResolveBins(res.data.bins);
+            } else {
+                await showAlert("Error", res.data.message || "Failed to list bins");
+            }
+        } catch (e) {
+            await showAlert("Error", "Failed to fetch Resolve bins");
+        } finally {
+            refreshBinsBtn.disabled = false;
+            refreshBinsBtn.classList.remove('rotating');
         }
     });
 
@@ -350,6 +376,37 @@ function populateDeviceSelect(devices) {
     if (store.config?.ffmpeg?.input_device) {
         select.value = store.config.ffmpeg.input_device;
     } else if (currentValue) {
+        select.value = currentValue;
+    }
+}
+
+function populateResolveBins(bins) {
+    const select = elements.cfgInputs.targetBin;
+    const currentValue = select.value || (store.config?.resolve?.target_bin) || "VoiceVox Captions";
+
+    select.innerHTML = '';
+
+    // Always add manual entry option or ensure logic handles missing?
+    // Actually, API returns strings.
+    // If list is empty, maybe keep current? 
+    // But API should return at least "root" if connected.
+
+    if (bins && bins.length > 0) {
+        bins.forEach(bin => {
+            const opt = document.createElement('option');
+            opt.value = bin;
+            opt.textContent = bin;
+            select.appendChild(opt);
+        });
+    }
+
+    // Restore selection or add if missing
+    select.value = currentValue;
+    if (select.value !== currentValue) {
+        const opt = document.createElement('option');
+        opt.value = currentValue;
+        opt.textContent = currentValue + " (Custom/New)";
+        select.appendChild(opt);
         select.value = currentValue;
     }
 }
@@ -564,7 +621,24 @@ function renderConfig() {
     if (config.resolve) {
         setIfExists(elements.cfgInputs.audioTrackIndex, config.resolve.audio_track_index);
         setIfExists(elements.cfgInputs.subtitleTrackIndex, config.resolve.subtitle_track_index);
-        setIfExists(elements.cfgInputs.templateBin, config.resolve.template_bin);
+
+        // Target Bin Selection
+        const binSel = elements.cfgInputs.targetBin;
+        if (config.resolve.target_bin) {
+            let exists = false;
+            for (let i = 0; i < binSel.options.length; i++) {
+                if (binSel.options[i].value === config.resolve.target_bin) {
+                    exists = true; break;
+                }
+            }
+            if (!exists) {
+                const opt = document.createElement('option');
+                opt.value = config.resolve.target_bin;
+                opt.textContent = config.resolve.target_bin;
+                binSel.appendChild(opt);
+            }
+            binSel.value = config.resolve.target_bin;
+        }
 
         // Template Name Selection
         const sel = elements.cfgInputs.templateName;

@@ -197,8 +197,14 @@
                 </div>
                 <div class="grid-2">
                     <div class="control-group mb-0">
-                        <label class="fs-small mb-2">Template Bin Name</label>
-                        <input type="text" id="cfg-template-bin" class="form-control" placeholder="VoiceVox Captions">
+                        <label class="fs-small mb-2">Target Bin</label>
+                        <div class="flex gap-5">
+                            <select id="cfg-target-bin" class="form-control">
+                                <option value="VoiceVox Captions">VoiceVox Captions</option>
+                            </select>
+                            <button id="refresh-resolve-bins" class="btn btn-secondary"
+                                title="Refresh Bin List">↻</button>
+                        </div>
                     </div>
                     <div class="control-group mb-0">
                         <label class="fs-small mb-2">Template Clip Name</label>

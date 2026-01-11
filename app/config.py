@@ -6,7 +6,6 @@ from pydantic import ValidationError
 
 
 class ConfigManager:
-    DEFAULT_CONFIG_PATH = "default_config.json"
 
     def __init__(self, config_filename: str = "config.json"):
         # Relocate config to 'data' directory

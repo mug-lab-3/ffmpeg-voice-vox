@@ -9,13 +9,10 @@
 
 ## 設定ファイルの構成
 
-### 1. default_config.json
-システムのデフォルト値を定義するマスターファイルです。
-サーバー起動時に参照され、全ての項目の型と初期値を保持します。
-
-### 2. config.json
-ユーザー定義の設定ファイルです。
-このファイルが存在しない場合、または一部の項目が不足・不正な場合は、`default_config.json` の値が反映されます。
+### 1. config.json
+ユーザー定義の設定ファイルです。`data/config.json` に保存されます。
+このファイルが存在しない場合、または一部の項目が不足・不正な場合は、Pydantic スキーマで定義されたデフォルト値が反映されます。
+以前使用されていた `default_config.json` は廃止され、初期値はコード内のスキーマ定義に集約されました。
 
 ## 同期・バリデーションロジック (Pydantic)
 
@@ -77,8 +74,8 @@
 | `enabled` | boolean | `false` | 真偽値チェック |
 | `audio_track_index` | integer | `1` | 数値型チェック, **1 〜 50** |
 | `subtitle_track_index` | integer | `2` | 数値型チェック, **1 〜 50** |
-| `template_bin` | string | `VoiceVox Captions` | 文字列形式チェック |
-| `template_name` | string | `DefaultTemplate` | 文字列形式チェック |
+| `target_bin` | string | `VoiceVox Captions` | インポート先ビン名（"root" はメディアプール直下） |
+| `template_name` | string | `DefaultTemplate` | 使用する Text+ テンプレート名 |
 
 ## 補足事項
 

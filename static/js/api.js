@@ -157,6 +157,10 @@ export class ApiClient {
         return this._fetchJson(this.endpoints.FFMPEG_DEVICES);
     }
 
+    async getResolveBins() {
+        return this._fetchJson('/api/resolve/bins');
+    }
+
     async getResolveClips() {
         return this._fetchJson('/api/resolve/clips');
     }

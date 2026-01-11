@@ -108,3 +108,7 @@
 - `GET /api/resolve/clips`: Resolve内のText+クリップ一覧取得
     - **レスポンス**: `{"status": "ok", "clips": ["Clip1", "Clip2", ...]}`
     - **エラー**: Resolve未接続時は 503 Service Unavailable を返却
+- `GET /api/resolve/bins`: Resolveメディアプールのルート直下のビン一覧を取得
+    - **レスポンス**: `{"status": "ok", "bins": ["Bin1", "Bin2", ...]}`
+    - **備考**: 文字列 `"root"` がトップレベル（ルートフォルダ）を指します。
+    - **エラー**: Resolve未接続時は 503 Service Unavailable を返却

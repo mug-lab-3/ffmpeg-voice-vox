@@ -26,7 +26,7 @@ class ResolveUpdate(BaseModel):
     enabled: Optional[bool] = None
     audio_track_index: Optional[int] = Field(None, ge=1, le=50)
     subtitle_track_index: Optional[int] = Field(None, ge=1, le=50)
-    template_bin: Optional[str] = None
+    target_bin: Optional[str] = None
     template_name: Optional[str] = None
 
 

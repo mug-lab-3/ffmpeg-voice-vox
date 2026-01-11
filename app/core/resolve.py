@@ -317,47 +317,56 @@ class ResolveClient:
                     return False
 
                 media_pool = project.GetMediaPool()
-                if not media_pool:
-                    self._log("Failed to get Media Pool")
-                    return False
 
                 # --- 0. Template Management ---
                 from app.config import config
 
-                target_bin_name = config.get(
-                    "resolve.template_bin", "VoiceVox Captions"
-                )
+                # Use 'target_bin' from config (renamed from template_bin)
+                target_bin_name = config.get("resolve.target_bin", "VoiceVox Captions")
                 target_clip_name = config.get(
                     "resolve.template_name", "DefaultTemplate"
                 )
 
                 root_folder = media_pool.GetRootFolder()
-                template_item = None
                 target_bin = None
 
-                # Step 1: Search for the target bin
-                for sub in root_folder.GetSubFolderList():
-                    if sub.GetName() == target_bin_name:
-                        target_bin = sub
+                # Logic to determine target bin
+                if target_bin_name == "root":
+                    target_bin = root_folder
+                else:
+                    # Search for the target bin in root
+                    sub_folders = root_folder.GetSubFolderList()
+                    if sub_folders:
+                        for sub in sub_folders:
+                            if sub.GetName() == target_bin_name:
+                                target_bin = sub
+                                break
+
+                if not target_bin:
+                    self._log(
+                        f"Target bin '{target_bin_name}' not found. Please create it in Resolve or select 'root'."
+                    )
+                    return False
+
+                # Switch to target bin ensures ImportMedia goes there
+                media_pool.SetCurrentFolder(target_bin)
+
+                # Check for template
+                template_item = None
+                clips = target_bin.GetClipList()
+
+                for clip in clips:
+                    c_name = clip.GetClipProperty("Clip Name")
+                    if c_name == target_clip_name:
+                        template_item = clip
                         break
 
-                # Step 2: Auto-create the bin if missing
-                if not target_bin:
-                    try:
-                        target_bin = media_pool.AddSubFolder(
-                            root_folder, target_bin_name
-                        )
-                        self._log(f"Created Bin: {target_bin_name}")
-                    except Exception as e:
-                        self._log(f"Failed to create bin: {e}")
-
-                # Step 3: Find template inside the target bin
-                if target_bin:
-                    clips = target_bin.GetClipList()
-
+                # Priority 2: Any Text+ in that bin (Name-agnostic)
+                if not template_item:
                     for clip in clips:
-                        c_name = clip.GetClipProperty("Clip Name")
-                        if c_name == target_clip_name:
+                        c_type = clip.GetClipProperty("Type")
+                        c_path = clip.GetClipProperty("File Path")
+                        if c_path == "" and ("Text" in c_type or "Fusion" in c_type):
                             template_item = clip
                             break
 
@@ -393,13 +402,15 @@ class ResolveClient:
                     )
                     # If user specified a specific name (not auto), and it's missing, we should fail.
                     if target_clip_name != "auto":
-                        self._log(f"ERROR: Template '{target_clip_name}' not found. Aborting.")
+                        self._log(
+                            f"ERROR: Template '{target_clip_name}' not found. Aborting."
+                        )
                         return False
 
                 # 1. Import Media
                 if target_bin:
                     media_pool.SetCurrentFolder(target_bin)
-                
+
                 items = media_pool.ImportMedia([file_path])
                 if not items or len(items) == 0:
                     self._log(f"Failed to import media: {file_path}")
@@ -544,10 +555,16 @@ class ResolveClient:
                 root_folder = media_pool.GetRootFolder()
 
                 target_bin = None
-                for sub in root_folder.GetSubFolderList():
-                    if sub.GetName() == bin_name:
-                        target_bin = sub
-                        break
+
+                if bin_name == "root":
+                    target_bin = root_folder
+                else:
+                    sub_folders = root_folder.GetSubFolderList()
+                    if sub_folders:
+                        for sub in sub_folders:
+                            if sub.GetName() == bin_name:
+                                target_bin = sub
+                                break
 
                 if not target_bin:
                     return []
@@ -568,3 +585,31 @@ class ResolveClient:
             except Exception as e:
                 self._log(f"Error getting clip list: {e}")
                 return []
+
+    def get_bins(self):
+        """
+        Returns a list of bin names in the root folder.
+        Includes "root" as a valid option.
+        """
+        try:
+            if not self._ensure_connected():
+                return []
+
+            project_manager = self.resolve.GetProjectManager()
+            project = project_manager.GetCurrentProject()
+            if not project:
+                return []
+
+            media_pool = project.GetMediaPool()
+            root_folder = media_pool.GetRootFolder()
+
+            bins = ["root"]
+            sub_folders = root_folder.GetSubFolderList()
+            if sub_folders:
+                for folder in sub_folders:
+                    bins.append(folder.GetName())
+
+            return bins
+        except Exception as e:
+            self._log(f"Error getting bins: {e}")
+            return []

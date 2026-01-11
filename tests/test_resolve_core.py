@@ -200,8 +200,10 @@ class TestResolveInsertion:
         self.patcher_config = patch("app.config.config")
         self.mock_config = self.patcher_config.start()
         # Set defaults similar to what we expect
-        self.mock_config.get.side_effect = lambda key, default=None: default
-
+        self.mock_config.get.side_effect = lambda k, default=None: {
+            "resolve.target_bin": "VoiceVox Captions",
+            "resolve.template_name": "DefaultTemplate",
+        }.get(k, default)
         # Prevent Process spawning
         self.patcher_process = patch("app.core.resolve.multiprocessing.Process")
         self.mock_process_cls = self.patcher_process.start()
@@ -246,50 +248,47 @@ class TestResolveInsertion:
         )
         self.mock_media_pool.ImportMedia.return_value = [mock_media_item]
 
-        # Mock Bin Structure for Template
+        # Mock Bin Structure for Template - CASE: Bin Exists
         mock_root = MagicMock()
         self.mock_media_pool.GetRootFolder.return_value = mock_root
-        mock_root.GetSubFolderList.return_value = []  # No existing bin, force create
-        mock_new_bin = MagicMock()
-        self.mock_media_pool.AddSubFolder.return_value = mock_new_bin
-        mock_new_bin.GetClipList.return_value = []  # No template found in new bin
 
-        # Run Insertion with 'auto' to allow fallback behavior verification
-        with patch("app.config.config.get", side_effect=lambda key, default=None: "auto" if "template_name" in key else default):
-            success = client.insert_file("C:/test.wav", text="Hello World")
+        # Create a mock existing bin
+        mock_existing_bin = MagicMock()
+        mock_existing_bin.GetName.return_value = "VoiceVox Captions"
+        mock_root.GetSubFolderList.return_value = [mock_existing_bin]
+
+        # Template IS found in the existing bin (to ensure success)
+        mock_template_clip = MagicMock()
+        mock_template_clip.GetClipProperty.side_effect = lambda x: (
+            "DefaultTemplate" if x == "Clip Name" else ""
+        )
+        mock_existing_bin.GetClipList.return_value = [mock_template_clip]
+
+        # Also need to mock AppendToTimeline result for the template insertion logic
+        mock_timeline_item = MagicMock()
+        self.mock_media_pool.AppendToTimeline.return_value = [
+            mock_timeline_item,
+            mock_timeline_item,
+        ]
+        # Mock Fusion Comp for text update
+        mock_comp = MagicMock()
+        mock_timeline_item.GetFusionCompByIndex.return_value = mock_comp
+        mock_tool = MagicMock()
+        mock_comp.FindTool.return_value = mock_tool
+
+        # Run Insertion
+        success = client.insert_file("C:/test.wav", text="Hello World")
 
         assert success is True
 
         # [Verification 1] ImportMedia called
         self.mock_media_pool.ImportMedia.assert_called_with(["C:/test.wav"])
 
-        # [Verification 2] AppendToTimeline called twice (Audio + Video Template)
-        # We expect 2 calls. Call args list has (args, kwargs) tuples.
-        # Check Audio Insertion (Track 1 by default)
-        calls = self.mock_media_pool.AppendToTimeline.call_args_list
-        found_audio = False
-        found_video = False
+        # [Verification 5] Ensure SetCurrentFolder was called with EXISTING bin
+        self.mock_media_pool.SetCurrentFolder.assert_called_with(mock_existing_bin)
 
-        for call in calls:
-            args, _ = call
-            item_list = args[0]
-            item_data = item_list[0]
-
-            if item_data["mediaType"] == 2:  # Audio
-                assert item_data["trackIndex"] == 1
-                assert item_data["mediaPoolItem"] == mock_media_item
-                found_audio = True
-            elif item_data["mediaType"] == 1:  # Video
-                assert item_data["trackIndex"] == 2
-                found_video = True
-
-        assert found_audio, "Audio clip was not added to timeline"
-        # [Verification 5] Ensure SetCurrentFolder was called before ImportMedia
-        self.mock_media_pool.SetCurrentFolder.assert_called_with(mock_new_bin)
-        
-        # Video might not be added if template is not found (logic behavior)
-        # In our mock above, we returned empty lists so no template found -> no video track insertion.
-        assert not found_video
+        # Verify AddSubFolder was NOT called
+        self.mock_media_pool.AddSubFolder.assert_not_called()
 
     @patch("app.core.resolve.ResolveClient._ensure_connected")
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
@@ -306,15 +305,19 @@ class TestResolveInsertion:
         mock_root = MagicMock()
         self.mock_media_pool.GetRootFolder.return_value = mock_root
 
+        # Create a mock bin where the template resides
+        mock_bin = MagicMock()
+        mock_bin.GetName.return_value = "VoiceVox Captions"
+        mock_root.GetSubFolderList.return_value = [mock_bin]
+
         # Create a mock template clip
         mock_template_clip = MagicMock()
         mock_template_clip.GetClipProperty.side_effect = lambda x: (
             "DefaultTemplate" if x == "Clip Name" else ""
         )
 
-        # Setup recursive search to find it
-        mock_root.GetClipList.return_value = [mock_template_clip]
-        mock_root.GetSubFolderList.return_value = []
+        # Template is found inside the bin
+        mock_bin.GetClipList.return_value = [mock_template_clip]
 
         # Mock Timeline Item (Result of Append)
         mock_timeline_item = MagicMock()
@@ -347,3 +350,97 @@ class TestResolveInsertion:
                 video_call_found = True
 
         assert video_call_found, "Template (Video) was not inserted"
+
+    @patch("app.core.resolve.ResolveClient._ensure_connected")
+    @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
+    def test_get_bins(self, mock_is_avail, mock_ensure):
+        """Test retrieving bin list."""
+        client = ResolveClient()
+        client.resolve = self.mock_resolve  # Correctly inject mock
+        mock_ensure.return_value = True
+
+        # Setup mock subfolders
+        folder1 = MagicMock()
+        folder1.GetName.return_value = "Bin1"
+        folder2 = MagicMock()
+        folder2.GetName.return_value = "Bin2"
+        mock_root = MagicMock()
+        self.mock_media_pool.GetRootFolder.return_value = mock_root
+        mock_root.GetSubFolderList.return_value = [folder1, folder2]
+
+        bins = client.get_bins()
+
+        assert "root" in bins
+        assert "Bin1" in bins
+        assert "Bin2" in bins
+        assert len(bins) == 3
+
+    @patch("app.core.resolve.ResolveClient._ensure_connected")
+    @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
+    def test_insert_file_root_bin(self, mock_is_avail, mock_ensure):
+        """Test inserting file directly into root folder."""
+        client = ResolveClient()
+        client.resolve = self.mock_resolve  # Correctly inject mock
+        mock_ensure.return_value = True
+
+        # Setup config to use "root"
+        self.mock_config.get.side_effect = lambda k, default=None: {
+            "resolve.target_bin": "root",
+            "resolve.template_name": "DefaultTemplate",
+        }.get(k, default)
+
+        # Mock ImportMedia
+        mock_clip = MagicMock()
+        mock_clip.GetClipProperty.return_value = "SomethingElse"
+        self.mock_media_pool.ImportMedia.return_value = [mock_clip]
+
+        # Mock Root
+        mock_root = MagicMock()
+        self.mock_media_pool.GetRootFolder.return_value = mock_root
+        mock_root.GetSubFolderList.return_value = []
+
+        # Ensure GetClipList returns a valid template clip so logic proceeds
+        mock_template = MagicMock()
+        mock_template.GetClipProperty.side_effect = lambda x: (
+            "DefaultTemplate" if x == "Clip Name" else ""
+        )
+        mock_root.GetClipList.return_value = [mock_template]
+
+        # Also mock AppendToTimeline to avoid errors down the line
+        self.mock_media_pool.AppendToTimeline.return_value = [MagicMock()]
+
+        # Call
+        result = client.insert_file("C:/test.wav", "text")
+
+        # Verify
+        assert result is True
+        # Should NOT search for subfolders if root is specified
+        # But SetCurrentFolder should be called with root_folder
+        self.mock_media_pool.SetCurrentFolder.assert_called_with(mock_root)
+        self.mock_media_pool.AddSubFolder.assert_not_called()
+
+    @patch("app.core.resolve.ResolveClient._ensure_connected")
+    @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
+    def test_insert_file_missing_bin_fails(self, mock_is_avail, mock_ensure):
+        """Test failure when target bin does not exist (auto-create disabled)."""
+        client = ResolveClient()
+        client.resolve = self.mock_resolve  # Correctly inject mock
+        mock_ensure.return_value = True
+
+        # Config asking for a non-existent bin
+        self.mock_config.get.side_effect = lambda k, default=None: {
+            "resolve.target_bin": "NonExistentBin",
+        }.get(k, default)
+
+        # Mock Root with NO subfolders
+        mock_root = MagicMock()
+        self.mock_media_pool.GetRootFolder.return_value = mock_root
+        mock_root.GetSubFolderList.return_value = []
+
+        # Call
+        result = client.insert_file("C:/test.wav", "text")
+
+        # Verify
+        assert result is False
+        self.mock_media_pool.AddSubFolder.assert_not_called()
+        self.mock_media_pool.ImportMedia.assert_not_called()

@@ -92,9 +92,9 @@ def update_ffmpeg():
         return handle_validation_error(e)
 
 
-@config_bp.route("/api/resolve/clips", methods=["GET"])
-def get_resolve_clips():
-    """Returns a list of Text+ clips in the configured template bin."""
+@config_bp.route("/api/resolve/bins", methods=["GET"])
+def get_resolve_bins():
+    """Returns a list of bins in the root folder."""
     from app.web.routes import get_resolve_client
 
     client = get_resolve_client()
@@ -104,7 +104,23 @@ def get_resolve_clips():
             503,
         )
 
-    bin_name = config.get("resolve.template_bin", "VoiceVox Captions")
+    bins = client.get_bins()
+    return jsonify({"status": "ok", "bins": bins})
+
+
+@config_bp.route("/api/resolve/clips", methods=["GET"])
+def get_resolve_clips():
+    """Returns a list of Text+ clips in the configured target bin."""
+    from app.web.routes import get_resolve_client
+
+    client = get_resolve_client()
+    if not client.is_available():
+        return (
+            jsonify({"status": "error", "message": "DaVinci Resolve is not connected"}),
+            503,
+        )
+
+    bin_name = config.get("resolve.target_bin", "VoiceVox Captions")
     clips = client.get_text_plus_clips(bin_name)
     return jsonify({"status": "ok", "clips": clips})
 
