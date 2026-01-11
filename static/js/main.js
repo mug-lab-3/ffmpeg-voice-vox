@@ -665,12 +665,11 @@ function createLogRow(entry) {
     row.style.borderBottom = '1px solid #333';
     row.setAttribute('data-filename', entry.filename);
 
-    // Columns: Play, Time, Filename, Text, Dur, Config, Resolve, Delete
+    // Columns: Play, ID (with tooltip), Text, Dur, Config, Resolve, Delete
     // Just simpler construction here
     row.innerHTML = `
         <td class="col-play" style="padding: 8px; text-align: center;"></td>
-        <td style="padding: 8px; color: #888;">${entry.timestamp}</td>
-        <td style="padding: 8px; color: #aaa; font-size: 0.85em;">${entry.filename || '-'}</td>
+        <td style="padding: 8px; color: #aaa; text-align: center; font-size: 0.85em;" title="Created at: ${new Date(entry.timestamp).toLocaleString()}">${entry.id}</td>
         <td style="padding: 8px; font-weight: bold;">${entry.text}</td>
         <td style="padding: 8px; color: #aaa;">${entry.duration}</td>
         <td class="col-config" style="padding: 8px;"></td>

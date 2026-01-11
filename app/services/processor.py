@@ -43,10 +43,10 @@ class StreamProcessor:
                 log_entry = {
                     "id": entry["id"],
                     "timestamp": (
-                        entry["timestamp"].split()[1]
-                        if " " in entry["timestamp"]
+                        f"{entry['timestamp']}Z"
+                        if not entry["timestamp"].endswith("Z")
                         else entry["timestamp"]
-                    ),
+                    ).replace(" ", "T"),
                     "text": entry["text"],
                     "duration": f"{duration:.2f}s",
                     "config": {
@@ -226,7 +226,7 @@ class StreamProcessor:
     ):
         log_entry = {
             "id": db_id,
-            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "timestamp": f"{datetime.utcnow().isoformat()}Z",
             "text": text,
             "duration": f"{duration:.2f}s",
             "config": log_config.copy(),
