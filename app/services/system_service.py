@@ -7,6 +7,7 @@ documented in `doc/specification/api-server.md`.
 Please ensure any changes here are synchronized with the specification.
 """
 from app.config import config
+from app.core.ffmpeg import FFmpegClient
 from app.api.schemas.system import DevicesResponse
 
 ffmpeg_client = FFmpegClient()
