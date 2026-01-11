@@ -75,7 +75,7 @@
 | `audio_track_index` | integer | `1` | 数値型チェック, **1 〜 50** |
 | `subtitle_track_index` | integer | `2` | 数値型チェック, **1 〜 50** |
 | `target_bin` | string | `VoiceVox Captions` | インポート先ビン名（"root" はメディアプール直下） |
-| `template_name` | string | `DefaultTemplate` | 使用する Text+ テンプレート名 |
+| `template_name` | string | `Auto` | 使用する Text+ テンプレート名 |
 
 ## 補足事項
 

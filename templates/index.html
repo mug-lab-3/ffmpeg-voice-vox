@@ -126,7 +126,7 @@
                     <div class="control-group flex-1 mb-0">
                         <label class="fs-small mb-2">Path to ffmpeg.exe</label>
                         <div class="flex gap-5">
-                            <input type="text" id="cfg-ffmpeg-path" class="form-control" placeholder="./ffmpeg">
+                            <input type="text" id="cfg-ffmpeg-path" class="form-control" placeholder="ffmpeg.exe">
                             <button id="browse-ffmpeg-path" class="btn btn-secondary fs-small"
                                 title="Browse File">...</button>
                         </div>
@@ -146,8 +146,7 @@
                     <div class="control-group flex-1 mb-0">
                         <label class="fs-small mb-2">Whisper Model Path</label>
                         <div class="flex gap-5">
-                            <input type="text" id="cfg-model-path" class="form-control"
-                                placeholder="../models/ggml-large-v3.bin">
+                            <input type="text" id="cfg-model-path" class="form-control" placeholder="ggml-large-v3.bin">
                             <button id="browse-model-path" class="btn btn-secondary fs-small"
                                 title="Browse File">...</button>
                         </div>
@@ -156,7 +155,7 @@
                         <label class="fs-small mb-2">VAD Model Path</label>
                         <div class="flex gap-5">
                             <input type="text" id="cfg-vad-path" class="form-control"
-                                placeholder="../vad/ggml-silero-v6.2.0.bin">
+                                placeholder="ggml-silero-v6.2.0.bin">
                             <button id="browse-vad-path" class="btn btn-secondary fs-small"
                                 title="Browse File">...</button>
                         </div>
@@ -210,7 +209,7 @@
                         <label class="fs-small mb-2">Template Clip Name</label>
                         <div class="flex gap-5">
                             <select id="cfg-template-name" class="form-control">
-                                <option value="auto">auto</option>
+                                <option value="Auto">Auto</option>
                             </select>
                             <button id="refresh-resolve-clips" class="btn btn-secondary"
                                 title="Refresh Clip List">↻</button>

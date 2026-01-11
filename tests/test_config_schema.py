@@ -48,7 +48,7 @@ class TestConfigSchema:
         assert config.resolve.audio_track_index == 1
         assert config.resolve.subtitle_track_index == 2
         assert config.resolve.target_bin == "VoiceVox Captions"
-        assert config.resolve.template_name == "DefaultTemplate"
+        assert config.resolve.template_name == "Auto"
 
     # --- Synthesis Validation ---
     @pytest.mark.parametrize("speaker_id", [-1, -5])

@@ -413,14 +413,14 @@ function populateResolveBins(bins) {
 
 function populateResolveClips(clips) {
     const select = elements.cfgInputs.templateName;
-    const currentValue = select.value || (store.config?.resolve?.template_name) || "auto";
+    const currentValue = select.value || (store.config?.resolve?.template_name) || "Auto";
 
-    // Clear (always keep auto)
-    select.innerHTML = '<option value="auto">auto</option>';
+    // Clear (always keep Auto)
+    select.innerHTML = '<option value="Auto">Auto</option>';
 
     if (clips && clips.length > 0) {
         clips.forEach(clip => {
-            if (clip === "auto") return; // Skip if already there
+            if (clip === "Auto") return; // Skip if already there
             const opt = document.createElement('option');
             opt.value = clip;
             opt.textContent = clip;
@@ -430,9 +430,9 @@ function populateResolveClips(clips) {
 
     // Restore selection
     select.value = currentValue;
-    // If current value is not in new list and not auto, it will show blank or keep first.
+    // If current value is not in new list and not Auto, it will show blank or keep first.
     // We should ensure it's valid.
-    if (select.value !== currentValue && currentValue !== "auto") {
+    if (select.value !== currentValue && currentValue !== "Auto") {
         // Option lost, but keep the value if possible so it shows up in logic?
         // Actually select.value will be empty if not found.
         const opt = document.createElement('option');
@@ -659,7 +659,7 @@ function renderConfig() {
             }
             sel.value = config.resolve.template_name;
         } else {
-            sel.value = "auto";
+            sel.value = "Auto";
         }
     }
 }

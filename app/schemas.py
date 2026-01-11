@@ -64,7 +64,7 @@ class ResolveConfig(BaseModel):
     audio_track_index: Annotated[int, Field(ge=1, le=50)] = 1
     subtitle_track_index: Annotated[int, Field(ge=1, le=50)] = 2
     target_bin: str = "VoiceVox Captions"
-    template_name: str = "DefaultTemplate"
+    template_name: str = "Auto"
 
 
 class ConfigSchema(BaseModel):

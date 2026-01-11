@@ -324,7 +324,7 @@ class ResolveClient:
                 # Use 'target_bin' from config (renamed from template_bin)
                 target_bin_name = config.get("resolve.target_bin", "VoiceVox Captions")
                 target_clip_name = config.get(
-                    "resolve.template_name", "DefaultTemplate"
+                    "resolve.template_name", "Auto"
                 )
 
                 root_folder = media_pool.GetRootFolder()
@@ -401,7 +401,7 @@ class ResolveClient:
                         f"INFO: No template found. Please ensure a Text+ clip is in the Media Pool."
                     )
                     # If user specified a specific name (not auto), and it's missing, we should fail.
-                    if target_clip_name != "auto":
+                    if target_clip_name != "Auto":
                         self._log(
                             f"ERROR: Template '{target_clip_name}' not found. Aborting."
                         )

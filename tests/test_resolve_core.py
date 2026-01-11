@@ -386,7 +386,7 @@ class TestResolveInsertion:
         # Setup config to use "root"
         self.mock_config.get.side_effect = lambda k, default=None: {
             "resolve.target_bin": "root",
-            "resolve.template_name": "DefaultTemplate",
+            "resolve.template_name": "Auto",
         }.get(k, default)
 
         # Mock ImportMedia
@@ -402,7 +402,7 @@ class TestResolveInsertion:
         # Ensure GetClipList returns a valid template clip so logic proceeds
         mock_template = MagicMock()
         mock_template.GetClipProperty.side_effect = lambda x: (
-            "DefaultTemplate" if x == "Clip Name" else ""
+            "Auto" if x == "Clip Name" else ""
         )
         mock_root.GetClipList.return_value = [mock_template]
 
