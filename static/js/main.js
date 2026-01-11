@@ -690,6 +690,24 @@ function updateLogRow(row, entry) {
     const spName = store.speakers[entry.config.speaker_id] || `ID:${entry.config.speaker_id}`;
     configCell.innerHTML = `<span style="color: var(--primary)">${spName}</span> <span style="font-size: 0.8em; color: #666;">(x${entry.config.speed_scale.toFixed(2)})</span>`;
 
+    // Tooltip with all config details
+    const cfg = entry.config;
+    const formatVal = (val) => (val !== undefined && val !== null) ? val : '-';
+
+    const tooltipText = [
+        `Speaker: ${spName}`,
+        `Speed: ${formatVal(cfg.speed_scale)}`,
+        `Pitch: ${formatVal(cfg.pitch_scale)}`,
+        `Intonation: ${formatVal(cfg.intonation_scale)}`,
+        `Volume: ${formatVal(cfg.volume_scale)}`
+    ];
+
+    if (cfg.pre_phoneme_length !== undefined) tooltipText.push(`Pre-Phoneme: ${cfg.pre_phoneme_length}`);
+    if (cfg.post_phoneme_length !== undefined) tooltipText.push(`Post-Phoneme: ${cfg.post_phoneme_length}`);
+    if (cfg.timing) tooltipText.push(`Timing: ${cfg.timing}`);
+
+    configCell.title = tooltipText.join('\n');
+
     // Buttons
     const isLocked = store.isSynthesisEnabled || store.playbackState.is_playing;
     const isThisPlaying = store.playbackState.is_playing && store.playbackState.filename === entry.filename;

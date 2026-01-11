@@ -4,6 +4,8 @@ trigger: always_on
 
 # 基本ルール
 
+- When generating the Plan, Task, and Walkthrough, please ensure all descriptions are written in Japanese for better clarity.
+
 ## 回答方針
 
 * プロンプトへの情報の提示・回答はすべて日本語で行う
