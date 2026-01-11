@@ -3,6 +3,7 @@ logs/
 config.json
 dummy
 val_output/
+data/
 
 # Python
 **/__pycache__/

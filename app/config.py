@@ -7,10 +7,31 @@ from pydantic import ValidationError
 class ConfigManager:
     DEFAULT_CONFIG_PATH = "default_config.json"
     
-    def __init__(self, config_path: str = "config.json"):
-        self.config_path = config_path
+    def __init__(self, config_filename: str = "config.json"):
+        # Relocate config to 'data' directory
+        self.data_dir = os.path.join(os.getcwd(), "data")
+        self.config_path = os.path.join(self.data_dir, config_filename)
+        
+        self._ensure_data_dir()
+        self._migrate_old_config(config_filename)
+        
         self.is_synthesis_enabled = False  # Runtime state
         self._config_obj = self.load_config()
+
+    def _ensure_data_dir(self):
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir, exist_ok=True)
+
+    def _migrate_old_config(self, filename: str):
+        """Migrate config.json from root to data/ if it exists."""
+        old_path = os.path.join(os.getcwd(), filename)
+        if os.path.exists(old_path) and not os.path.exists(self.config_path):
+            try:
+                print(f"[Config] Migrating {filename} to {self.config_path}")
+                import shutil
+                shutil.move(old_path, self.config_path)
+            except Exception as e:
+                print(f"[Config] Migration failed: {e}")
 
     @property
     def config(self) -> Dict[str, Any]:

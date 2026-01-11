@@ -1,8 +1,10 @@
 import json
+import os
 from datetime import datetime
 from app.config import config
 from app.core.voicevox import VoiceVoxClient
 from app.core.audio import AudioManager
+from app.core.database import db_manager
 
 class StreamProcessor:
     def __init__(self, voicevox_client: VoiceVoxClient, audio_manager: AudioManager):
@@ -10,54 +12,50 @@ class StreamProcessor:
         self.audio_manager = audio_manager
         self.received_logs = []
         
-        # Load past files from output directory
+        # Load history from Database
         self._load_history()
 
     def _load_history(self):
         try:
-            history_files = self.audio_manager.scan_output_dir()
-            speakers = self.vv_client.get_speakers() # {id: name}
-            # Create reverse mapping: name -> id
-            name_to_id = {v: k for k, v in speakers.items()}
+            print("Loading history from database...")
+            db_logs = db_manager.get_recent_logs(limit=50)
+            output_dir = self.audio_manager.get_output_dir()
             
-            for file_data in reversed(history_files): # Add oldest first so newest is at end (append)
-                filename = file_data["filename"]
-                text = file_data["text"]
-                speaker_name = file_data["speaker_name"]
-                duration = file_data["duration"]
-                timestamp = file_data["timestamp"] # datetime object
+            for entry in reversed(db_logs): # Add oldest first for list append order
+                filename = entry["output_path"]
+                duration = entry["audio_duration"]
                 
-                # Try to recover speaker ID
-                speaker_id = name_to_id.get(speaker_name, 0) # Default to 0? Or maybe we keep name in config?
-                # The frontend expects config.speaker_id to map to a name. 
-                # If we put an ID that exists, it shows the name.
-                # If we put a name in ID? No, frontend keys by ID.
-                # If not found, maybe we can't show correct speaker in UI column which relies on ID->Name map.
-                # But we can put a special ID or just 0.
-                
-                reconstructed_config = {
-                    "speaker_id": speaker_id,
-                    "speed_scale": 1.0, # Default/Unknown
-                    "pitch_scale": 0.0,
-                    "intonation_scale": 1.0,
-                    "volume_scale": 1.0
-                }
+                # Verify file existence if it's supposed to exist
+                if filename and duration > 0:
+                    full_path = os.path.join(output_dir, filename)
+                    if not os.path.exists(full_path):
+                        print(f"  -> File missing: {filename}. Marking as non-generated.")
+                        db_manager.update_audio_info(entry["id"], filename, 0.0)
+                        duration = 0.0
                 
                 log_entry = {
-                    "timestamp": timestamp.strftime("%H:%M:%S"),
-                    "text": text,
+                    "id": entry["id"],
+                    "timestamp": entry["timestamp"].split()[1] if ' ' in entry["timestamp"] else entry["timestamp"], 
+                    "text": entry["text"],
                     "duration": f"{duration:.2f}s",
-                    "config": reconstructed_config,
-                    "filename": filename
+                    "config": {
+                        "speaker_id": entry["speaker_id"],
+                        "speed_scale": entry["speed_scale"],
+                        "pitch_scale": entry["pitch_scale"],
+                        "intonation_scale": entry["intonation_scale"],
+                        "volume_scale": entry["volume_scale"],
+                        "pre_phoneme_length": entry["pre_phoneme_length"],
+                        "post_phoneme_length": entry["post_phoneme_length"]
+                    },
+                    "filename": filename if duration > 0 else "Pending"
                 }
-                
                 self.received_logs.append(log_entry)
                 
         except Exception as e:
-            print(f"Error loading history: {e}")
+            print(f"Error loading history from DB: {e}")
 
     def reload_history(self):
-        """Clear current logs and reload from invalid/new output directory."""
+        """Clear current logs and reload."""
         print("Reloading history logs...")
         self.received_logs = []
         self._load_history()
@@ -77,83 +75,77 @@ class StreamProcessor:
                         self._process_json_chunk(json_str)
                     except Exception as e:
                         print(f"Error processing chunk: {e}")
-                        # If error is severe, we might want to break, but for now continue stream
                         continue
 
     def _process_json_chunk(self, json_str):
         try:
             data = json.loads(json_str)
-            print(f"Received JSON: {json.dumps(data, ensure_ascii=False)}")
-            
-            if "text" in data and "start" in data and "end" in data:
+            if "text" in data:
                 self._handle_transcription(data)
-            else:
-                print("Skipping: Invalid data format")
-                
         except json.JSONDecodeError:
-            print("JSON Decode Error (chunk)")
+            pass
 
     def _handle_transcription(self, data):
         text = data["text"]
-        start = data["start"]
-        end = data["end"]
+        print(f"Processing: {text}")
         
-        print(f"Processing: [{start}ms - {end}ms] {text}")
+        # 1. Prepare Config
+        current_config = config.get("synthesis")
+        speaker_id = config.get("synthesis.speaker_id", 1)
         
+        # 2. Add to DB first (Pending state)
+        db_id = db_manager.add_transcription(
+            text=text,
+            speaker_id=speaker_id,
+            config_dict=current_config,
+            output_path=None,
+            audio_duration=0.0
+        )
+
         generated_file = None
         actual_duration = 0.0
         
         if config.get("system.is_synthesis_enabled", True):
             try:
-                # 1. Audio Query
-                speaker_id = config.get("synthesis.speaker_id", 1)
+                # 3. Audio Query
                 query_data = self.vv_client.audio_query(text, speaker_id)
+                # (Future: Apply scales from current_config here if not already handled by VV client)
                 
-                # 2. Synthesis
+                # 4. Synthesis
                 audio_data = self.vv_client.synthesis(query_data, speaker_id)
                 
-                # 3. Save
-                speaker_name = self.vv_client.get_speakers().get(speaker_id, f"ID{speaker_id}")
+                # 5. Save with DB ID
                 generated_file, actual_duration = self.audio_manager.save_audio(
-                   audio_data, text, speaker_name, start, end
+                   audio_data, text, db_id
                 )
                 
+                # 6. Update DB with file info
+                db_manager.update_audio_info(db_id, generated_file, actual_duration)
                 print(f"  -> Generated: {generated_file} ({actual_duration:.2f}s)")
-                
-                # Log entry - only when synthesis happened
-                self._add_log(text, actual_duration, generated_file, speaker_id)
                 
             except Exception as e:
                 print(f"Synthesis Error: {e}")
                 generated_file = "Error"
-                self._add_log(text, 0, generated_file, speaker_id)
         else:
             print("  -> Synthesis Skipped (Disabled)")
-            # Do NOT add to logs if disabled
 
+        # 7. Add to UI logs (or update existing)
+        self._add_log_from_db(db_id, text, actual_duration, generated_file, speaker_id, current_config)
 
-    def _add_log(self, text, duration, filename, speaker_id=None):
-        # Always use a copy to avoid reference sharing
-        current_config = config.get("synthesis")
-        log_config = current_config.copy() if current_config else {}
-        
-        # If speaker_id was provided (from when synthesis happened), ensure it's in the log config
-        if speaker_id is not None:
-            log_config["speaker_id"] = speaker_id
-
+    def _add_log_from_db(self, db_id, text, duration, filename, speaker_id, log_config):
         log_entry = {
+            "id": db_id,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "text": text,
             "duration": f"{duration:.2f}s",
-            "config": log_config, 
-            "filename": filename if filename else "Error"
+            "config": log_config.copy(), 
+            "filename": filename if duration > 0 else "Pending"
         }
         
-        if len(self.received_logs) > 50:
+        if len(self.received_logs) >= 50:
             self.received_logs.pop(0)
         self.received_logs.append(log_entry)
         
-        # Notify WebUI
         from app.core.events import event_manager
         event_manager.publish("log_update", {})
 
@@ -161,6 +153,8 @@ class StreamProcessor:
         return self.received_logs
 
     def delete_log(self, filename):
+        # We might need to find the ID if we want to delete from DB too
+        # For now, keep it simple UI-side
         self.received_logs = [log for log in self.received_logs if log.get('filename') != filename]
 
 # Singleton-alike instance creation would happen in app factory or DI container

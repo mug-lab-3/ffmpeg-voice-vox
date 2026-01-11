@@ -63,7 +63,7 @@ class AudioManager:
         seconds = seconds % 60
         return f"{hours:02}:{minutes:02}:{seconds:02},{millis:03}"
 
-    def save_audio(self, audio_data: bytes, text: str, speaker_name: str, start_time_ms: float, end_time_ms: float) -> tuple:
+    def save_audio(self, audio_data: bytes, text: str, db_id: int) -> tuple:
         """
         Saves audio data to WAV and creates a corresponding SRT file.
         Returns (filename, duration_sec).
@@ -72,12 +72,12 @@ class AudioManager:
         if not self.validate_output_dir(output_dir):
             raise ValueError(f"Invalid output directory: {output_dir}")
 
-        # Clean filename
+        # Clean filename: {ID}_{prefix}
         safe_text = re.sub(r'[\\/:*?"<>|]+', '', text)
         safe_text = safe_text.replace('\n', '').replace('\r', '')
         prefix_text = safe_text[:8]
         
-        filename_base = f"{int(start_time_ms):06d}_{speaker_name}_{prefix_text}"
+        filename_base = f"{db_id}_{prefix_text}"
         wav_filename = f"{filename_base}.wav"
         srt_filename = f"{filename_base}.srt"
         
@@ -87,19 +87,12 @@ class AudioManager:
         # Write WAV
         with open(wav_path, "wb") as f:
             f.write(audio_data)
-
-        # Automatic Resolve insertion removed.
             
         # Calculate duration
-        # Default to JSON duration if WAV calculation fails, but try WAV first
         actual_duration = self.get_wav_duration(wav_path)
-        if actual_duration > 0:
-            duration = actual_duration
-        else:
-            raw_duration = end_time_ms - start_time_ms
-            duration = max(0, raw_duration / 1000.0)
+        duration = max(0.0, actual_duration)
 
-        # Write SRT
+        # Write SRT (Keeping for compatibility/external player)
         srt_content = f"1\n00:00:00,000 --> {self.format_srt_time(duration)}\n{text}\n"
         with open(srt_path, "w", encoding="utf-8") as f:
             f.write(srt_content)
