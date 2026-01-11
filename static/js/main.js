@@ -106,7 +106,14 @@ function setupUIListeners() {
         });
 
         elements[key].addEventListener('change', async (e) => {
-            const val = (key === 'speaker') ? parseInt(e.target.value) : parseFloat(e.target.value);
+            let val;
+            if (key === 'speaker') {
+                val = parseInt(e.target.value);
+            } else if (key === 'synthesisTiming') {
+                val = e.target.value; // Keep as string ("immediate" or "on_demand")
+            } else {
+                val = parseFloat(e.target.value);
+            }
             const mapping = {
                 'speaker': 'speaker_id',
                 'speedScale': 'speed_scale',

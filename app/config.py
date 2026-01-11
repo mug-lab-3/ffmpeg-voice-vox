@@ -132,6 +132,7 @@ class ConfigManager:
             
             # Type conversion attempt (handling strings from WebUI)
             # This helps WebUI where values might be sent as strings
+            print(f"[Config] Updating {key} to {value} (type: {type(value).__name__})")
             target[keys[-1]] = value
             
             # Re-validate the whole structure

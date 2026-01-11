@@ -20,18 +20,22 @@ class StreamProcessor:
             print("Loading history from database...")
             db_logs = db_manager.get_recent_logs(limit=50)
             output_dir = self.audio_manager.get_output_dir()
+            print(f"  -> Loading from: {output_dir}")
             
             for entry in reversed(db_logs): # Add oldest first for list append order
                 filename = entry["output_path"]
                 duration = entry["audio_duration"]
                 
-                # Verify file existence if it's supposed to exist
+                # Verify file existence if it was already generated
                 if filename and duration > 0:
-                    full_path = os.path.join(output_dir, filename)
+                    full_path = os.path.normpath(os.path.join(output_dir, filename))
                     if not os.path.exists(full_path):
-                        print(f"  -> File missing: {filename}. Marking as non-generated.")
-                        db_manager.update_audio_info(entry["id"], filename, 0.0)
-                        duration = 0.0
+                        # File missing on disk, but DB says it exists -> Delete from DB and skip
+                        print(f"  -> File MISSING on disk: {filename}. Deleting record ID {entry['id']} from DB.")
+                        db_manager.delete_log(entry["id"])
+                        continue
+                    else:
+                        print(f"  -> File OK: {filename}")
                 
                 log_entry = {
                     "id": entry["id"],
@@ -138,11 +142,13 @@ class StreamProcessor:
 
     def synthesize_item(self, db_id: int):
         """Perform synthesis for an existing DB record and save the file."""
-        # 1. Fetch from DB
-        records = db_manager.get_recent_logs(limit=100) # Check recent
-        record = next((r for r in records if r["id"] == db_id), None)
-        if not record:
-            raise ValueError(f"Record not found: {db_id}")
+        # 1. Fetch exactly what we need from DB
+        with db_manager._get_connection() as conn:
+            cursor = conn.execute("SELECT * FROM transcriptions WHERE id = ?", (db_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Record not found: {db_id}")
+            record = dict(row)
         
         if record["audio_duration"] > 0:
             return record["output_path"], record["audio_duration"]
@@ -151,19 +157,26 @@ class StreamProcessor:
         
         # 2. Reconstruct query config
         text = record["text"]
-        speaker_id = record["speaker_id"]
+        speaker_id = int(record["speaker_id"] or 1)
         
         # 3. VoiceVox Query & Synthesis
-        query_data = self.vv_client.audio_query(text, speaker_id)
-        # Apply scales
-        query_data["speedScale"] = record["speed_scale"]
-        query_data["pitchScale"] = record["pitch_scale"]
-        query_data["intonationScale"] = record["intonation_scale"]
-        query_data["volumeScale"] = record["volume_scale"]
-        query_data["prePhonemeLength"] = record["pre_phoneme_length"]
-        query_data["postPhonemeLength"] = record["post_phoneme_length"]
-        
-        audio_data = self.vv_client.synthesis(query_data, speaker_id)
+        try:
+            query_data = self.vv_client.audio_query(text, speaker_id)
+            
+            # Apply scales with default fallback to avoid None errors
+            query_data["speedScale"] = float(record["speed_scale"] or 1.0)
+            query_data["pitchScale"] = float(record["pitch_scale"] or 0.0)
+            query_data["intonationScale"] = float(record["intonation_scale"] or 1.0)
+            query_data["volumeScale"] = float(record["volume_scale"] or 1.0)
+            query_data["prePhonemeLength"] = float(record["pre_phoneme_length"] or 0.1)
+            query_data["postPhonemeLength"] = float(record["post_phoneme_length"] or 0.1)
+            
+            audio_data = self.vv_client.synthesis(query_data, speaker_id)
+        except Exception as e:
+            print(f"[Processor] Synthesis CRITICAL Error for ID {db_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         # 4. Save
         generated_file, actual_duration = self.audio_manager.save_audio(audio_data, text, db_id)
@@ -183,7 +196,7 @@ class StreamProcessor:
         
         return generated_file, actual_duration
 
-    def _add_log_from_db(self, db_id, text, duration, filename, speaker_id, log_config):
+    def _add_log_from_db(self, db_id: int, text: str, duration: float, filename: str, speaker_id: int, log_config: dict):
         log_entry = {
             "id": db_id,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
@@ -203,9 +216,27 @@ class StreamProcessor:
     def get_logs(self):
         return self.received_logs
 
-    def delete_log(self, filename):
-        # We might need to find the ID if we want to delete from DB too
-        # For now, keep it simple UI-side
+    def delete_log(self, filename: str):
+        """Removes from UI list AND Database by identifying the ID from filename."""
+        # 1. Identify ID from filename
+        db_id = None
+        import re
+        if filename.startswith("pending_"):
+            match = re.search(r"pending_(\d+)", filename)
+            if match: db_id = int(match.group(1))
+        else:
+            match = re.match(r"^(\d+)_", filename)
+            if match: db_id = int(match.group(1))
+            
+        # 2. Delete from DB if ID found
+        if db_id:
+            print(f"[Processor] Deleting record ID {db_id} from DB (triggered by UI delete)")
+            db_manager.delete_log(db_id)
+        else:
+            # Fallback: maybe it was an old filename format or something else
+            print(f"[Processor] Could not identify DB ID for: {filename}. Skipping DB deletion.")
+
+        # 3. Cache deletion
         self.received_logs = [log for log in self.received_logs if log.get('filename') != filename]
 
 # Singleton-alike instance creation would happen in app factory or DI container
