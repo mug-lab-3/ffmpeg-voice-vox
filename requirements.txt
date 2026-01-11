@@ -3,3 +3,6 @@ pydantic
 psutil
 sounddevice
 soundfile
+pytest
+pytest-cov
+pytest-watch
