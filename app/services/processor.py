@@ -251,7 +251,9 @@ class StreamProcessor:
     def delete_log(self, db_id: int):
         """Removes from UI list AND Database by ID."""
         # 1. Delete from DB
-        print(f"[Processor] Deleting record ID {db_id} from DB (triggered by UI delete)")
+        print(
+            f"[Processor] Deleting record ID {db_id} from DB (triggered by UI delete)"
+        )
         # We need to find the filename before deleting from cache to return it
         filename = None
         for log in self.received_logs:
@@ -267,10 +269,10 @@ class StreamProcessor:
         ]
 
         from app.core.events import event_manager
+
         event_manager.publish("log_update", {})
 
         return filename
-
 
     def update_log_text(self, db_id: int, new_text: str):
         """Updates text for a log entry by ID, deletes old audio if exists, and resets state."""
@@ -302,10 +304,11 @@ class StreamProcessor:
                 log["filename"] = f"pending_{db_id}.wav"  # Reset filename
                 found = True
                 break
-        
+
         if not found:
-             # Should reload if not found, but it should be there.
-             pass
+            # Should reload if not found, but it should be there.
+            pass
 
         from app.core.events import event_manager
+
         event_manager.publish("log_update", {})

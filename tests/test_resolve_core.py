@@ -97,10 +97,11 @@ class TestResolveCore:
 
 
 class TestMonitorProcess:
+    @patch("app.core.resolve.psutil")
     @patch("app.core.resolve.time.sleep")  # Prevent slow tests
     @patch("app.core.resolve._log_monitor")
     @patch("app.core.resolve.get_resolve_module_path")
-    def test_monitor_loop(self, mock_path, mock_log, mock_sleep):
+    def test_monitor_loop(self, mock_path, mock_log, mock_sleep, mock_psutil):
         """Test the monitor process loop updates shared status."""
         from app.core.resolve import monitor_resolve_process
 
@@ -114,12 +115,11 @@ class TestMonitorProcess:
         mock_proc = MagicMock()
         mock_proc.info = {"name": "DaVinci Resolve"}
 
-        # Mock psutil module
-        mock_psutil_mod = MagicMock()
-        mock_psutil_mod.process_iter.return_value = [mock_proc]
-        mock_psutil_mod.NoSuchProcess = Exception
-        mock_psutil_mod.AccessDenied = Exception
-        mock_psutil_mod.ZombieProcess = Exception
+        # Configure mock_psutil
+        mock_psutil.process_iter.return_value = [mock_proc]
+        mock_psutil.NoSuchProcess = Exception
+        mock_psutil.AccessDenied = Exception
+        mock_psutil.ZombieProcess = Exception
 
         mock_path.return_value = "C:/Path"
 
@@ -128,9 +128,9 @@ class TestMonitorProcess:
         mock_resolve = MagicMock()
         mock_dvr.scriptapp.return_value = mock_resolve
 
-        # Patch both psutil and DaVinciResolveScript
+        # Patch DaVinciResolveScript
         with patch.dict(
-            sys.modules, {"DaVinciResolveScript": mock_dvr, "psutil": mock_psutil_mod}
+            sys.modules, {"DaVinciResolveScript": mock_dvr}
         ):
             monitor_resolve_process(shared_status, running_event)
 

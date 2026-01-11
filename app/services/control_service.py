@@ -132,14 +132,18 @@ def ensure_audio_file(db_id: int, audio_manager, processor) -> str:
 
     # If filename is None or duration is 0, it needs synthesis
     if not filename or duration <= 0:
-        print(f"[Service] Audio missing/pending for ID {db_id}. Triggering synthesis...")
+        print(
+            f"[Service] Audio missing/pending for ID {db_id}. Triggering synthesis..."
+        )
         new_filename, _ = processor.synthesize_item(db_id)
         return new_filename
 
     abs_path = os.path.join(output_dir, filename)
     if not os.path.exists(abs_path):
         # File recorded in DB but missing on disk -> Re-synthesize
-        print(f"[Service] File recorded but missing on disk for ID {db_id}. Retriggering...")
+        print(
+            f"[Service] File recorded but missing on disk for ID {db_id}. Retriggering..."
+        )
         new_filename, _ = processor.synthesize_item(db_id)
         return new_filename
 

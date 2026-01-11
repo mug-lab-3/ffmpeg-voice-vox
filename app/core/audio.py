@@ -25,13 +25,13 @@ class AudioManager:
             "request_id": None,
         }
         self.playback_lock = threading.Lock()
-        
+
         # Shutdown Flag
         self.shutdown_flag = threading.Event()
-        
+
         # Playback Queue
         self.play_queue = queue.Queue()
-        
+
         # Worker Thread
         self.worker_thread = threading.Thread(
             target=self._play_worker_loop, daemon=True
@@ -108,7 +108,7 @@ class AudioManager:
         Returns duration and approximate start time (now).
         """
         if self.shutdown_flag.is_set():
-             raise RuntimeError("System is shutting down")
+            raise RuntimeError("System is shutting down")
 
         output_dir = self.get_output_dir()
         wav_path = os.path.join(output_dir, filename)
@@ -139,7 +139,7 @@ class AudioManager:
         while True:
             # Block until an item is available
             item = self.play_queue.get()
-            
+
             # Check for Sentinel (Shutdown)
             if item is None:
                 self.play_queue.task_done()
@@ -151,11 +151,15 @@ class AudioManager:
                 # Notify Cancel
                 event_manager.publish(
                     "playback_change",
-                    {"is_playing": False, "filename": None, "request_id": item.get("request_id")},
+                    {
+                        "is_playing": False,
+                        "filename": None,
+                        "request_id": item.get("request_id"),
+                    },
                 )
                 self.play_queue.task_done()
                 continue
-            
+
             filename = item["filename"]
             wav_path = item["path"]
             duration = item["duration"]
@@ -187,7 +191,7 @@ class AudioManager:
                 # Wait for duration (blocking this thread is what we want for sequential playback)
                 # But use sd.wait() so we can interrupt it if needed via sd.stop()
                 sd.wait()
-                
+
                 # Check directly if we need to stop (although sd.wait returns on stop())
                 sd.stop()
             except Exception as e:
@@ -291,7 +295,7 @@ class AudioManager:
         """
         print("[AudioManager] Shutting down...")
         self.shutdown_flag.set()
-        
+
         # 1. Stop current playback immediately
         try:
             sd.stop()
@@ -300,6 +304,7 @@ class AudioManager:
 
         # 2. Drain the queue and notify cancellation
         from app.core.events import event_manager
+
         while True:
             try:
                 item = self.play_queue.get_nowait()
@@ -307,23 +312,27 @@ class AudioManager:
                     # If we hit sentinel (unlikely if we just started shutdown, but possible if called twice)
                     self.play_queue.task_done()
                     continue
-                
+
                 # Notify cancellation
                 event_manager.publish(
                     "playback_change",
-                    {"is_playing": False, "filename": item.get("filename"), "request_id": item.get("request_id")},
+                    {
+                        "is_playing": False,
+                        "filename": item.get("filename"),
+                        "request_id": item.get("request_id"),
+                    },
                 )
                 self.play_queue.task_done()
             except queue.Empty:
                 break
-        
+
         # 3. Signal worker to exit
         self.play_queue.put(None)
-        
+
         # 4. Join thread
         if self.worker_thread.is_alive():
             self.worker_thread.join(timeout=2.0)
             if self.worker_thread.is_alive():
                 print("[AudioManager] Worker thread did not exit cleanly.")
-        
+
         print("[AudioManager] Shutdown complete.")

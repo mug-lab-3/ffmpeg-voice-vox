@@ -165,11 +165,11 @@ class DatabaseManager:
 
     def close_all_connections(self):
         """
-        Closes all connections. 
+        Closes all connections.
         Note: SQLite with WAL mode might still keep files open if not handled carefully,
         but for simple scripts, ensuring no active connection helps.
         """
-        # In this simple implementation, we don't keep a pool, 
+        # In this simple implementation, we don't keep a pool,
         # but calling this can be a placeholder or we can use it to force a sync.
         pass
 

@@ -70,9 +70,11 @@ def update_system():
         if data.output_dir is not None:
             config.update("system.output_dir", data.output_dir)
             from app.core.events import event_manager
+
             event_manager.publish("config_update", {"outputDir": data.output_dir})
-            
+
             from app.web.routes import processor
+
             processor.reload_history()
         return jsonify({"status": "ok"})
     except ValidationError as e:
