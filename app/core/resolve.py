@@ -323,9 +323,7 @@ class ResolveClient:
 
                 # Use 'target_bin' from config (renamed from template_bin)
                 target_bin_name = config.get("resolve.target_bin", "VoiceVox Captions")
-                target_clip_name = config.get(
-                    "resolve.template_name", "Auto"
-                )
+                target_clip_name = config.get("resolve.template_name", "Auto")
 
                 root_folder = media_pool.GetRootFolder()
                 target_bin = None

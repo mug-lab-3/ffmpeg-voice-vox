@@ -46,7 +46,16 @@ def update_synthesis():
     try:
         data = SynthesisUpdate(**request.json)
         for k, v in data.model_dump(exclude_unset=True).items():
-            config.update(f"synthesis.{k}", v)
+            if not config.update(f"synthesis.{k}", v):
+                return (
+                    jsonify(
+                        {
+                            "status": "error",
+                            "message": f"Failed to update synthesis.{k}",
+                        }
+                    ),
+                    500,
+                )
         return jsonify({"status": "ok"})
     except ValidationError as e:
         return handle_validation_error(e)
@@ -57,7 +66,13 @@ def update_resolve():
     try:
         data = ResolveUpdate(**request.json)
         for k, v in data.model_dump(exclude_unset=True).items():
-            config.update(f"resolve.{k}", v)
+            if not config.update(f"resolve.{k}", v):
+                return (
+                    jsonify(
+                        {"status": "error", "message": f"Failed to update resolve.{k}"}
+                    ),
+                    500,
+                )
         return jsonify({"status": "ok"})
     except ValidationError as e:
         return handle_validation_error(e)
@@ -68,7 +83,14 @@ def update_system():
     try:
         data = SystemUpdate(**request.json)
         if data.output_dir is not None:
-            config.update("system.output_dir", data.output_dir)
+            if not config.update("system.output_dir", data.output_dir):
+                return (
+                    jsonify(
+                        {"status": "error", "message": "Failed to update output_dir"}
+                    ),
+                    500,
+                )
+
             from app.core.events import event_manager
 
             event_manager.publish("config_update", {"outputDir": data.output_dir})
@@ -86,7 +108,13 @@ def update_ffmpeg():
     try:
         data = FfmpegUpdate(**request.json)
         for k, v in data.model_dump(exclude_unset=True).items():
-            config.update(f"ffmpeg.{k}", v)
+            if not config.update(f"ffmpeg.{k}", v):
+                return (
+                    jsonify(
+                        {"status": "error", "message": f"Failed to update ffmpeg.{k}"}
+                    ),
+                    500,
+                )
         return jsonify({"status": "ok"})
     except ValidationError as e:
         return handle_validation_error(e)

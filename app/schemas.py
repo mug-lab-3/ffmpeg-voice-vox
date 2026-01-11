@@ -11,7 +11,7 @@ this file to ensure they are perfectly synchronized.
 
 import os
 from pydantic import BaseModel, Field, field_validator, ConfigDict
-from typing import Optional, Annotated
+from typing import Optional, Annotated, Any
 
 
 class ServerConfig(BaseModel):
@@ -57,6 +57,28 @@ class FfmpegConfig(BaseModel):
         if v and not os.path.exists(v):
             print(f"[Config] Warning: ffmpeg_path does not exist: {v}")
         return v
+
+    @field_validator("host")
+    @classmethod
+    def validate_host(cls, v: str) -> str:
+        if not v:
+            # If empty string is passed, fallback to default or allow?
+            # Plan says "Default to 127.0.0.1 if invalid/empty".
+            # But ConfigManager update logic might want to see the error?
+            # User asked for "verify it is valid host format".
+            raise ValueError("Host cannot be empty")
+
+        # Simple check for valid hostname/IP
+        import re
+
+        # IPv4
+        ip_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
+        # Hostname (simple)
+        hostname_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+
+        if re.match(ip_pattern, v) or re.match(hostname_pattern, v) or v == "localhost":
+            return v
+        raise ValueError(f"Invalid host format: {v}")
 
 
 class ResolveConfig(BaseModel):

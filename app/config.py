@@ -46,12 +46,33 @@ class ConfigManager:
     def load_config(self) -> ConfigSchema:
         """Load user config, validate with Pydantic, and correct if needed."""
         loaded_data = {}
+        load_failed = False
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, "r", encoding="utf-8") as f:
                     loaded_data = json.load(f)
+            except json.JSONDecodeError as e:
+                # Corrupt file: Backup and start fresh
+                import shutil
+                import time
+
+                timestamp = int(time.time())
+                backup_path = f"{self.config_path}.corrupt.{timestamp}"
+                print(f"[Config] Error reading JSON {self.config_path}: {e}")
+                print(f"[Config] Backing up corrupt config to {backup_path}")
+                try:
+                    shutil.copy(self.config_path, backup_path)
+                except Exception as be:
+                    print(f"[Config] Failed to backup: {be}")
+
+                # Treat as empty to trigger default creation
+                loaded_data = {}
+                load_failed = True
             except Exception as e:
                 print(f"[Config] Error reading {self.config_path}: {e}")
+                # For permission errors etc, maybe we shouldn't overwrite?
+                # But to be safe and robust for "cannot read", we might default.
+                pass
 
         try:
             # Validate and apply defaults
@@ -63,10 +84,13 @@ class ConfigManager:
 
             # Use partial data and fill rest with defaults
             config_obj = self._load_best_effort(loaded_data)
+            # Only save if we corrected something OR if we failed to load (fresh start/corruption)
+            # But don't overwrite if it was just a validation error on start?
+            # Yes, we should probably save the corrected version to ensure consistency.
             self.save_config(config_obj)
         else:
             # Check if we need to save (e.g. if fields were missing and filled by defaults)
-            if loaded_data != config_obj.model_dump():
+            if loaded_data != config_obj.model_dump() or load_failed:
                 print(f"[Config] Synchronizing missing fields to {self.config_path}")
                 self.save_config(config_obj)
 
@@ -83,13 +107,37 @@ class ConfigManager:
         for section_name in default_obj.__class__.model_fields:
             if section_name in data and isinstance(data[section_name], dict):
                 section_data = data[section_name]
-                section_model = getattr(default_obj, section_name).__class__
-                try:
-                    setattr(default_obj, section_name, section_model(**section_data))
-                except ValidationError:
-                    print(
-                        f"[Config] Section '{section_name}' has invalid values. Using defaults for this section."
-                    )
+                # Get the Pydantic model class for this section
+                current_section_instance = getattr(default_obj, section_name)
+                section_model_class = current_section_instance.__class__
+
+                # Start with defaults
+                valid_section_data = current_section_instance.model_dump()
+
+                # Process each field in the section
+                for field_name, field_value in section_data.items():
+                    if field_name not in section_model_class.model_fields:
+                        continue
+
+                    # Field-level validation attempt
+                    test_data = valid_section_data.copy()
+                    test_data[field_name] = field_value
+
+                    try:
+                        # Validate by instantiating
+                        section_model_class(**test_data)
+                        # It passed, update our valid set
+                        valid_section_data[field_name] = field_value
+                    except ValidationError:
+                        print(
+                            f"[Config] Field '{section_name}.{field_name}' has invalid value '{field_value}'. Using default."
+                        )
+
+                # Finally set the section on the main config object
+                setattr(
+                    default_obj, section_name, section_model_class(**valid_section_data)
+                )
+
         return default_obj
 
     def save_config(self, config_to_save: Any = None):
@@ -100,7 +148,11 @@ class ConfigManager:
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
                 f.flush()
-                os.fsync(f.fileno())
+                try:
+                    os.fsync(f.fileno())
+                except OSError:
+                    # Windows might fail fsync on some filesystems or if locked
+                    pass
         except Exception as e:
             print(f"[Config] Error saving config: {e}")
 
@@ -135,7 +187,6 @@ class ConfigManager:
                 target = target[k]
 
             # Type conversion attempt (handling strings from WebUI)
-            # This helps WebUI where values might be sent as strings
             print(f"[Config] Updating {key} to {value} (type: {type(value).__name__})")
             target[keys[-1]] = value
 

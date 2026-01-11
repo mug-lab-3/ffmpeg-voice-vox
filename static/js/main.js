@@ -143,26 +143,33 @@ function setupUIListeners() {
         try {
             let res;
             if (domain === 'ffmpeg') {
+                const sanitizeStr = (val) => val || ""; // Ensure empty string instead of null/undefined
+                const sanitizeInt = (val, defaultVal) => {
+                    const parsed = parseInt(val);
+                    return isNaN(parsed) ? defaultVal : parsed;
+                };
+
                 const currentFFmpeg = {
-                    ffmpeg_path: elements.cfgInputs.ffmpegPath.value,
-                    input_device: elements.cfgInputs.inputDevice.value,
-                    model_path: elements.cfgInputs.modelPath.value,
-                    vad_model_path: elements.cfgInputs.vadPath.value,
-                    queue_length: parseInt(elements.cfgInputs.queueLength.value),
-                    host: elements.cfgInputs.host.value
+                    ffmpeg_path: sanitizeStr(elements.cfgInputs.ffmpegPath.value),
+                    input_device: sanitizeStr(elements.cfgInputs.inputDevice.value),
+                    model_path: sanitizeStr(elements.cfgInputs.modelPath.value),
+                    vad_model_path: sanitizeStr(elements.cfgInputs.vadPath.value),
+                    queue_length: sanitizeInt(elements.cfgInputs.queueLength.value, 10),
+                    host: sanitizeStr(elements.cfgInputs.host.value) || "127.0.0.1" // Host requires valid value or default
                 };
                 res = await api.updateFFmpegConfig(currentFFmpeg);
             } else if (domain === 'resolve') {
                 const updates = {};
                 const audioIdx = parseInt(elements.cfgInputs.audioTrackIndex.value);
                 const subIdx = parseInt(elements.cfgInputs.subtitleTrackIndex.value);
+
+                // Only send updates if valid number, otherwise let backend/store keep current or use defaults if full object
                 if (!isNaN(audioIdx)) updates.audio_track_index = audioIdx;
                 if (!isNaN(subIdx)) updates.subtitle_track_index = subIdx;
 
-                if (elements.cfgInputs.targetBin.value.trim())
-                    updates.target_bin = elements.cfgInputs.targetBin.value;
-                if (elements.cfgInputs.templateName.value.trim())
-                    updates.template_name = elements.cfgInputs.templateName.value;
+                // For strings, send "" if empty
+                updates.target_bin = sanitizeStr(elements.cfgInputs.targetBin.value);
+                updates.template_name = sanitizeStr(elements.cfgInputs.templateName.value);
 
                 res = await api.updateResolveConfig(updates);
             }

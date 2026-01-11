@@ -95,6 +95,33 @@ def handle_control_state_logic(
         if not audio_manager.validate_output_dir(current_output):
             raise ValueError("Invalid or non-writable output directory")
 
+        # Runtime Validation: Model Path
+        model_path = config.get("ffmpeg.model_path")
+        if not model_path:
+            raise ValueError("Model Path is not configured. Please set it in Settings.")
+        if not os.path.exists(model_path):
+            raise ValueError(f"Model Path does not exist: {model_path}")
+        if not os.path.isfile(model_path):
+            raise ValueError(f"Model Path must be a file: {model_path}")
+
+        # Runtime Validation: FFmpeg Path
+        ffmpeg_path = config.get("ffmpeg.ffmpeg_path")
+        if not ffmpeg_path:
+            raise ValueError(
+                "FFmpeg Path is not configured. Please set it in Settings."
+            )
+        if not os.path.exists(ffmpeg_path):
+            raise ValueError(f"FFmpeg Path does not exist: {ffmpeg_path}")
+        if not os.path.isfile(ffmpeg_path):
+            raise ValueError(f"FFmpeg Path must be a file: {ffmpeg_path}")
+
+        # Runtime Validation: Input Device
+        input_device = config.get("ffmpeg.input_device")
+        if not input_device:
+            raise ValueError(
+                "Input Device is not selected. Please select one in Settings."
+            )
+
         current_port = None
         if ":" in request_host:
             current_port = request_host.split(":")[-1]
