@@ -90,7 +90,6 @@ class ConfigManager:
                     print(
                         f"[Config] Section '{section_name}' has invalid values. Using defaults for this section."
                     )
-
         return default_obj
 
     def save_config(self, config_to_save: Any = None):
@@ -100,6 +99,8 @@ class ConfigManager:
             data = obj.model_dump() if hasattr(obj, "model_dump") else obj
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
+                f.flush()
+                os.fsync(f.fileno())
         except Exception as e:
             print(f"[Config] Error saving config: {e}")
 
