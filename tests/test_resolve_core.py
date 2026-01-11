@@ -129,9 +129,7 @@ class TestMonitorProcess:
         mock_dvr.scriptapp.return_value = mock_resolve
 
         # Patch DaVinciResolveScript
-        with patch.dict(
-            sys.modules, {"DaVinciResolveScript": mock_dvr}
-        ):
+        with patch.dict(sys.modules, {"DaVinciResolveScript": mock_dvr}):
             monitor_resolve_process(shared_status, running_event)
 
         # Verify status was updated to 1 because resolve was found and scriptapp returned object
