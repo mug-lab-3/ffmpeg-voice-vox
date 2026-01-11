@@ -254,8 +254,9 @@ class TestResolveInsertion:
         self.mock_media_pool.AddSubFolder.return_value = mock_new_bin
         mock_new_bin.GetClipList.return_value = []  # No template found in new bin
 
-        # Run Insertion
-        success = client.insert_file("C:/test.wav", text="Hello World")
+        # Run Insertion with 'auto' to allow fallback behavior verification
+        with patch("app.config.config.get", side_effect=lambda key, default=None: "auto" if "template_name" in key else default):
+            success = client.insert_file("C:/test.wav", text="Hello World")
 
         assert success is True
 

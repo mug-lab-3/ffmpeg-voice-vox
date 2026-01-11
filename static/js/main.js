@@ -215,6 +215,32 @@ function setupUIListeners() {
         }
     });
 
+    // Resolve Clips Refresh
+    const refreshClipsBtn = document.getElementById('refresh-resolve-clips');
+    refreshClipsBtn.addEventListener('click', async () => {
+        if (!store.isResolveAvailable) {
+            await showAlert("Notice", "DaVinci Resolve is not connected");
+            return;
+        }
+
+        refreshClipsBtn.classList.add('rotating');
+        refreshClipsBtn.disabled = true;
+
+        try {
+            const res = await api.getResolveClips();
+            if (res.ok && res.data.status === 'ok') {
+                populateResolveClips(res.data.clips);
+            } else {
+                await showAlert("Error", res.data.message || "Failed to list clips");
+            }
+        } catch (e) {
+            await showAlert("Error", "Failed to fetch Resolve clips");
+        } finally {
+            refreshClipsBtn.disabled = false;
+            refreshClipsBtn.classList.remove('rotating');
+        }
+    });
+
     // Browse Buttons
     const setupBrowse = (btnId, inputKey) => {
         const btn = document.getElementById(btnId);
@@ -324,6 +350,39 @@ function populateDeviceSelect(devices) {
     if (store.config?.ffmpeg?.input_device) {
         select.value = store.config.ffmpeg.input_device;
     } else if (currentValue) {
+        select.value = currentValue;
+    }
+}
+
+function populateResolveClips(clips) {
+    const select = elements.cfgInputs.templateName;
+    const currentValue = select.value || (store.config?.resolve?.template_name) || "auto";
+
+    // Clear (always keep auto)
+    select.innerHTML = '<option value="auto">auto</option>';
+
+    if (clips && clips.length > 0) {
+        clips.forEach(clip => {
+            if (clip === "auto") return; // Skip if already there
+            const opt = document.createElement('option');
+            opt.value = clip;
+            opt.textContent = clip;
+            select.appendChild(opt);
+        });
+    }
+
+    // Restore selection
+    select.value = currentValue;
+    // If current value is not in new list and not auto, it will show blank or keep first.
+    // We should ensure it's valid.
+    if (select.value !== currentValue && currentValue !== "auto") {
+        // Option lost, but keep the value if possible so it shows up in logic?
+        // Actually select.value will be empty if not found.
+        const opt = document.createElement('option');
+        opt.value = currentValue;
+        opt.textContent = currentValue + " (Missing)";
+        opt.disabled = true;
+        select.appendChild(opt);
         select.value = currentValue;
     }
 }
@@ -506,7 +565,28 @@ function renderConfig() {
         setIfExists(elements.cfgInputs.audioTrackIndex, config.resolve.audio_track_index);
         setIfExists(elements.cfgInputs.subtitleTrackIndex, config.resolve.subtitle_track_index);
         setIfExists(elements.cfgInputs.templateBin, config.resolve.template_bin);
-        setIfExists(elements.cfgInputs.templateName, config.resolve.template_name);
+
+        // Template Name Selection
+        const sel = elements.cfgInputs.templateName;
+        if (config.resolve.template_name) {
+            // Check if option exists
+            let exists = false;
+            for (let i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === config.resolve.template_name) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                const opt = document.createElement('option');
+                opt.value = config.resolve.template_name;
+                opt.textContent = config.resolve.template_name;
+                sel.appendChild(opt);
+            }
+            sel.value = config.resolve.template_name;
+        } else {
+            sel.value = "auto";
+        }
     }
 }
 

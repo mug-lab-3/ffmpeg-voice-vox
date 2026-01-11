@@ -105,3 +105,6 @@
 - `GET /api/speakers`: 話者一覧取得
 - `GET /api/logs`: 処理履歴取得
 - `GET /api/stream`: SSE (リアルタイム通知)
+- `GET /api/resolve/clips`: Resolve内のText+クリップ一覧取得
+    - **レスポンス**: `{"status": "ok", "clips": ["Clip1", "Clip2", ...]}`
+    - **エラー**: Resolve未接続時は 503 Service Unavailable を返却

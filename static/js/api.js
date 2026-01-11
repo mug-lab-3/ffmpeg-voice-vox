@@ -156,4 +156,8 @@ export class ApiClient {
     async getAudioDevices() {
         return this._fetchJson(this.endpoints.FFMPEG_DEVICES);
     }
+
+    async getResolveClips() {
+        return this._fetchJson('/api/resolve/clips');
+    }
 }

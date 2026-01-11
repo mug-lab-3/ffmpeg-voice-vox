@@ -202,7 +202,13 @@
                     </div>
                     <div class="control-group mb-0">
                         <label class="fs-small mb-2">Template Clip Name</label>
-                        <input type="text" id="cfg-template-name" class="form-control" placeholder="DefaultTemplate">
+                        <div class="flex gap-5">
+                            <select id="cfg-template-name" class="form-control">
+                                <option value="auto">auto</option>
+                            </select>
+                            <button id="refresh-resolve-clips" class="btn btn-secondary"
+                                title="Refresh Clip List">↻</button>
+                        </div>
                     </div>
                 </div>
             </div>

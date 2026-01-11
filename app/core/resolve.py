@@ -391,6 +391,10 @@ class ResolveClient:
                     self._log(
                         f"INFO: No template found. Please ensure a Text+ clip is in the Media Pool."
                     )
+                    # If user specified a specific name (not auto), and it's missing, we should fail.
+                    if target_clip_name != "auto":
+                        self._log(f"ERROR: Template '{target_clip_name}' not found. Aborting.")
+                        return False
 
                 # 1. Import Media
                 items = media_pool.ImportMedia([file_path])
@@ -515,3 +519,49 @@ class ResolveClient:
                 self._log("GetFusionCompByIndex(1) returned None")
         except Exception as e:
             self._log(f"Fusion update error: {e}")
+
+    def get_text_plus_clips(self, bin_name):
+        """
+        Returns a list of clip names in the specified bin that are Text+ or Fusion clips.
+        """
+        if not self.is_available():
+            return []
+
+        with self._lock:
+            if not self._ensure_connected():
+                return []
+
+            try:
+                project_manager = self.resolve.GetProjectManager()
+                project = project_manager.GetCurrentProject()
+                if not project:
+                    return []
+
+                media_pool = project.GetMediaPool()
+                root_folder = media_pool.GetRootFolder()
+
+                target_bin = None
+                for sub in root_folder.GetSubFolderList():
+                    if sub.GetName() == bin_name:
+                        target_bin = sub
+                        break
+
+                if not target_bin:
+                    return []
+
+                clips = target_bin.GetClipList()
+                clip_names = []
+                for clip in clips:
+                    c_type = clip.GetClipProperty("Type")
+                    c_path = clip.GetClipProperty("File Path")
+                    # Text+ clips have empty file path and Type containing Text or Fusion
+                    if c_path == "" and ("Text" in c_type or "Fusion" in c_type):
+                        name = clip.GetClipProperty("Clip Name")
+                        if name:
+                            clip_names.append(name)
+
+                return sorted(list(set(clip_names)))
+
+            except Exception as e:
+                self._log(f"Error getting clip list: {e}")
+                return []
