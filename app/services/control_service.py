@@ -174,8 +174,8 @@ def play_audio_handler(filename: str, audio_manager, processor):
 def delete_audio_handler(filename: str, audio_manager, processor):
     """Deletes an audio file and its log entry."""
     processor.delete_log(filename)
-    deleted_files = audio_manager.delete_file(filename)
+    success = audio_manager.delete_file(filename)
     
     from app.core.events import event_manager
     event_manager.publish("log_update", {})
-    return deleted_files
+    return [filename] if success else []
