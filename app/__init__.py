@@ -23,6 +23,13 @@ def create_app():
     
     # Register blueprints
     from app.web.routes import web
+    from app.api.routes.config import config_bp
+    from app.api.routes.control import control_bp
+    from app.api.routes.system import system_bp
+
     app.register_blueprint(web)
+    app.register_blueprint(config_bp)
+    app.register_blueprint(control_bp)
+    app.register_blueprint(system_bp)
     
     return app

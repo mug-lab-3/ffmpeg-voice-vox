@@ -640,3 +640,78 @@ TypeError: 'NoneType' object is not callable
 [2026-01-11 09:06:52] Bulk inserting 1 subtitle clips via AppendToTimeline
 [2026-01-11 09:06:52] Successfully appended 1 items.
 [2026-01-11 09:06:52] SRT process completed.
+[2026-01-11 09:52:02] Attempting to insert: C:\Users\mug\Videos\vvout\005410_ずんだもん_音を落としてくだ.wav
+[2026-01-11 09:52:02] Searching bin 'VoiceVox Captions' (Clip count: 8)
+[2026-01-11 09:52:02] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 09:52:02] Checking clip: '009030_ずんだもん_あ、間違えました.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav')
+[2026-01-11 09:52:02] Checking clip: '012770_ずんだもん_ボイスボックス変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav')
+[2026-01-11 09:52:02] Checking clip: '018880_四国めたん_キャラクターも変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\018880_四国めたん_キャラクターも変.wav')
+[2026-01-11 09:52:02] Checking clip: '2026-01-11 06-00-52.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\vv\2026-01-11 06-00-52.mp4')
+[2026-01-11 09:52:02] Checking clip: 'Timeline 5' (Type: 'Timeline', Path: '')
+[2026-01-11 09:52:02] Checking clip: '004420_ずんだもん_その内容を画便値.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav')
+[2026-01-11 09:52:02] Checking clip: '000000_ずんだもん_喋ってる内容を文.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_ずんだもん_喋ってる内容を文.wav')
+[2026-01-11 09:52:02] Using first compatible Text+ as template: Text+
+[2026-01-11 09:52:02] Imported Media Frames: 
+[2026-01-11 09:52:02] Timeline FPS: 60.0, TC: 01:17:52:26
+[2026-01-11 09:52:02] Calculated Record Frame: 280346
+[2026-01-11 09:52:02] Frames property empty, using Duration TC: 00:00:01:52
+[2026-01-11 09:52:02] Final Clip Duration Frames: 112
+[2026-01-11 09:52:02] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x000002A86572A030>, 'startFrame': 0, 'endFrame': 111, 'trackIndex': 5, 'recordFrame': 280346, 'mediaType': 2}
+[2026-01-11 09:52:02] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x000002A86572A110>]
+[2026-01-11 09:52:02] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\005410_ずんだもん_音を落としてくだ.srt
+[2026-01-11 09:52:02] Starting calibration with template: Text+
+[2026-01-11 09:52:02] Calibrated Duration Multiplier: 1.0101010101010102 (Test: 100, Real: 99)
+[2026-01-11 09:52:02] Bulk inserting 1 subtitle clips via AppendToTimeline
+[2026-01-11 09:52:02] Successfully appended 1 items.
+[2026-01-11 09:52:02] SRT process completed.
+[2026-01-11 09:52:10] Attempting to insert: C:\Users\mug\Videos\vvout\000000_ずんだもん_聞こえますかどう.wav
+[2026-01-11 09:52:10] Searching bin 'VoiceVox Captions' (Clip count: 9)
+[2026-01-11 09:52:10] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 09:52:10] Checking clip: '009030_ずんだもん_あ、間違えました.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav')
+[2026-01-11 09:52:10] Checking clip: '012770_ずんだもん_ボイスボックス変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav')
+[2026-01-11 09:52:10] Checking clip: '018880_四国めたん_キャラクターも変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\018880_四国めたん_キャラクターも変.wav')
+[2026-01-11 09:52:10] Checking clip: '2026-01-11 06-00-52.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\vv\2026-01-11 06-00-52.mp4')
+[2026-01-11 09:52:10] Checking clip: 'Timeline 5' (Type: 'Timeline', Path: '')
+[2026-01-11 09:52:10] Checking clip: '004420_ずんだもん_その内容を画便値.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav')
+[2026-01-11 09:52:10] Checking clip: '000000_ずんだもん_喋ってる内容を文.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_ずんだもん_喋ってる内容を文.wav')
+[2026-01-11 09:52:10] Checking clip: '005410_ずんだもん_音を落としてくだ.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\005410_ずんだもん_音を落としてくだ.wav')
+[2026-01-11 09:52:10] Using first compatible Text+ as template: Text+
+[2026-01-11 09:52:10] Imported Media Frames: 
+[2026-01-11 09:52:10] Timeline FPS: 60.0, TC: 01:17:54:18
+[2026-01-11 09:52:10] Calculated Record Frame: 280458
+[2026-01-11 09:52:10] Frames property empty, using Duration TC: 00:00:02:46
+[2026-01-11 09:52:10] Final Clip Duration Frames: 166
+[2026-01-11 09:52:10] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x000002A86572A1D0>, 'startFrame': 0, 'endFrame': 165, 'trackIndex': 5, 'recordFrame': 280458, 'mediaType': 2}
+[2026-01-11 09:52:10] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x000002A86572A1B0>]
+[2026-01-11 09:52:10] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\000000_ずんだもん_聞こえますかどう.srt
+[2026-01-11 09:52:10] Starting calibration with template: Text+
+[2026-01-11 09:52:10] Calibrated Duration Multiplier: 1.0101010101010102 (Test: 100, Real: 99)
+[2026-01-11 09:52:10] Bulk inserting 1 subtitle clips via AppendToTimeline
+[2026-01-11 09:52:11] Successfully appended 1 items.
+[2026-01-11 09:52:11] SRT process completed.
+[2026-01-11 09:52:22] Attempting to insert: C:\Users\mug\Videos\vvout\000000_ずんだもん_聞こえますかどう.wav
+[2026-01-11 09:52:22] Searching bin 'VoiceVox Captions' (Clip count: 10)
+[2026-01-11 09:52:22] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 09:52:22] Checking clip: '009030_ずんだもん_あ、間違えました.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav')
+[2026-01-11 09:52:22] Checking clip: '012770_ずんだもん_ボイスボックス変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav')
+[2026-01-11 09:52:22] Checking clip: '018880_四国めたん_キャラクターも変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\018880_四国めたん_キャラクターも変.wav')
+[2026-01-11 09:52:22] Checking clip: '2026-01-11 06-00-52.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\vv\2026-01-11 06-00-52.mp4')
+[2026-01-11 09:52:22] Checking clip: 'Timeline 5' (Type: 'Timeline', Path: '')
+[2026-01-11 09:52:22] Checking clip: '004420_ずんだもん_その内容を画便値.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav')
+[2026-01-11 09:52:22] Checking clip: '000000_ずんだもん_喋ってる内容を文.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_ずんだもん_喋ってる内容を文.wav')
+[2026-01-11 09:52:22] Checking clip: '005410_ずんだもん_音を落としてくだ.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\005410_ずんだもん_音を落としてくだ.wav')
+[2026-01-11 09:52:22] Checking clip: '000000_ずんだもん_聞こえますかどう.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_ずんだもん_聞こえますかどう.wav')
+[2026-01-11 09:52:22] Using first compatible Text+ as template: Text+
+[2026-01-11 09:52:22] Imported Media Frames: 
+[2026-01-11 09:52:22] Timeline FPS: 60.0, TC: 01:18:11:18
+[2026-01-11 09:52:22] Calculated Record Frame: 281478
+[2026-01-11 09:52:22] Frames property empty, using Duration TC: 00:00:02:46
+[2026-01-11 09:52:22] Final Clip Duration Frames: 166
+[2026-01-11 09:52:22] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x000002A86572B790>, 'startFrame': 0, 'endFrame': 165, 'trackIndex': 5, 'recordFrame': 281478, 'mediaType': 2}
+[2026-01-11 09:52:22] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x000002A86572A210>]
+[2026-01-11 09:52:22] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\000000_ずんだもん_聞こえますかどう.srt
+[2026-01-11 09:52:22] Starting calibration with template: Text+
+[2026-01-11 09:52:22] Calibrated Duration Multiplier: 1.0101010101010102 (Test: 100, Real: 99)
+[2026-01-11 09:52:22] Bulk inserting 1 subtitle clips via AppendToTimeline
+[2026-01-11 09:52:22] Successfully appended 1 items.
+[2026-01-11 09:52:22] SRT process completed.
