@@ -26,6 +26,17 @@ class DatabaseManager:
     def _get_connection(self):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
+        
+        # Optimization for SSD and Memory usage
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")          # Write-Ahead Logging for better concurrency and fewer writes
+            conn.execute("PRAGMA synchronous = NORMAL")        # Fewer disk syncs
+            conn.execute("PRAGMA cache_size = -64000")         # Use ~64MB of RAM for cache
+            conn.execute("PRAGMA temp_store = MEMORY")         # Store temp tables in RAM
+            conn.execute("PRAGMA mmap_size = 268435456")       # Memory-map the DB file (up to 256MB)
+        except Exception as e:
+            print(f"[Database] Optimization PRAGMAs failed: {e}")
+            
         return conn
 
     def _init_db(self):

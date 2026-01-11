@@ -47,7 +47,7 @@ class StreamProcessor:
                         "pre_phoneme_length": entry["pre_phoneme_length"],
                         "post_phoneme_length": entry["post_phoneme_length"]
                     },
-                    "filename": filename if duration > 0 else "Pending"
+                    "filename": filename if (filename and duration > 0) else f"pending_{entry['id']}.wav"
                 }
                 self.received_logs.append(log_entry)
                 
@@ -105,11 +105,12 @@ class StreamProcessor:
         generated_file = None
         actual_duration = 0.0
         
-        if config.get("system.is_synthesis_enabled", True):
+        timing = config.get("synthesis.timing", "immediate")
+
+        if config.get("system.is_synthesis_enabled", True) and timing == "immediate":
             try:
                 # 3. Audio Query
                 query_data = self.vv_client.audio_query(text, speaker_id)
-                # (Future: Apply scales from current_config here if not already handled by VV client)
                 
                 # 4. Synthesis
                 audio_data = self.vv_client.synthesis(query_data, speaker_id)
@@ -127,10 +128,60 @@ class StreamProcessor:
                 print(f"Synthesis Error: {e}")
                 generated_file = "Error"
         else:
-            print("  -> Synthesis Skipped (Disabled)")
+            if timing == "on_demand":
+                print(f"  -> Delayed (on_demand): {db_id}")
+            else:
+                print("  -> Synthesis Skipped (Disabled)")
 
         # 7. Add to UI logs (or update existing)
         self._add_log_from_db(db_id, text, actual_duration, generated_file, speaker_id, current_config)
+
+    def synthesize_item(self, db_id: int):
+        """Perform synthesis for an existing DB record and save the file."""
+        # 1. Fetch from DB
+        records = db_manager.get_recent_logs(limit=100) # Check recent
+        record = next((r for r in records if r["id"] == db_id), None)
+        if not record:
+            raise ValueError(f"Record not found: {db_id}")
+        
+        if record["audio_duration"] > 0:
+            return record["output_path"], record["audio_duration"]
+            
+        print(f"On-demand Synthesis: ID={db_id} Text='{record['text']}'")
+        
+        # 2. Reconstruct query config
+        text = record["text"]
+        speaker_id = record["speaker_id"]
+        
+        # 3. VoiceVox Query & Synthesis
+        query_data = self.vv_client.audio_query(text, speaker_id)
+        # Apply scales
+        query_data["speedScale"] = record["speed_scale"]
+        query_data["pitchScale"] = record["pitch_scale"]
+        query_data["intonationScale"] = record["intonation_scale"]
+        query_data["volumeScale"] = record["volume_scale"]
+        query_data["prePhonemeLength"] = record["pre_phoneme_length"]
+        query_data["postPhonemeLength"] = record["post_phoneme_length"]
+        
+        audio_data = self.vv_client.synthesis(query_data, speaker_id)
+        
+        # 4. Save
+        generated_file, actual_duration = self.audio_manager.save_audio(audio_data, text, db_id)
+        
+        # 5. Update DB
+        db_manager.update_audio_info(db_id, generated_file, actual_duration)
+        
+        # 6. Update UI Log Cache
+        for log in self.received_logs:
+            if log.get("id") == db_id:
+                log["filename"] = generated_file
+                log["duration"] = f"{actual_duration:.2f}s"
+                break
+        
+        from app.core.events import event_manager
+        event_manager.publish("log_update", {})
+        
+        return generated_file, actual_duration
 
     def _add_log_from_db(self, db_id, text, duration, filename, speaker_id, log_config):
         log_entry = {
@@ -139,7 +190,7 @@ class StreamProcessor:
             "text": text,
             "duration": f"{duration:.2f}s",
             "config": log_config.copy(), 
-            "filename": filename if duration > 0 else "Pending"
+            "filename": filename if (filename and filename != "Pending" and duration > 0) else f"pending_{db_id}.wav"
         }
         
         if len(self.received_logs) >= 50:

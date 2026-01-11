@@ -100,8 +100,38 @@ def handle_control_state_logic(enabled: bool, vv_client, audio_manager, ffmpeg_c
     
     return config.get("system.is_synthesis_enabled")
 
-def resolve_insert_handler(filename: str, audio_manager, get_resolve_client):
-    """Inserts a file into Resolve."""
+def ensure_audio_file(filename: str, audio_manager, processor) -> str:
+    """Check if file exists, if not and it's a pending file, trigger synthesis."""
+    output_dir = audio_manager.get_output_dir()
+    abs_path = os.path.join(output_dir, filename)
+    
+    if not os.path.exists(abs_path):
+        # Check if it's a pending filename pattern: pending_{id}.wav or {id}_{prefix}.wav
+        import re
+        db_id = None
+        if filename.startswith("pending_"):
+            match = re.search(r"pending_(\d+)", filename)
+            if match:
+                db_id = int(match.group(1))
+        else:
+            # Try to extract ID from standard filename {ID}_{prefix}.wav
+            match = re.match(r"^(\d+)_", filename)
+            if match:
+                db_id = int(match.group(1))
+        
+        if db_id:
+            print(f"[Service] Audio missing/pending for ID {db_id}. Triggering synthesis...")
+            new_filename, _ = processor.synthesize_item(db_id)
+            return new_filename
+        else:
+            raise ValueError(f"Audio file not found: {filename}")
+    
+    return filename
+
+def resolve_insert_handler(filename: str, audio_manager, processor, get_resolve_client):
+    """Inserts a file into Resolve, synthesizing if necessary."""
+    filename = ensure_audio_file(filename, audio_manager, processor)
+    
     output_dir = audio_manager.get_output_dir()
     abs_path = os.path.join(output_dir, filename)
     abs_path = os.path.abspath(abs_path)
@@ -111,8 +141,9 @@ def resolve_insert_handler(filename: str, audio_manager, get_resolve_client):
          raise ValueError("Failed to insert into Resolve timeline")
     return True
 
-def play_audio_handler(filename: str, audio_manager):
-    """Plays an audio file."""
+def play_audio_handler(filename: str, audio_manager, processor):
+    """Plays an audio file, synthesizing if necessary."""
+    filename = ensure_audio_file(filename, audio_manager, processor)
     return audio_manager.play_audio(filename)
 
 def delete_audio_handler(filename: str, audio_manager, processor):

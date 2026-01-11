@@ -122,6 +122,16 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="control-group">
+                        <label for="synthesis-timing">Synthesis Timing</label>
+                        <select id="synthesis-timing">
+                            <option value="immediate">Immediate (Auto)</option>
+                            <option value="on_demand">On-Demand (Manual)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="control-group">
                         <label for="speedScale">Speed <span id="val-speedScale"
                                 class="value-display">1.00</span></label>
                         <input type="range" id="speedScale" min="0.5" max="2.0" step="0.05" value="1.0">

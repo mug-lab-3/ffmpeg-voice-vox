@@ -17,6 +17,7 @@ class SynthesisUpdate(BaseModel):
     pitch_scale: Optional[float] = Field(None, ge=-0.15, le=0.15)
     intonation_scale: Optional[float] = Field(None, ge=0.0, le=2.0)
     volume_scale: Optional[float] = Field(None, ge=0.0, le=2.0)
+    timing: Optional[str] = None
 
 class ResolveUpdate(BaseModel):
     enabled: Optional[bool] = None
@@ -43,6 +44,7 @@ class APIConfigSchema(BaseModel):
     pitch_scale: float
     intonation_scale: float
     volume_scale: float
+    timing: str
     ffmpeg: FfmpegConfig
     resolve: ResolveConfig
 

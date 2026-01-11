@@ -13,6 +13,7 @@ const elements = {
     pitchScale: document.getElementById('pitchScale'),
     intonationScale: document.getElementById('intonationScale'),
     volumeScale: document.getElementById('volumeScale'),
+    synthesisTiming: document.getElementById('synthesis-timing'),
 
     logTableBody: document.getElementById('log-table-body'),
     startStopBtn: document.getElementById('start-stop-btn'),
@@ -96,7 +97,7 @@ function setupStoreListeners() {
 
 function setupUIListeners() {
     // Voicevox Config Inputs
-    const vvKeys = ['speaker', 'speedScale', 'pitchScale', 'intonationScale', 'volumeScale'];
+    const vvKeys = ['speaker', 'speedScale', 'pitchScale', 'intonationScale', 'volumeScale', 'synthesisTiming'];
     vvKeys.forEach(key => {
         elements[key].addEventListener('input', (e) => {
             if (valueDisplays[key]) {
@@ -111,7 +112,8 @@ function setupUIListeners() {
                 'speedScale': 'speed_scale',
                 'pitchScale': 'pitch_scale',
                 'intonationScale': 'intonation_scale',
-                'volumeScale': 'volume_scale'
+                'volumeScale': 'volume_scale',
+                'synthesisTiming': 'timing'
             };
             const res = await api.updateSynthesisConfig({ [mapping[key]]: val });
             if (!res.ok && res.status === 422) {
@@ -437,6 +439,7 @@ function renderConfig() {
     setIfExists(elements.pitchScale, config.pitch_scale);
     setIfExists(elements.intonationScale, config.intonation_scale);
     setIfExists(elements.volumeScale, config.volume_scale);
+    setIfExists(elements.synthesisTiming, config.timing);
 
     // Update value displays
     if (config.speed_scale !== undefined) valueDisplays.speedScale.textContent = config.speed_scale.toFixed(2);

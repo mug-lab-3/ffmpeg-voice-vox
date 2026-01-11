@@ -26,6 +26,7 @@ class SynthesisConfig(BaseModel):
     pitch_scale: Annotated[float, Field(ge=-0.15, le=0.15)] = 0.0
     intonation_scale: Annotated[float, Field(ge=0.0, le=2.0)] = 1.0
     volume_scale: Annotated[float, Field(ge=0.0, le=2.0)] = 1.0
+    timing: str = "immediate"  # immediate | on_demand
 
 class SystemConfig(BaseModel):
     output_dir: str = ""

@@ -54,7 +54,7 @@ def handle_resolve_insert():
     if not filename:
          return jsonify({"status": "error", "message": "No filename"}), 400
     try:
-        resolve_insert_handler(filename, audio_manager, get_resolve_client)
+        resolve_insert_handler(filename, audio_manager, processor, get_resolve_client)
         return jsonify({"status": "ok"})
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -66,7 +66,7 @@ def handle_play():
     if not filename:
          return jsonify({"status": "error", "message": "No filename"}), 400
     try:
-        duration, start_time = play_audio_handler(filename, audio_manager)
+        duration, start_time = play_audio_handler(filename, audio_manager, processor)
         return jsonify(PlayResponse(duration=duration, start_time=start_time).model_dump())
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
