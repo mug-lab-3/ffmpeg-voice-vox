@@ -31,6 +31,34 @@ def get_resolve_module_path():
     return None
 
 
+def get_resolve_script_module():
+    """
+    Attempts to import the DaVinciResolveScript module.
+    Adds the scripting module path to sys.path if necessary.
+    Returns the module object or None if not found.
+    """
+    try:
+        import DaVinciResolveScript as dvr
+
+        return dvr
+    except ImportError:
+        pass
+
+    try:
+        expected_path = get_resolve_module_path()
+        if expected_path and os.path.exists(expected_path):
+            if expected_path not in sys.path:
+                sys.path.append(expected_path)
+
+            import DaVinciResolveScript as dvr
+
+            return dvr
+    except (ImportError, Exception):
+        pass
+
+    return None
+
+
 def normalize_fps(fps_val):
     """
     Normalizes FPS values to handle standard video frame rates.
@@ -105,24 +133,8 @@ def monitor_resolve_process(shared_status, running_event):
 
             if is_running:
                 try:
-                    # Setup path just in case (only once)
-                    expected_path = get_resolve_module_path()
-
-                    if (
-                        expected_path
-                        and os.path.exists(expected_path)
-                        and expected_path not in sys.path
-                    ):
-                        sys.path.append(expected_path)
-
-                    # Try to import/reload only if not connected or not yet imported
                     if dvr_module is None:
-                        try:
-                            import DaVinciResolveScript as dvr
-
-                            dvr_module = dvr
-                        except ImportError:
-                            pass
+                        dvr_module = get_resolve_script_module()
                     elif (
                         not last_status
                     ):  # If module exists but was disconnected, try reload
@@ -217,21 +229,11 @@ class ResolveClient:
             return True
 
         try:
-            import DaVinciResolveScript as dvr_script
-
-            self.resolve = dvr_script.scriptapp("Resolve")
-        except ImportError:
-            # Try path add
-            path = get_resolve_module_path()
-
-            if path and path not in sys.path:
-                sys.path.append(path)
-            try:
-                import DaVinciResolveScript as dvr_script
-
+            dvr_script = get_resolve_script_module()
+            if dvr_script:
                 self.resolve = dvr_script.scriptapp("Resolve")
-            except:
-                pass
+        except Exception:
+            pass
 
         return self.resolve is not None
 
