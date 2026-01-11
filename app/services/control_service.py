@@ -1,3 +1,11 @@
+"""
+Service Handlers for Control Domain.
+
+IMPORTANT:
+The implementation in this file must strictly follow the specifications 
+documented in `doc/specification/api-server.md`.
+Please ensure any changes here are synchronized with the specification.
+"""
 import os
 import tkinter as tk
 from tkinter import filedialog

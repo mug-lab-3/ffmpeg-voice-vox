@@ -1,3 +1,11 @@
+"""
+API Schemas for Control Domain.
+
+IMPORTANT:
+The definitions in this file must strictly follow the specifications 
+documented in `doc/specification/api-server.md`.
+Please ensure any changes here are synchronized with the specification.
+"""
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from app.api.schemas.base import BaseResponse

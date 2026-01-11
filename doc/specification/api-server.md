@@ -17,48 +17,52 @@
 
 ## 共通レスポンス形式
 
-すべてのAPIレスポンスは以下の `BaseResponse` を継承しており、ステータスを一貫した形式で返却します。
+すべてのAPIレスポンスは以下の `BaseResponse` を定義しており、一貫した形式で返却します。
 
 ```json
 {
   "status": "ok",
+  "error_code": null,
   "message": null
 }
 ```
 
 - `status`: `"ok"` または `"error"`
-- `message`: エラー時の詳細メッセージ（任意）
+- `error_code`: エラーの種類を示す定数文字列（任意）
+  - 例: `"INVALID_ARGUMENT"` (Pydanticバリデーションエラー時)
+- `message`: ユーザー向けのエラーメッセージ（任意）
+
+### 主なHTTPステータスコード
+- **200 OK**: リクエスト成功
+- **400 Bad Request**: リクエストの構文エラー
+- **422 Unprocessable Entity**: バリデーションエラー（値の範囲外など）
+- **500 Internal Server Error**: サーバー内部エラー
 
 ## APIエンドポイント詳細
+
+各設定（Config）はカテゴリごとに独立したエンドポイントを持ちます。
 
 ### 1. Config (設定関連)
 
 #### `GET /api/config`
 現在設定されている合成パラメータやディレクトリ情報を取得します。
 
-- **レスポンスパラメータ**:
-| 項目 | 型 | 説明 |
-| :--- | :--- | :--- |
-| `config` | object | 合成設定（speaker_id, speed_scale, resolve設定等を含む） |
-| `outputDir` | string | 音声ファイルの出力先ディレクトリ |
-| `resolve_available` | boolean | DaVinci Resolveと通信可能か |
-| `voicevox_available` | boolean | VoiceVoxエンジンと通信可能か |
+- **レスポンス**: `ConfigResponse` (status, config, outputDir, etc.)
 
-#### `POST /api/config`
-各設定値を更新します。
+#### `POST /api/config/synthesis` (音声パラメータ更新)
+- **ボディ**: `{"speaker_id": int, "speed_scale": float, ...}`
+- **制約**: `speed_scale` (0.5-1.5), `pitch_scale` (-0.15-0.15), `intonation_scale` (0-2.0), `volume_scale` (0-2.0)
 
-- **リクエストボディ (JSON)**:
-| 項目 | 型 | 必須 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `speaker` | integer | × | 話者ID |
-| `speedScale` | float | × | 話速 (0.5 〜 1.5) |
-| `pitchScale` | float | × | 音高 (-0.15 〜 0.15) |
-| `intonationScale` | float | × | 抑揚 (0.0 〜 2.0) |
-| `volumeScale` | float | × | 音量 (0.0 〜 2.0) |
-| `outputDir` | string | × | 出力先ディレクトリパス |
-| `templateBin` | string | × | Resolveのテンプレートビン名 |
-| `templateName` | string | × | Resolveのテンプレート名 |
-| `ffmpeg` | object | × | FFmpegの詳細設定 (dict形式) |
+#### `POST /api/config/resolve` (Resolve設定更新)
+- **ボディ**: `{"enabled": bool, "audio_track_index": int, ...}`
+
+#### `POST /api/config/system` (システム設定等)
+- **ボディ**: `{"output_dir": string}`
+
+#### `POST /api/config/ffmpeg` (FFmpeg詳細設定)
+- **ボディ**: `{"ffmpeg_path": string, "queue_length": int, ...}`
+
+(※ 従来の `POST /api/config` への一括送信も後方互換性のために維持されていますが、上記ドメイン別APIの使用が推奨されます)
 
 ---
 
@@ -67,72 +71,19 @@
 #### `GET /api/control/state`
 システム全体の稼働状態を取得します。
 
-- **レスポンスパラメータ**:
-| 項目 | 型 | 説明 |
-| :--- | :--- | :--- |
-| `enabled` | boolean | 自動合成が有効化されているか |
-| `playback` | object | 現在の再生状態（再生中のファイル名、長さ等） |
-| `resolve_available` | boolean | DaVinci Resolveの接続状態 |
-| `voicevox_available` | boolean | VoiceVoxの接続状態 |
+- **レスポンス**: `ControlStateResponse` (enabled, playback, connection statuses)
 
 #### `POST /api/control/state`
 自動合成機能の有効/無効を切り替えます。
-
-- **リクエストボディ (JSON)**:
-| 項目 | 型 | 必須 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `enabled` | boolean | ◯ | `true` で開始、`false` で停止 |
+- **ボディ**: `{"enabled": boolean}`
 
 #### `POST /api/control/resolve_insert`
 生成済みの音声ファイルをDaVinci Resolveのタイムラインへ挿入します。
-
-- **リクエストボディ (JSON)**:
-| 項目 | 型 | 必須 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `filename` | string | ◯ | 挿入するファイル名（拡張子含む） |
-
-#### `POST /api/control/play` / `POST /api/control/delete`
-音声の再生または削除を行います。
-
-- **リクエストボディ (JSON)**:
-| 項目 | 型 | 必須 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `filename` | string | ◯ | 対象のファイル名 |
+- **ボディ**: `{"filename": string}`
 
 ---
 
-### 3. System (システム・共通機能)
-
-#### `GET /api/ffmpeg/devices`
-サーバー側で認識されている録音デバイスの一覧を取得します。
-
-- **レスポンス**: `{"devices": ["Device A", "Device B"], "status": "ok"}`
-
-#### `POST /api/system/browse` / `browse_file`
-サーバー側でフォルダ/ファイル選択ダイアログを開き、選択されたパスを返します。
-
-- **レスポンス**: `{"path": "C:\\Selected\\Path", "status": "ok"}`
-
----
-
-### 4. Legacy/Stream (基底機能)
-
-#### `GET /api/logs`
-過去の処理履歴を取得します。
-
-- **レスポンス**: `{"logs": [{ "timestamp": "...", "text": "...", "filename": "..." }], "status": "ok"}`
-
-#### `POST /` (Whisper入力)
-外部プロセスからの文字起こしデータを受信します。
-
-- **リクエストボディ (JSON Streaming)**:
-| 項目 | 型 | 説明 |
-| :--- | :--- | :--- |
-| `text` | string | 認識されたテキスト |
-| `start` | integer | 開始時間 (ミリ秒) |
-| `end` | integer | 終了時間 (ミリ秒) |
-
-## データバリデーション
-
-APIへの入力は [Pydantic](https://docs.pydantic.dev/) モデルによって厳密に検証されます。
-不正なデータ形式が送信された場合、ルーティング層で自動的にエラー（400 Bad Request）として処理され、ビジネスロジックの安全性が保たれます。
+### 3. その他
+- `GET /api/speakers`: 話者一覧取得
+- `GET /api/logs`: 処理履歴取得
+- `GET /api/stream`: SSE (リアルタイム通知)

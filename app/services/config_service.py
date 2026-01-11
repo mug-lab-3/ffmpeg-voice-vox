@@ -1,3 +1,11 @@
+"""
+Service Handlers for Config Domain.
+
+IMPORTANT:
+The implementation in this file must strictly follow the specifications 
+documented in `doc/specification/api-server.md`.
+Please ensure any changes here are synchronized with the specification.
+"""
 from app.config import config
 from app.api.schemas.config import ConfigResponse, APIConfigSchema
 from app.core.voicevox import VoiceVoxClient

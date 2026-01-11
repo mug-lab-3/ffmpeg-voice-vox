@@ -1,3 +1,11 @@
+"""
+API Implementation for Control Domain.
+
+IMPORTANT:
+The implementation in this file must strictly follow the specifications 
+documented in `doc/specification/api-server.md`.
+Please ensure any changes here are synchronized with the specification.
+"""
 from flask import Blueprint, request, jsonify
 from app.services.control_service import (
     browse_directory_handler, browse_file_handler, 

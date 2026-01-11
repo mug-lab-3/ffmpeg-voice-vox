@@ -1,3 +1,11 @@
+"""
+API Implementation for System Domain.
+
+IMPORTANT:
+The implementation in this file must strictly follow the specifications 
+documented in `doc/specification/api-server.md`.
+Please ensure any changes here are synchronized with the specification.
+"""
 from flask import Blueprint, jsonify
 from app.services.system_service import get_audio_devices_handler, heartbeat_handler
 

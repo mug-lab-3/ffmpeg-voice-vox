@@ -106,7 +106,19 @@ function setupUIListeners() {
 
         elements[key].addEventListener('change', async (e) => {
             const val = (key === 'speaker') ? parseInt(e.target.value) : parseFloat(e.target.value);
-            await api.updateConfig({ [key]: val });
+            const mapping = {
+                'speaker': 'speaker_id',
+                'speedScale': 'speed_scale',
+                'pitchScale': 'pitch_scale',
+                'intonationScale': 'intonation_scale',
+                'volumeScale': 'volume_scale'
+            };
+            const res = await api.updateSynthesisConfig({ [mapping[key]]: val });
+            if (!res.ok && res.status === 422) {
+                await showAlert("Validation Error", res.data.message || "Invalid value");
+                // Re-render to restore previous valid value in UI
+                renderConfig();
+            }
         });
     });
 
@@ -114,30 +126,38 @@ function setupUIListeners() {
     // FFmpeg Config Inputs (Auto-save)
     const ffmpegKeys = Object.keys(elements.cfgInputs);
     // Helper to saves config
-    const saveFFmpegConfig = async () => {
-        const currentFFmpeg = {
-            ffmpeg_path: elements.cfgInputs.ffmpegPath.value,
-            input_device: elements.cfgInputs.inputDevice.value,
-            model_path: elements.cfgInputs.modelPath.value,
-            vad_model_path: elements.cfgInputs.vadPath.value,
-            queue_length: elements.cfgInputs.queueLength.value,
-            host: elements.cfgInputs.host.value
-        };
+    const saveDomainConfig = async (domain) => {
         try {
-            const updates = { ffmpeg: currentFFmpeg };
+            let res;
+            if (domain === 'ffmpeg') {
+                const currentFFmpeg = {
+                    ffmpeg_path: elements.cfgInputs.ffmpegPath.value,
+                    input_device: elements.cfgInputs.inputDevice.value,
+                    model_path: elements.cfgInputs.modelPath.value,
+                    vad_model_path: elements.cfgInputs.vadPath.value,
+                    queue_length: parseInt(elements.cfgInputs.queueLength.value),
+                    host: elements.cfgInputs.host.value
+                };
+                res = await api.updateFFmpegConfig(currentFFmpeg);
+            } else if (domain === 'resolve') {
+                const updates = {};
+                const audioIdx = parseInt(elements.cfgInputs.audioTrackIndex.value);
+                const subIdx = parseInt(elements.cfgInputs.subtitleTrackIndex.value);
+                if (!isNaN(audioIdx)) updates.audio_track_index = audioIdx;
+                if (!isNaN(subIdx)) updates.subtitle_track_index = subIdx;
 
-            // Only add numeric/string values if valid to avoid overwriting with NaN/Empty
-            const audioIdx = parseInt(elements.cfgInputs.audioTrackIndex.value);
-            const subIdx = parseInt(elements.cfgInputs.subtitleTrackIndex.value);
-            if (!isNaN(audioIdx)) updates.audioTrackIndex = audioIdx;
-            if (!isNaN(subIdx)) updates.subtitleTrackIndex = subIdx;
+                if (elements.cfgInputs.templateBin.value.trim())
+                    updates.template_bin = elements.cfgInputs.templateBin.value;
+                if (elements.cfgInputs.templateName.value.trim())
+                    updates.template_name = elements.cfgInputs.templateName.value;
 
-            if (elements.cfgInputs.templateBin.value.trim())
-                updates.templateBin = elements.cfgInputs.templateBin.value;
-            if (elements.cfgInputs.templateName.value.trim())
-                updates.templateName = elements.cfgInputs.templateName.value;
+                res = await api.updateResolveConfig(updates);
+            }
 
-            await api.updateConfig(updates);
+            if (res && !res.ok && res.status === 422) {
+                await showAlert("Validation Error", res.data.message || "Invalid input");
+                renderConfig();
+            }
         } catch (e) {
             console.error("Auto-save failed", e);
         }
@@ -145,7 +165,10 @@ function setupUIListeners() {
 
     ffmpegKeys.forEach(key => {
         const input = elements.cfgInputs[key];
-        input.addEventListener('change', saveFFmpegConfig);
+        input.addEventListener('change', () => {
+            const domain = ['audioTrackIndex', 'subtitleTrackIndex', 'templateBin', 'templateName'].includes(key) ? 'resolve' : 'ffmpeg';
+            saveDomainConfig(domain);
+        });
     });
 
     // Device Refresh
@@ -217,7 +240,12 @@ function setupUIListeners() {
                 const path = res.data.path;
                 elements.outputDir.value = path;
                 // Server reloads logs automatically on config change
-                await api.updateConfig({ outputDir: path });
+                const updateRes = await api.updateSystemConfig({ output_dir: path });
+                if (!updateRes.ok && updateRes.status === 422) {
+                    await showAlert("Validation Error", updateRes.data.message);
+                    renderConfig();
+                    return;
+                }
 
                 // Refresh logs specifically after dir change
                 const logRes = await api.getLogs();

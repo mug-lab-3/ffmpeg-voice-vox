@@ -51,7 +51,40 @@ export class ApiClient {
         return this._fetchJson(this.endpoints.CONFIG);
     }
 
+    async updateSynthesisConfig(config) {
+        return this._fetchJson(`${this.endpoints.CONFIG}/synthesis`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+    }
+
+    async updateResolveConfig(config) {
+        return this._fetchJson(`${this.endpoints.CONFIG}/resolve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+    }
+
+    async updateSystemConfig(config) {
+        return this._fetchJson(`${this.endpoints.CONFIG}/system`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+    }
+
+    async updateFFmpegConfig(config) {
+        return this._fetchJson(`${this.endpoints.CONFIG}/ffmpeg`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+    }
+
     async updateConfig(config) {
+        // Fallback for legacy calls
         return this._fetchJson(this.endpoints.CONFIG, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
