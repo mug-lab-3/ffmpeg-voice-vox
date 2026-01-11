@@ -5,12 +5,13 @@ from app.config import ConfigManager
 from app.schemas import ConfigSchema
 
 def test_config_validation():
-    test_config_path = "test_config.json"
+    config_filename = "test_config.json"
+    test_config_path = os.path.join("data", config_filename)
     if os.path.exists(test_config_path):
         os.remove(test_config_path)
 
     print("--- Test 1: New config (defaults) ---")
-    cm = ConfigManager(test_config_path)
+    cm = ConfigManager(config_filename)
     config = cm.config
     assert config["server"]["host"] == "127.0.0.1"
     assert config["system"]["is_synthesis_enabled"] is False
@@ -23,8 +24,8 @@ def test_config_validation():
     del data["voicevox"]
     with open(test_config_path, 'w', encoding='utf-8') as f:
         json.dump(data, f)
-    
-    cm2 = ConfigManager(test_config_path)
+
+    cm2 = ConfigManager(config_filename)
     assert "voicevox" in cm2.config
     assert cm2.config["voicevox"]["port"] == 50021
     print("Test 2 passed: Missing section restored from defaults.")
@@ -35,8 +36,8 @@ def test_config_validation():
     data["synthesis"]["speaker_id"] = "invalid_int"
     with open(test_config_path, 'w', encoding='utf-8') as f:
         json.dump(data, f)
-    
-    cm3 = ConfigManager(test_config_path)
+
+    cm3 = ConfigManager(config_filename)
     assert cm3.config["synthesis"]["speaker_id"] == 1
     print("Test 3 passed: Invalid type corrected to default.")
 
@@ -47,8 +48,8 @@ def test_config_validation():
     data["ffmpeg"]["queue_length"] = 500    # Max is 100
     with open(test_config_path, 'w', encoding='utf-8') as f:
         json.dump(data, f)
-    
-    cm3a = ConfigManager(test_config_path)
+
+    cm3a = ConfigManager(config_filename)
     assert cm3a.config["synthesis"]["speed_scale"] == 1.0 # Section fallback to default
     assert cm3a.config["ffmpeg"]["queue_length"] == 10    # Section fallback to default
     print("Test 3a passed: Out of range values corrected to defaults.")
@@ -63,7 +64,7 @@ def test_config_validation():
     # Initial valid speed
     cm3.update("synthesis.speed_scale", 1.2)
     assert cm3.config["synthesis"]["speed_scale"] == 1.2
-    
+
     # Try an invalid speed (max is 1.5)
     success = cm3.update("synthesis.speed_scale", 2.0)
     assert success is False

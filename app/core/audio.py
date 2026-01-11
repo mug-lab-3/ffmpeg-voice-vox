@@ -13,7 +13,7 @@ class AudioManager:
     def __init__(self):
         # We no longer set a fixed output_dir here.
         # It is retrieved dynamically from config.
-        
+
         self.playback_status = {
             "is_playing": False,
             "filename": None,
@@ -34,16 +34,16 @@ class AudioManager:
         """
         if not path:
             return False
-            
+
         if not os.path.exists(path):
             try:
                 os.makedirs(path)
             except OSError:
                 return False
-                
+
         if not os.access(path, os.W_OK):
             return False
-            
+
         return True
 
     def get_wav_duration(self, filepath: str) -> float:
@@ -91,10 +91,10 @@ class AudioManager:
         wav_path = os.path.join(output_dir, filename)
         if not os.path.exists(wav_path):
             raise FileNotFoundError(f"File not found: {filename}")
-            
+
         duration = self.get_wav_duration(wav_path)
         start_time = time.time()
-        
+
         # Use a unique ID to prevent race conditions
         import uuid
         playback_id = str(uuid.uuid4())
@@ -103,13 +103,13 @@ class AudioManager:
             self.playback_status["is_playing"] = True
             self.playback_status["filename"] = filename
             self.playback_status["playback_id"] = playback_id
-            
+
         def play_worker(path, dur, pid):
             from app.core.events import event_manager
             try:
                 # Notify Start
                 event_manager.publish("playback_change", {
-                    "is_playing": True, 
+                    "is_playing": True,
                     "filename": filename
                 })
 
@@ -118,11 +118,11 @@ class AudioManager:
                 data, fs = sf.read(path)
                 # Play (async)
                 sd.play(data, fs)
-                
+
                 # Sleep manually to maintain 'is_playing' state for the duration
                 # sd.wait() would block, which is fine in a thread, but we use sleep pattern here
                 time.sleep(dur)
-                
+
                 # Stop if needed (though sleep should match duration)
                 sd.stop()
             except Exception as e:
@@ -131,13 +131,13 @@ class AudioManager:
                 with self.playback_lock:
                     if self.playback_status.get("playback_id") == pid:
                         self.playback_status["is_playing"] = False
-                        
+
                         # Notify End
                         event_manager.publish("playback_change", {
-                            "is_playing": False, 
+                            "is_playing": False,
                             "filename": None
                         })
-        
+
         threading.Thread(target=play_worker, args=(wav_path, duration, playback_id), daemon=True).start()
         return duration, start_time
 
@@ -145,7 +145,7 @@ class AudioManager:
         current_status = {}
         with self.playback_lock:
             current_status = self.playback_status.copy()
-            
+
         remaining = 0
         if current_status["is_playing"]:
             elapsed = time.time() - current_status["start_time"]
@@ -154,7 +154,7 @@ class AudioManager:
                 with self.playback_lock:
                     self.playback_status["is_playing"] = False
                     self.playback_status["filename"] = None
-        
+
         return {
             "is_playing": current_status["is_playing"] and remaining > 0,
             "filename": current_status["filename"],
@@ -202,10 +202,10 @@ class AudioManager:
             if match:
                 db_id = int(match.group(1))
                 wav_path = os.path.join(output_dir, filename)
-                
+
                 # Use duration from file itself
                 duration = self.get_wav_duration(wav_path)
-                
+
                 # Check if file exists (redundant but safe)
                 if os.path.exists(wav_path):
                     logs.append({

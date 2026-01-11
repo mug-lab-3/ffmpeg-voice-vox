@@ -2,20 +2,20 @@
 API Implementation for Control Domain.
 
 IMPORTANT:
-The implementation in this file must strictly follow the specifications 
+The implementation in this file must strictly follow the specifications
 documented in `doc/specification/api-server.md`.
 Please ensure any changes here are synchronized with the specification.
 """
 from flask import Blueprint, request, jsonify
 from app.services.control_service import (
-    browse_directory_handler, browse_file_handler, 
+    browse_directory_handler, browse_file_handler,
     handle_control_state_logic, resolve_insert_handler,
     play_audio_handler, delete_audio_handler
 )
 from app.api.schemas.control import ControlStateResponse, PlayResponse, DeleteResponse
 from app.api.schemas.system import BrowseResponse
 from app.web.routes import (
-    vv_client, audio_manager, ffmpeg_client, 
+    vv_client, audio_manager, ffmpeg_client,
     processor, get_resolve_client
 )
 
@@ -27,7 +27,7 @@ def handle_control_state():
         data = request.json
         if data is None or 'enabled' not in data:
             return jsonify({"status": "error", "message": "Invalid request"}), 400
-        
+
         try:
             enabled = handle_control_state_logic(
                 data['enabled'], vv_client, audio_manager, ffmpeg_client, request.host

@@ -28,10 +28,10 @@ class EventManager:
             "data": data or {}
         }
         encoded = f"data: {json.dumps(msg)}\n\n"
-        
+
         with self.lock:
             active_listeners = list(self.listeners)
-        
+
         for q in active_listeners:
             try:
                 q.put_nowait(encoded)
@@ -46,7 +46,7 @@ class EventManager:
                 # Send a comment line to keep connection open without triggering msg handler
                 # OR send a ping event. Let's send a ping event for debug visibility
                 self.publish("ping", {})
-                
+
         t = threading.Thread(target=loop, daemon=True)
         t.start()
 

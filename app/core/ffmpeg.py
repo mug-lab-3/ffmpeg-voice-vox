@@ -20,7 +20,7 @@ class FFmpegClient:
         for key in required_keys:
             if not config_data.get(key):
                 return False, f"Missing required setting: {key}"
-        
+
         # Basic formatting checks could go here
         if not config_data.get("host"):
              return False, "Missing required setting: host"
@@ -44,19 +44,19 @@ class FFmpegClient:
             model_path = config_data["model_path"]
             vad_model_path = config_data["vad_model_path"]
             host = config_data["host"]
-            
+
             # Resolving Port
             # 1. Use override (from request context)
             # 2. Use config (legacy)
             port = port_override if port_override else config_data.get("port")
-            
+
             if not port:
                 return False, "Port not specified and could not be determined."
 
             queue_length = config_data["queue_length"]
 
             # Construct command
-            
+
             if not os.path.exists(model_path):
                 print(f"[FFmpeg] WARNING: Model path not found: {model_path}")
             def _escape(path):
@@ -64,15 +64,15 @@ class FFmpegClient:
                 # Pattern based on user provided working example:
                 # model='C\:\\Users...'
                 # destination=http\\://...
-                
+
                 # 1. Escape backslashes (literal \ -> \\)
                 # We must do this FIRST so we don't escape the backslashes we add for colons later.
                 p = path.replace('\\', '\\\\')
                 # 2. Escape colons (literal : -> \:)
                 p = p.replace(':', '\\:')
-                
+
                 return f"'{p}'"
-            
+
             def _escape_url(path):
                 # Using double backslash for URL colons to match user example
                 # destination=http\\://...
@@ -82,7 +82,7 @@ class FFmpegClient:
 
             model_path_esc = _escape(model_path)
             vad_model_path_esc = _escape(vad_model_path)
-            
+
             # Destination URL construction
             # http://localhost:3000 -> http\\://localhost\\:3000
             dest_url_base = f"http://{host}:{port}"
@@ -92,9 +92,9 @@ class FFmpegClient:
             # We revert to raw string but keep the inner escaping
             # raw_filter = f"whisper=model={model_path_esc}:queue={queue_length}:destination={dest_url}:format=json:vad_model={vad_model_path_esc}"
             # filter_arg = f'"{raw_filter}"'
-            
+
             filter_arg = f"whisper=model={model_path_esc}:queue={queue_length}:destination={dest_url}:format=json:vad_model={vad_model_path_esc}"
-            
+
             # OS-specific input format and null device
             if platform.system() == "Darwin":
                 input_format = "avfoundation"
@@ -118,7 +118,7 @@ class FFmpegClient:
                 "-f", "null",
                 null_device
             ]
-            
+
             print(f"[FFmpeg] Starting with command: {' '.join(cmd)}")
 
             try:
@@ -140,7 +140,7 @@ class FFmpegClient:
         with self._lock:
             if not self._process:
                 return
-            
+
             print("[FFmpeg] Stopping process...")
             try:
                 # Graceful termination first
@@ -171,14 +171,14 @@ class FFmpegClient:
              cmd = [ffmpeg_path, "-list_devices", "true", "-f", "avfoundation", "-i", ""]
         else:
              cmd = [ffmpeg_path, "-list_devices", "true", "-f", "dshow", "-i", "dummy"]
-        
+
         try:
             # Capture as bytes to handle encoding manually
             result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             raw_output = result.stderr # device list is in stderr
 
             output = ""
-            # Try utf-8 strict first. 
+            # Try utf-8 strict first.
             # UTF-8 is stricter than CP932. If bytes are valid UTF-8, it's likely UTF-8.
             # If input is Shift-JIS (e.g. 0x83...), utf-8 strict will fail.
             try:
@@ -190,9 +190,9 @@ class FFmpegClient:
                     output = raw_output.decode('utf-8', errors='replace')
 
             devices = []
-            
+
             devices = []
-            
+
             if platform.system() == "Darwin":
                 # Mac avfoundation parsing
                 # Look for "AVFoundation audio devices:" then "[index] Name"
@@ -204,7 +204,7 @@ class FFmpegClient:
                     if "AVFoundation video devices:" in line:
                         in_audio_section = False
                         continue
-                        
+
                     if in_audio_section:
                         # Match "[0] Some Device"
                         import re
@@ -220,9 +220,9 @@ class FFmpegClient:
                         match = re.search(r'\"(.+?)\"', line)
                         if match:
                             device_name = match.group(1)
-                            if device_name != "dummy": 
+                            if device_name != "dummy":
                                 devices.append(device_name)
-            
+
             print(f"[FFmpeg] Found devices: {devices}")
             if not devices:
                  try:

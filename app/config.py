@@ -6,15 +6,15 @@ from pydantic import ValidationError
 
 class ConfigManager:
     DEFAULT_CONFIG_PATH = "default_config.json"
-    
+
     def __init__(self, config_filename: str = "config.json"):
         # Relocate config to 'data' directory
         self.data_dir = os.path.join(os.getcwd(), "data")
         self.config_path = os.path.join(self.data_dir, config_filename)
-        
+
         self._ensure_data_dir()
         self._migrate_old_config(config_filename)
-        
+
         self.is_synthesis_enabled = False  # Runtime state
         self._config_obj = self.load_config()
 
@@ -59,7 +59,7 @@ class ConfigManager:
             print(f"[Config] Validation errors found in {self.config_path}:")
             for error in e.errors():
                 print(f"  - {'.'.join(str(i) for i in error['loc'])}: {error['msg']}")
-            
+
             # Use partial data and fill rest with defaults
             config_obj = self._load_best_effort(loaded_data)
             self.save_config(config_obj)
@@ -75,7 +75,7 @@ class ConfigManager:
     def _load_best_effort(self, data: Dict[str, Any]) -> ConfigSchema:
         """Attempt to load what's valid from data, fallback to defaults for invalid/missing parts."""
         default_obj = ConfigSchema()
-        
+
         if not isinstance(data, dict):
             return default_obj
 
@@ -87,7 +87,7 @@ class ConfigManager:
                     setattr(default_obj, section_name, section_model(**section_data))
                 except ValidationError:
                     print(f"[Config] Section '{section_name}' has invalid values. Using defaults for this section.")
-                    
+
         return default_obj
 
     def save_config(self, config_to_save: Any = None):
@@ -122,19 +122,19 @@ class ConfigManager:
 
         # Create a copy of current data to test the update
         current_data = self._config_obj.model_dump()
-        
+
         # Traverse and update the dict
         keys = key.split('.')
         target = current_data
         try:
             for k in keys[:-1]:
                 target = target[k]
-            
+
             # Type conversion attempt (handling strings from WebUI)
             # This helps WebUI where values might be sent as strings
             print(f"[Config] Updating {key} to {value} (type: {type(value).__name__})")
             target[keys[-1]] = value
-            
+
             # Re-validate the whole structure
             new_obj = ConfigSchema(**current_data)
             self._config_obj = new_obj

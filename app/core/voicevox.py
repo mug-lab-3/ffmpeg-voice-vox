@@ -53,6 +53,6 @@ class VoiceVoxClient:
         json_data = json.dumps(query_data).encode('utf-8')
         req = urllib.request.Request(url, data=json_data, method='POST')
         req.add_header('Content-Type', 'application/json')
-        
+
         with urllib.request.urlopen(req) as res:
             return res.read()

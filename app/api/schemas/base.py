@@ -2,7 +2,7 @@
 Base API Schemas.
 
 IMPORTANT:
-The definitions in this file must strictly follow the specifications 
+The definitions in this file must strictly follow the specifications
 documented in `doc/specification/api-server.md`.
 Please ensure any changes here are synchronized with the specification.
 """

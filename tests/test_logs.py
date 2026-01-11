@@ -22,7 +22,7 @@ class TestWebUILogs(unittest.TestCase):
             "config": {"speaker": 1},
             "filename": "test.wav"
         })
-        
+
         response = self.app.get('/api/logs')
         data = json.loads(response.data)
         self.assertEqual(len(data), 1)

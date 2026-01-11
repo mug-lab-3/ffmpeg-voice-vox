@@ -13,7 +13,7 @@ def run_tests():
         ("ずんだもん今日の天気は", False, "Long conversation text"),
         ("もっと速くして", True, "Command 'もっと速く' + suffix 'して'")
     ]
-    
+
     print("Running command logic tests...")
     failures = 0
     for text, expected, desc in test_cases:
@@ -23,7 +23,7 @@ def run_tests():
         print(f"[{status}] '{text}': Expected {expected}, Got {result} ({desc})")
         if result != expected:
             failures += 1
-            
+
     if failures == 0:
         print("\nAll tests passed!")
     else:

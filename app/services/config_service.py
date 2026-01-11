@@ -2,7 +2,7 @@
 Service Handlers for Config Domain.
 
 IMPORTANT:
-The implementation in this file must strictly follow the specifications 
+The implementation in this file must strictly follow the specifications
 documented in `doc/specification/api-server.md`.
 Please ensure any changes here are synchronized with the specification.
 """
@@ -24,13 +24,13 @@ def get_config_handler() -> ConfigResponse:
     """Gets the current configuration in the format expected by the frontend."""
     resolve_available = get_resolve_client().is_available()
     voicevox_available = vv_client.is_available()
-    
+
     full_cfg = APIConfigSchema(
         **config.get("synthesis"),
         ffmpeg=config.get("ffmpeg"),
         resolve=config.get("resolve")
     )
-    
+
     return ConfigResponse(
         config=full_cfg,
         outputDir=config.get("system.output_dir"),
@@ -52,11 +52,11 @@ def update_config_handler(new_config: dict) -> ConfigResponse:
         "templateBin": "resolve.template_bin",
         "templateName": "resolve.template_name"
     }
-    
+
     for client_key, config_key in mapping.items():
         if client_key in new_config:
             val = new_config[client_key]
-            
+
             # Reject empty strings for critical resolve settings
             if client_key in ["templateBin", "templateName"] and not str(val).strip():
                 continue
@@ -68,7 +68,7 @@ def update_config_handler(new_config: dict) -> ConfigResponse:
         config.update("system.output_dir", new_config["outputDir"])
         # We need access to processor to reload history
         # (This will be handled in the route or via events)
-            
+
     # Handle FFmpeg config
     if "ffmpeg" in new_config:
         for k, v in new_config["ffmpeg"].items():
@@ -76,5 +76,5 @@ def update_config_handler(new_config: dict) -> ConfigResponse:
 
     from app.core.events import event_manager
     event_manager.publish("config_update", {})
-    
+
     return get_config_handler()

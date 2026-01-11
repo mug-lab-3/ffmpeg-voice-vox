@@ -26,7 +26,7 @@ class DatabaseManager:
     def _get_connection(self):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        
+
         # Optimization for SSD and Memory usage
         try:
             conn.execute("PRAGMA journal_mode = WAL")          # Write-Ahead Logging for better concurrency and fewer writes
@@ -36,7 +36,7 @@ class DatabaseManager:
             conn.execute("PRAGMA mmap_size = 268435456")       # Memory-map the DB file (up to 256MB)
         except Exception as e:
             print(f"[Database] Optimization PRAGMAs failed: {e}")
-            
+
         return conn
 
     def _init_db(self):
@@ -63,17 +63,17 @@ class DatabaseManager:
         with self._get_connection() as conn:
             cursor = conn.execute("""
                 INSERT INTO transcriptions (
-                    text, speaker_id, speed_scale, pitch_scale, 
+                    text, speaker_id, speed_scale, pitch_scale,
                     intonation_scale, volume_scale, pre_phoneme_length, post_phoneme_length,
                     output_path, audio_duration
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                text, speaker_id, 
-                config_dict.get("speed_scale"), 
+                text, speaker_id,
+                config_dict.get("speed_scale"),
                 config_dict.get("pitch_scale"),
-                config_dict.get("intonation_scale"), 
+                config_dict.get("intonation_scale"),
                 config_dict.get("volume_scale"),
-                config_dict.get("pre_phoneme_length"), 
+                config_dict.get("pre_phoneme_length"),
                 config_dict.get("post_phoneme_length"),
                 output_path, audio_duration
             ))
@@ -83,7 +83,7 @@ class DatabaseManager:
     def update_audio_info(self, db_id, output_path, audio_duration):
         with self._get_connection() as conn:
             conn.execute("""
-                UPDATE transcriptions 
+                UPDATE transcriptions
                 SET output_path = ?, audio_duration = ?
                 WHERE id = ?
             """, (output_path, audio_duration, db_id))
@@ -92,8 +92,8 @@ class DatabaseManager:
     def get_recent_logs(self, limit=50):
         with self._get_connection() as conn:
             cursor = conn.execute("""
-                SELECT * FROM transcriptions 
-                ORDER BY timestamp DESC 
+                SELECT * FROM transcriptions
+                ORDER BY timestamp DESC
                 LIMIT ?
             """, (limit,))
             return [dict(row) for row in cursor.fetchall()]

@@ -318,8 +318,8 @@ function populateDeviceSelect(devices) {
         select.appendChild(opt);
     });
 
-    // Restore value from store if matches, or current value if just refreshing 
-    // Actually store.config has the authoritative value. 
+    // Restore value from store if matches, or current value if just refreshing
+    // Actually store.config has the authoritative value.
     // But if we just opened app, renderConfig might have set value but options weren't there.
     if (store.config?.ffmpeg?.input_device) {
         select.value = store.config.ffmpeg.input_device;

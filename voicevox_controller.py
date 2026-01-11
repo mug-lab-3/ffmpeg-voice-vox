@@ -33,7 +33,7 @@ def kill_previous_instances():
                                 killed_count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
-                
+
         if killed_count == 0:
             print("[Startup] No other instances found.")
         else:
@@ -81,7 +81,7 @@ def monitor_activity():
 if __name__ == '__main__':
     # 0. Single Instance Check
     kill_previous_instances()
-    
+
     # 1. Determine Port (Auto-select available)
     host = config.get("server.host", "127.0.0.1")
     # Start checking from configured port or default 3000
@@ -90,16 +90,16 @@ if __name__ == '__main__':
         start_port = int(start_port)
     elif not isinstance(start_port, int):
         start_port = 3000
-        
+
     port = find_free_port(start_port)
-    
+
     # 2. Initialize App (Logging setup happens here)
     app = create_app()
     app.before_request(update_activity)
-    
+
     # Start monitor thread
     threading.Thread(target=monitor_activity, daemon=True).start()
-    
+
     # Open browser logic
     def open_browser():
         print("[Startup] Browser thread started", flush=True)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         webbrowser.open(url)
 
     threading.Thread(target=open_browser).start()
-    
+
     print(f"Starting server on {host}:{port}")
     try:
         app.run(host=host, port=port, debug=False, threaded=True)
@@ -124,4 +124,3 @@ if __name__ == '__main__':
             pass
         except Exception as e:
             print(f"[Startup] Error during cleanup: {e}")
-

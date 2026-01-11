@@ -6,3 +6,4 @@ soundfile
 pytest
 pytest-cov
 pytest-watch
+pre-commit

@@ -10,7 +10,7 @@ def send_test_message(json_data):
     try:
         req = urllib.request.Request(URL, data=data, method='POST')
         req.add_header('Content-Type', 'application/json')
-        
+
         with urllib.request.urlopen(req) as response:
             print(f"Status Code: {response.getcode()}")
             print(f"Response: {response.read().decode('utf-8')}")
@@ -19,14 +19,14 @@ def send_test_message(json_data):
 
 if __name__ == "__main__":
     print("Testing Voicevox Integration with Commands...")
-    
+
     # 1. デフォルト (ずんだもん)
     send_test_message({"start": 1000, "end": 3000, "text": "こんにちは、ずんだもんです。"})
     time.sleep(1)
 
     # 2. キャラクター変更コマンド (めたん: ID=2)
     # カタカナ "メタン" も認識することを確認
-    send_test_message({"start": 0, "end": 0, "text": "メタンに変えて"}) 
+    send_test_message({"start": 0, "end": 0, "text": "メタンに変えて"})
     time.sleep(1)
 
     # 3. 変更後の確認
