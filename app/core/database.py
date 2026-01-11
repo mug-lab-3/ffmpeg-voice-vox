@@ -103,4 +103,21 @@ class DatabaseManager:
             conn.execute("DELETE FROM transcriptions WHERE id = ?", (db_id,))
             conn.commit()
 
+    def get_transcription(self, db_id):
+        """Retrieves transcription details by ID."""
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT id, text, output_path, audio_duration FROM transcriptions WHERE id = ?",
+                (db_id,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "id": row["id"],
+                    "text": row["text"],
+                    "output_path": row["output_path"],
+                    "audio_duration": row["audio_duration"]
+                }
+        return None
+
 db_manager = DatabaseManager()

@@ -254,7 +254,7 @@ class ResolveClient:
             self._log(f"SRT time conversion error: {e}")
             return 0
 
-    def insert_file(self, file_path):
+    def insert_file(self, file_path, text=None):
         """
         Imports the file into the Media Pool and overwrites at the current playhead position.
         """
@@ -376,7 +376,22 @@ class ResolveClient:
 
                 fps = float(fps_str)
                 playhead_frame = tc_to_frames(current_tc, fps)
-                duration_frames = int(frames_prop) if frames_prop else 0
+                
+                # Determine Clip Duration in frames (Restored Fallback)
+                duration_frames = 0
+                if frames_prop and str(frames_prop).strip():
+                    try:
+                        duration_frames = int(frames_prop)
+                    except ValueError:
+                        pass
+                
+                if duration_frames <= 0:
+                    # Fallback to Duration timecode
+                    duration_tc = media_item.GetClipProperty("Duration")
+                    self._log(f"Frames property empty, using Duration TC: {duration_tc}")
+                    duration_frames = self._timecode_to_frames(duration_tc, fps_str)
+                
+                self._log(f"Final Clip Duration Frames: {duration_frames}")
 
                 # --- Track Management (Restored) ---
                 from app.config import config
@@ -429,7 +444,7 @@ class ResolveClient:
                         if text:
                             self._log(f"Injecting text into Text+: {text}")
                             # In Fusion Text+, the main text parameter is 'StyledText'
-                            timeline_item.SetSetting("StyledText", text)
+                            self._update_fusion_text(timeline_item, text)
 
                 self._log(f"Inserted media at {current_tc} on video track {target_track_video}")
                 return True

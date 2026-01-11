@@ -128,16 +128,41 @@ def ensure_audio_file(filename: str, audio_manager, processor) -> str:
     
     return filename
 
-def resolve_insert_handler(filename: str, audio_manager, processor, get_resolve_client):
+def resolve_insert_handler(filename: str, audio_manager, processor, get_resolve_client, database):
     """Inserts a file into Resolve, synthesizing if necessary."""
     filename = ensure_audio_file(filename, audio_manager, processor)
     
+    # Extract db_id from filename if possible for logging
+    db_id = None
+    import re
+    if filename.startswith("pending_"):
+        match = re.search(r"pending_(\d+)", filename)
+        if match:
+            db_id = int(match.group(1))
+    else:
+        match = re.match(r"^(\d+)_", filename)
+        if match:
+            db_id = int(match.group(1))
+
+    transcription = None
+    if db_id:
+        transcription = database.get_transcription(db_id)
+
+    if transcription:
+        # Debug logging if needed, or just proceed
+        pass
+
     output_dir = audio_manager.get_output_dir()
     abs_path = os.path.join(output_dir, filename)
     abs_path = os.path.abspath(abs_path)
     
     client = get_resolve_client()
-    if not client.insert_file(abs_path):
+    
+    text = None
+    if transcription:
+        text = transcription.get('text')
+
+    if not client.insert_file(abs_path, text=text):
          raise ValueError("Failed to insert into Resolve timeline")
     return True
 

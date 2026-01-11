@@ -54,7 +54,9 @@ def handle_resolve_insert():
     if not filename:
          return jsonify({"status": "error", "message": "No filename"}), 400
     try:
-        resolve_insert_handler(filename, audio_manager, processor, get_resolve_client)
+        from app.core.database import DatabaseManager
+        db_manager = DatabaseManager()
+        resolve_insert_handler(filename, audio_manager, processor, get_resolve_client, db_manager)
         return jsonify({"status": "ok"})
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e)}), 500
