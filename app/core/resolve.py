@@ -46,26 +46,40 @@ def monitor_resolve_process(shared_status, running_event):
             
             # STEP 0: Check if Resolve process even exists before doing heavy API calls
             is_running = False
-            import subprocess
             try:
-                if platform.system() == "Windows":
-                    # Using tasklist is faster and lighter than scripting API probes
-                    cmd = 'tasklist /FI "IMAGENAME eq Resolve.exe" /NH'
-                    out = subprocess.check_output(cmd, shell=True, creationflags=0x08000000).decode('cp932', errors='ignore')
-                    if "Resolve.exe" in out:
-                        is_running = True
-                else:
-                    is_running = True # Fallback for other OS
-            except:
-                is_running = True # If command fails, fall back to probe
+                import psutil
+                # Iterate over all running processes
+                for proc in psutil.process_iter(['name']):
+                    try:
+                        name = proc.info['name']
+                        if name and "Resolve" in name:
+                            # Basic check: verify it's the main app, not just a helper if possible
+                            # On Mac it's "Resolve", on Windows "Resolve.exe"
+                            is_running = True
+                            break
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                        pass
+            except ImportError:
+                # Fallback if psutil is missing (though it should be there now)
+                log("psutil not found, assuming Resolve is running to trigger probe")
+                is_running = True 
+            except Exception as e:
+                log(f"Process check error: {e}")
+                is_running = True # If check fails, fall back to probe
 
             if is_running:
                 try:
                     # Setup path just in case (only once)
+                    # Setup path just in case (only once)
                     if platform.system() == "Windows":
                         expected_path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
-                        if os.path.exists(expected_path) and expected_path not in sys.path:
-                            sys.path.append(expected_path)
+                    elif platform.system() == "Darwin":
+                         expected_path = "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules"
+                    else:
+                        expected_path = None
+
+                    if expected_path and os.path.exists(expected_path) and expected_path not in sys.path:
+                        sys.path.append(expected_path)
 
                     # Try to import/reload only if not connected or not yet imported
                     if dvr_module is None:
@@ -176,8 +190,13 @@ class ResolveClient:
             # Try path add
             if platform.system() == "Windows":
                 path = os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
-                if path not in sys.path:
-                     sys.path.append(path)
+            elif platform.system() == "Darwin":
+                path = "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules"
+            else:
+                path = None
+
+            if path and path not in sys.path:
+                 sys.path.append(path)
             try:
                 import DaVinciResolveScript as dvr_script
                 self.resolve = dvr_script.scriptapp("Resolve")

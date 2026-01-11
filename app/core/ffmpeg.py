@@ -95,14 +95,28 @@ class FFmpegClient:
             
             filter_arg = f"whisper=model={model_path_esc}:queue={queue_length}:destination={dest_url}:format=json:vad_model={vad_model_path_esc}"
             
+            # OS-specific input format and null device
+            if platform.system() == "Darwin":
+                input_format = "avfoundation"
+                null_device = "/dev/null"
+                # On Mac, input device is usually an index like ":0" or ":1" for audio
+                # If user selects name, we might need index mapping, but let's assume index or name works if ffmpeg supports it
+                # avfoundation uses "none:index" or "none:name" for audio only, or "video:audio"
+                # Simple approach: "none:DEVICE" if only audio
+                formatted_input = f"none:{input_device}" if ":" not in input_device else input_device
+            else:
+                input_format = "dshow"
+                null_device = "NUL"
+                formatted_input = f"audio={input_device}"
+
             cmd = [
                 ffmpeg_path,
-                "-f", "dshow",
-                "-i", f"audio={input_device}",
+                "-f", input_format,
+                "-i", formatted_input,
                 "-vn",
                 "-af", filter_arg,
                 "-f", "null",
-                "NUL" # Use NUL on Windows to discard output safely
+                null_device
             ]
             
             print(f"[FFmpeg] Starting with command: {' '.join(cmd)}")
@@ -153,7 +167,10 @@ class FFmpegClient:
              print(f"[FFmpeg] Path not found or empty: {ffmpeg_path}")
              return []
 
-        cmd = [ffmpeg_path, "-list_devices", "true", "-f", "dshow", "-i", "dummy"]
+        if platform.system() == "Darwin":
+             cmd = [ffmpeg_path, "-list_devices", "true", "-f", "avfoundation", "-i", ""]
+        else:
+             cmd = [ffmpeg_path, "-list_devices", "true", "-f", "dshow", "-i", "dummy"]
         
         try:
             # Capture as bytes to handle encoding manually
@@ -174,15 +191,37 @@ class FFmpegClient:
 
             devices = []
             
-            # Simple parsing: Look for lines with "(audio)" and quotes
-            for line in output.splitlines():
-                if "(audio)" in line:
-                    import re
-                    match = re.search(r'\"(.+?)\"', line)
-                    if match:
-                        device_name = match.group(1)
-                        if device_name != "dummy": 
-                            devices.append(device_name)
+            devices = []
+            
+            if platform.system() == "Darwin":
+                # Mac avfoundation parsing
+                # Look for "AVFoundation audio devices:" then "[index] Name"
+                in_audio_section = False
+                for line in output.splitlines():
+                    if "AVFoundation audio devices:" in line:
+                        in_audio_section = True
+                        continue
+                    if "AVFoundation video devices:" in line:
+                        in_audio_section = False
+                        continue
+                        
+                    if in_audio_section:
+                        # Match "[0] Some Device"
+                        import re
+                        match = re.search(r'\[\d+\]\s+(.+)', line)
+                        if match:
+                            devices.append(match.group(1).strip())
+            else:
+                # Windows dshow parsing
+                # Simple parsing: Look for lines with "(audio)" and quotes
+                for line in output.splitlines():
+                    if "(audio)" in line:
+                        import re
+                        match = re.search(r'\"(.+?)\"', line)
+                        if match:
+                            device_name = match.group(1)
+                            if device_name != "dummy": 
+                                devices.append(device_name)
             
             print(f"[FFmpeg] Found devices: {devices}")
             if not devices:

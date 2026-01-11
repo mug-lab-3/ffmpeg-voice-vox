@@ -11,40 +11,36 @@ from app.config import config
 def kill_previous_instances():
     """
     Scans for other Python processes running 'voicevox_controller.py' and kills them.
-    More reliable than PID file as it checks identifying command line info.
+    Uses psutil for cross-platform support.
     """
     print("[Startup] Scanning for existing instances...")
     try:
-        # PowerShell command to find PIDs of python processes running voicevox_controller.py
-        ps_cmd = "Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'python*' -and $_.CommandLine -like '*voicevox_controller.py*' } | Select-Object -ExpandProperty ProcessId"
-        
-        # Run PowerShell command
-        result = subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, text=True)
-        
-        if result.returncode != 0:
-             print(f"[Startup] Warning: Process scan failed: {result.stderr}")
-             return
-
-        pids = []
-        for line in result.stdout.splitlines():
-            line = line.strip()
-            if line.isdigit():
-                pids.append(int(line))
-        
-        my_pid = os.getpid()
+        import psutil
+        current_pid = os.getpid()
         killed_count = 0
-        
-        for pid in pids:
-            if pid != my_pid and pid != 0: # PID 0 checks just in case
-                print(f"[Startup] Found existing instance (PID: {pid}). Killing...")
-                subprocess.run(f"taskkill /F /PID {pid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                killed_count += 1
+
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                # Check if it's a python process
+                if 'python' in proc.info['name'].lower():
+                    cmdline = proc.info['cmdline']
+                    if cmdline:
+                        # Check if voicevox_controller.py is in the arguments
+                        if any('voicevox_controller.py' in arg for arg in cmdline):
+                            if proc.info['pid'] != current_pid:
+                                print(f"[Startup] Found existing instance (PID: {proc.info['pid']}). Killing...")
+                                proc.kill()
+                                killed_count += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
                 
         if killed_count == 0:
             print("[Startup] No other instances found.")
         else:
             print(f"[Startup] Killed {killed_count} existing instance(s).")
 
+    except ImportError:
+        print("[Startup] psutil not installed. Skipping duplicate instance check.")
     except Exception as e:
         print(f"[Startup] Error in process scan: {e}")
 

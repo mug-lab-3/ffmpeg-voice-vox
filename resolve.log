@@ -1220,3 +1220,34 @@ TypeError: 'NoneType' object is not callable
 [2026-01-11 12:31:44] Final Clip Duration Frames: 158
 [2026-01-11 12:31:44] Injecting text into Text+: 音程マンドで積んだもんです
 [2026-01-11 12:31:44] Inserted media at 01:22:05:46 on video track 3
+[2026-01-11 12:54:29] Attempting to insert: C:\Users\mug\Videos\vvout\13_全部オンテマンド.wav
+[2026-01-11 12:54:29] Searching bin 'VoiceVox Captions' (Clip count: 23)
+[2026-01-11 12:54:29] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 12:54:29] Checking clip: '009030_ずんだもん_あ、間違えました.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav')
+[2026-01-11 12:54:29] Checking clip: '012770_ずんだもん_ボイスボックス変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav')
+[2026-01-11 12:54:29] Checking clip: '018880_四国めたん_キャラクターも変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\018880_四国めたん_キャラクターも変.wav')
+[2026-01-11 12:54:29] Checking clip: '2026-01-11 06-00-52.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\vv\2026-01-11 06-00-52.mp4')
+[2026-01-11 12:54:29] Checking clip: 'Timeline 5' (Type: 'Timeline', Path: '')
+[2026-01-11 12:54:29] Checking clip: '004420_ずんだもん_その内容を画便値.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav')
+[2026-01-11 12:54:29] Checking clip: '000000_ずんだもん_喋ってる内容を文.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_ずんだもん_喋ってる内容を文.wav')
+[2026-01-11 12:54:29] Checking clip: '005410_ずんだもん_音を落としてくだ.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\005410_ずんだもん_音を落としてくだ.wav')
+[2026-01-11 12:54:29] Checking clip: '000000_ずんだもん_聞こえますかどう.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_ずんだもん_聞こえますかどう.wav')
+[2026-01-11 12:54:29] Checking clip: '000000_四国めたん_今いくつですか.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_四国めたん_今いくつですか.wav')
+[2026-01-11 12:54:29] Checking clip: '26_1.95.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\26_1.95.wav')
+[2026-01-11 12:54:29] Checking clip: '25_これを範囲以外に.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\25_これを範囲以外に.wav')
+[2026-01-11 12:54:29] Checking clip: '23_これなら、いける.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\23_これなら、いける.wav')
+[2026-01-11 12:54:29] Checking clip: '20_オーディオ再生中.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\20_オーディオ再生中.wav')
+[2026-01-11 12:54:29] Checking clip: '18_デュレーションが.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\18_デュレーションが.wav')
+[2026-01-11 12:54:29] Checking clip: '8_ボイスボックス使.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\8_ボイスボックス使.wav')
+[2026-01-11 12:54:29] Checking clip: '5_オンテマンド処理.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\5_オンテマンド処理.wav')
+[2026-01-11 12:54:29] Checking clip: '14_スピード1.5だ.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\14_スピード1.5だ.wav')
+[2026-01-11 12:54:29] Checking clip: '13_全部オンテマンド.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\13_全部オンテマンド.wav')
+[2026-01-11 12:54:29] Checking clip: '9_ちょっとイントネ.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\9_ちょっとイントネ.wav')
+[2026-01-11 12:54:29] Checking clip: '6_どうですか.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\6_どうですか.wav')
+[2026-01-11 12:54:29] Checking clip: '22_音程マンドで積ん.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\22_音程マンドで積ん.wav')
+[2026-01-11 12:54:29] Using first compatible Text+ as template: Text+
+[2026-01-11 12:54:29] Imported Media Frames: 
+[2026-01-11 12:54:29] Frames property empty, using Duration TC: 00:00:02:08
+[2026-01-11 12:54:29] Final Clip Duration Frames: 128
+[2026-01-11 12:54:29] Injecting text into Text+: 全部オンテマンド処理にしたいよ
+[2026-01-11 12:54:29] Inserted media at 01:23:30:46 on video track 3
