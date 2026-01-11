@@ -140,14 +140,15 @@ function setupUIListeners() {
     const ffmpegKeys = Object.keys(elements.cfgInputs);
     // Helper to saves config
     const saveDomainConfig = async (domain) => {
+        const sanitizeStr = (val) => val || ""; // Ensure empty string instead of null/undefined
+        const sanitizeInt = (val, defaultVal) => {
+            const parsed = parseInt(val);
+            return isNaN(parsed) ? defaultVal : parsed;
+        };
+
         try {
             let res;
             if (domain === 'ffmpeg') {
-                const sanitizeStr = (val) => val || ""; // Ensure empty string instead of null/undefined
-                const sanitizeInt = (val, defaultVal) => {
-                    const parsed = parseInt(val);
-                    return isNaN(parsed) ? defaultVal : parsed;
-                };
 
                 const currentFFmpeg = {
                     ffmpeg_path: sanitizeStr(elements.cfgInputs.ffmpegPath.value),
@@ -174,9 +175,12 @@ function setupUIListeners() {
                 res = await api.updateResolveConfig(updates);
             }
 
-            if (res && !res.ok && res.status === 422) {
-                await showAlert("Validation Error", res.data.message || "Invalid input");
-                if (res.data.config) {
+            if (res && !res.ok) {
+                const title = res.status === 422 ? "Validation Error" : "Save Error (Check Console)";
+                const msg = res.data?.message || "Unknown error occurred";
+                await showAlert(title, msg);
+
+                if (res.status === 422 && res.data?.config) {
                     store.setConfig(res.data.config, res.data.outputDir, res.data.resolve_available, res.data.voicevox_available);
                 } else {
                     renderConfig();
@@ -283,7 +287,7 @@ function setupUIListeners() {
                 if (res.ok && res.data.status === 'ok') {
                     elements.cfgInputs[inputKey].value = res.data.path;
                     // Trigger save
-                    await saveFFmpegConfig();
+                    await saveDomainConfig('ffmpeg');
 
                     // If we just set ffmpeg path, might want to refresh devices
                     if (inputKey === 'ffmpegPath') {

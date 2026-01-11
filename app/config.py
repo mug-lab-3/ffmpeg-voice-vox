@@ -143,18 +143,19 @@ class ConfigManager:
     def save_config(self, config_to_save: Any = None):
         """Save current config to file."""
         obj = config_to_save if config_to_save is not None else self._config_obj
-        try:
-            data = obj.model_dump() if hasattr(obj, "model_dump") else obj
-            with open(self.config_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-                f.flush()
-                try:
-                    os.fsync(f.fileno())
-                except OSError:
-                    # Windows might fail fsync on some filesystems or if locked
-                    pass
-        except Exception as e:
-            print(f"[Config] Error saving config: {e}")
+        # Propagate exceptions to caller so API can return error
+        data = obj.model_dump() if hasattr(obj, "model_dump") else obj
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except OSError:
+                pass
 
     def get(self, key: str, default=None):
         """Get a value by dot notation (e.g. 'server.host')."""
