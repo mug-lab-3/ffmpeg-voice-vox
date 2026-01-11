@@ -7,6 +7,7 @@ import multiprocessing
 import importlib
 import datetime
 import traceback
+import psutil
 
 # Utility Constants
 LOG_DIR = "logs"
@@ -85,8 +86,6 @@ def monitor_resolve_process(shared_status, running_event):
             # STEP 0: Check if Resolve process even exists before doing heavy API calls
             is_running = False
             try:
-                import psutil
-
                 # Iterate over all running processes
                 for proc in psutil.process_iter(["name"]):
                     try:
@@ -100,11 +99,6 @@ def monitor_resolve_process(shared_status, running_event):
                         psutil.ZombieProcess,
                     ):
                         pass
-            except ImportError:
-                _log_monitor(
-                    "psutil not found, assuming Resolve is running to trigger probe"
-                )
-                is_running = True
             except Exception as e:
                 _log_monitor(f"Process check error: {e}")
                 is_running = True  # If check fails, fall back to probe
