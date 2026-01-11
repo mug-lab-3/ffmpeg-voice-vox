@@ -671,7 +671,7 @@ function createLogRow(entry) {
         <td class="col-play" style="padding: 8px; text-align: center;"></td>
         <td style="padding: 8px; color: #aaa; text-align: center; font-size: 0.85em;" title="Created at: ${new Date(entry.timestamp).toLocaleString()}">${entry.id}</td>
         <td style="padding: 8px; font-weight: bold;">${entry.text}</td>
-        <td style="padding: 8px; color: #aaa;">${entry.duration}</td>
+        <td class="col-duration" style="padding: 8px; color: #aaa;">${entry.filename.startsWith("pending_") ? "--" : entry.duration}</td>
         <td class="col-config" style="padding: 8px;"></td>
         <td class="col-resolve" style="padding: 8px; text-align: center;"></td>
         <td class="col-delete" style="padding: 8px; text-align: center;"></td>
@@ -707,9 +707,10 @@ function updateLogRow(row, entry) {
 
     configCell.title = tooltipText.join('\n');
 
-    // Buttons
+    // Button States
     const isLocked = store.isSynthesisEnabled || store.playbackState.is_playing;
     const isThisPlaying = store.playbackState.is_playing && store.playbackState.filename === entry.filename;
+    const isPending = entry.filename && entry.filename.startsWith("pending_");
 
     // Play Button
     const playCell = row.querySelector('.col-play');
@@ -724,12 +725,23 @@ function updateLogRow(row, entry) {
         playBtn.innerHTML = PlayIcons.playing;
         playBtn.classList.add('playing', 'playing-anim');
         playBtn.disabled = true;
+        playBtn.style.color = ""; // Start/Reset color
+        playBtn.style.borderColor = "";
     } else {
         playBtn.innerHTML = PlayIcons.play;
         playBtn.classList.remove('playing', 'playing-anim');
         playBtn.disabled = isLocked;
         playBtn.title = isLocked ? "Function disabled while running/playing" : "Play audio";
         playBtn.onclick = isLocked ? null : () => doPlay(entry.filename, playBtn);
+
+        // On-demand (pending) items get red Play button
+        if (isPending) {
+            playBtn.style.color = "#ff6b6b";
+            playBtn.style.borderColor = "#ff6b6b";
+        } else {
+            playBtn.style.color = "";
+            playBtn.style.borderColor = "";
+        }
     }
 
     // Resolve Button
