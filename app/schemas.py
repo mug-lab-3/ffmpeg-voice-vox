@@ -13,12 +13,15 @@ import os
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, Annotated
 
+
 class ServerConfig(BaseModel):
     host: str = "127.0.0.1"
+
 
 class VoiceVoxConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 50021
+
 
 class SynthesisConfig(BaseModel):
     speaker_id: Annotated[int, Field(ge=0)] = 1
@@ -27,6 +30,7 @@ class SynthesisConfig(BaseModel):
     intonation_scale: Annotated[float, Field(ge=0.0, le=2.0)] = 1.0
     volume_scale: Annotated[float, Field(ge=0.0, le=2.0)] = 1.0
     timing: str = "immediate"  # immediate | on_demand
+
 
 class SystemConfig(BaseModel):
     output_dir: str = ""
@@ -37,6 +41,7 @@ class SystemConfig(BaseModel):
         if v and not os.path.exists(v):
             print(f"[Config] Warning: output_dir does not exist: {v}")
         return v
+
 
 class FfmpegConfig(BaseModel):
     ffmpeg_path: str = ""
@@ -53,6 +58,7 @@ class FfmpegConfig(BaseModel):
             print(f"[Config] Warning: ffmpeg_path does not exist: {v}")
         return v
 
+
 class ResolveConfig(BaseModel):
     enabled: bool = False
     audio_track_index: Annotated[int, Field(ge=1, le=50)] = 1
@@ -60,8 +66,9 @@ class ResolveConfig(BaseModel):
     template_bin: str = "VoiceVox Captions"
     template_name: str = "DefaultTemplate"
 
+
 class ConfigSchema(BaseModel):
-    model_config = ConfigDict(extra='ignore')  # Ignore unknown fields
+    model_config = ConfigDict(extra="ignore")  # Ignore unknown fields
 
     server: ServerConfig = Field(default_factory=ServerConfig)
     voicevox: VoiceVoxConfig = Field(default_factory=VoiceVoxConfig)

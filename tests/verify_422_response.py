@@ -1,9 +1,10 @@
 import requests
 import json
 
+
 def test_validation_error_response():
     url = "http://127.0.0.1:3000/api/config/synthesis"
-    payload = {"speed_scale": 9.9} # Invalid value (max 1.5)
+    payload = {"speed_scale": 9.9}  # Invalid value (max 1.5)
 
     print(f"Sending invalid request to {url}...")
     response = requests.post(url, json=payload)
@@ -19,6 +20,7 @@ def test_validation_error_response():
     assert "config" in data
     assert "speaker_id" in data["config"]
     print("\nVerification Successful: 422 response contains the current valid config.")
+
 
 if __name__ == "__main__":
     try:

@@ -1,5 +1,6 @@
 from server import process_command, COMMANDS
 
+
 def run_tests():
     test_cases = [
         ("ずんだもん", True, "Exact match"),
@@ -9,9 +10,13 @@ def run_tests():
         ("ずんだちゃん", True, "Suffix 'ちゃん'"),
         ("ねぇずんだもん", True, "Prefix 'ねぇ' (noise within threshold)"),
         ("ずんだもん！", True, "Suffix '！'"),
-        ("ずんだもん、お願いします", True, "Suffix '、お願いします' (remainder 'します' <= 4)"),
+        (
+            "ずんだもん、お願いします",
+            True,
+            "Suffix '、お願いします' (remainder 'します' <= 4)",
+        ),
         ("ずんだもん今日の天気は", False, "Long conversation text"),
-        ("もっと速くして", True, "Command 'もっと速く' + suffix 'して'")
+        ("もっと速くして", True, "Command 'もっと速く' + suffix 'して'"),
     ]
 
     print("Running command logic tests...")
@@ -28,6 +33,7 @@ def run_tests():
         print("\nAll tests passed!")
     else:
         print(f"\n{failures} tests failed.")
+
 
 if __name__ == "__main__":
     run_tests()

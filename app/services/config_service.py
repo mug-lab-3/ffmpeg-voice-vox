@@ -6,6 +6,7 @@ The implementation in this file must strictly follow the specifications
 documented in `doc/specification/api-server.md`.
 Please ensure any changes here are synchronized with the specification.
 """
+
 from app.config import config
 from app.api.schemas.config import ConfigResponse, APIConfigSchema
 from app.core.voicevox import VoiceVoxClient
@@ -14,11 +15,13 @@ from app.core.resolve import ResolveClient
 vv_client = VoiceVoxClient()
 _resolve_client = None
 
+
 def get_resolve_client():
     global _resolve_client
     if _resolve_client is None:
         _resolve_client = ResolveClient()
     return _resolve_client
+
 
 def get_config_handler() -> ConfigResponse:
     """Gets the current configuration in the format expected by the frontend."""
@@ -28,15 +31,16 @@ def get_config_handler() -> ConfigResponse:
     full_cfg = APIConfigSchema(
         **config.get("synthesis"),
         ffmpeg=config.get("ffmpeg"),
-        resolve=config.get("resolve")
+        resolve=config.get("resolve"),
     )
 
     return ConfigResponse(
         config=full_cfg,
         outputDir=config.get("system.output_dir"),
         resolve_available=resolve_available,
-        voicevox_available=voicevox_available
+        voicevox_available=voicevox_available,
     )
+
 
 def update_config_handler(new_config: dict) -> ConfigResponse:
     """Updates configuration and returns the updated state."""
@@ -50,7 +54,7 @@ def update_config_handler(new_config: dict) -> ConfigResponse:
         "audioTrackIndex": "resolve.audio_track_index",
         "subtitleTrackIndex": "resolve.subtitle_track_index",
         "templateBin": "resolve.template_bin",
-        "templateName": "resolve.template_name"
+        "templateName": "resolve.template_name",
     }
 
     for client_key, config_key in mapping.items():
@@ -75,6 +79,7 @@ def update_config_handler(new_config: dict) -> ConfigResponse:
             config.update(f"ffmpeg.{k}", v)
 
     from app.core.events import event_manager
+
     event_manager.publish("config_update", {})
 
     return get_config_handler()

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from app.core.processor import StreamProcessor
 from app.config import config
 
+
 class TestLogConsistency(unittest.TestCase):
     def setUp(self):
         self.vv_client = MagicMock()
@@ -27,7 +28,11 @@ class TestLogConsistency(unittest.TestCase):
         config.update("synthesis.speaker_id", 2)
 
         # 5. Verify first log STILL has speaker 1 (not changed to 2)
-        self.assertEqual(logs[0]["config"]["speaker_id"], 1, "Log entry should not change when global config changes")
+        self.assertEqual(
+            logs[0]["config"]["speaker_id"],
+            1,
+            "Log entry should not change when global config changes",
+        )
 
         # 6. Add another log entry
         self.processor._add_log("World", 1.0, "world.wav", speaker_id=2)
@@ -37,5 +42,6 @@ class TestLogConsistency(unittest.TestCase):
         self.assertEqual(logs[1]["config"]["speaker_id"], 2)
         self.assertEqual(logs[0]["config"]["speaker_id"], 1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

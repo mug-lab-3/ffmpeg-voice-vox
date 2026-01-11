@@ -4,6 +4,7 @@ from typing import Dict, Any
 from .schemas import ConfigSchema
 from pydantic import ValidationError
 
+
 class ConfigManager:
     DEFAULT_CONFIG_PATH = "default_config.json"
 
@@ -29,6 +30,7 @@ class ConfigManager:
             try:
                 print(f"[Config] Migrating {filename} to {self.config_path}")
                 import shutil
+
                 shutil.move(old_path, self.config_path)
             except Exception as e:
                 print(f"[Config] Migration failed: {e}")
@@ -47,7 +49,7 @@ class ConfigManager:
         loaded_data = {}
         if os.path.exists(self.config_path):
             try:
-                with open(self.config_path, 'r', encoding='utf-8') as f:
+                with open(self.config_path, "r", encoding="utf-8") as f:
                     loaded_data = json.load(f)
             except Exception as e:
                 print(f"[Config] Error reading {self.config_path}: {e}")
@@ -86,7 +88,9 @@ class ConfigManager:
                 try:
                     setattr(default_obj, section_name, section_model(**section_data))
                 except ValidationError:
-                    print(f"[Config] Section '{section_name}' has invalid values. Using defaults for this section.")
+                    print(
+                        f"[Config] Section '{section_name}' has invalid values. Using defaults for this section."
+                    )
 
         return default_obj
 
@@ -94,15 +98,15 @@ class ConfigManager:
         """Save current config to file."""
         obj = config_to_save if config_to_save is not None else self._config_obj
         try:
-            data = obj.model_dump() if hasattr(obj, 'model_dump') else obj
-            with open(self.config_path, 'w', encoding='utf-8') as f:
+            data = obj.model_dump() if hasattr(obj, "model_dump") else obj
+            with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"[Config] Error saving config: {e}")
 
     def get(self, key: str, default=None):
         """Get a value by dot notation (e.g. 'server.host')."""
-        keys = key.split('.')
+        keys = key.split(".")
         value = self.config
         try:
             for k in keys:
@@ -124,7 +128,7 @@ class ConfigManager:
         current_data = self._config_obj.model_dump()
 
         # Traverse and update the dict
-        keys = key.split('.')
+        keys = key.split(".")
         target = current_data
         try:
             for k in keys[:-1]:
@@ -144,10 +148,13 @@ class ConfigManager:
             if isinstance(e, ValidationError):
                 print(f"[Config] Update rejected for '{key}': Validation failed.")
                 for error in e.errors():
-                    print(f"  - {'.'.join(str(i) for i in error['loc'])}: {error['msg']}")
+                    print(
+                        f"  - {'.'.join(str(i) for i in error['loc'])}: {error['msg']}"
+                    )
             else:
                 print(f"[Config] Update rejected for '{key}': {e}")
             return False
+
 
 # Global instance
 config = ConfigManager()

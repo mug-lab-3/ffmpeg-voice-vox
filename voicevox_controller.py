@@ -8,6 +8,7 @@ import socket
 from app import create_app
 from app.config import config
 
+
 def kill_previous_instances():
     """
     Scans for other Python processes running 'voicevox_controller.py' and kills them.
@@ -16,19 +17,22 @@ def kill_previous_instances():
     print("[Startup] Scanning for existing instances...")
     try:
         import psutil
+
         current_pid = os.getpid()
         killed_count = 0
 
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
                 # Check if it's a python process
-                if 'python' in proc.info['name'].lower():
-                    cmdline = proc.info['cmdline']
+                if "python" in proc.info["name"].lower():
+                    cmdline = proc.info["cmdline"]
                     if cmdline:
                         # Check if voicevox_controller.py is in the arguments
-                        if any('voicevox_controller.py' in arg for arg in cmdline):
-                            if proc.info['pid'] != current_pid:
-                                print(f"[Startup] Found existing instance (PID: {proc.info['pid']}). Killing...")
+                        if any("voicevox_controller.py" in arg for arg in cmdline):
+                            if proc.info["pid"] != current_pid:
+                                print(
+                                    f"[Startup] Found existing instance (PID: {proc.info['pid']}). Killing..."
+                                )
                                 proc.kill()
                                 killed_count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
@@ -44,6 +48,7 @@ def kill_previous_instances():
     except Exception as e:
         print(f"[Startup] Error in process scan: {e}")
 
+
 def find_free_port(start_port):
     """
     Finds a free port starting from start_port.
@@ -52,19 +57,22 @@ def find_free_port(start_port):
     while port < 65535:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('0.0.0.0', port))
+                s.bind(("0.0.0.0", port))
                 return port
         except OSError:
             port += 1
     return start_port
 
+
 # Activity Monitoring
 last_activity_time = time.time()
 SHUTDOWN_TIMEOUT = 300  # 5 minutes
 
+
 def update_activity():
     global last_activity_time
     last_activity_time = time.time()
+
 
 def monitor_activity():
     global last_activity_time
@@ -75,10 +83,12 @@ def monitor_activity():
         if elapsed > SHUTDOWN_TIMEOUT:
             print(f"[Monitor] No activity for {elapsed:.0f}s. Shutting down...")
             from app.web.routes import cleanup_resources
+
             cleanup_resources()
             os._exit(0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # 0. Single Instance Check
     kill_previous_instances()
 
@@ -104,7 +114,7 @@ if __name__ == '__main__':
     def open_browser():
         print("[Startup] Browser thread started", flush=True)
         time.sleep(2)
-        url = f'http://{host}:{port}'
+        url = f"http://{host}:{port}"
         print(f"[Startup] Opening browser at {url}", flush=True)
         webbrowser.open(url)
 
@@ -118,6 +128,7 @@ if __name__ == '__main__':
         print("[Startup] Server stopping...")
         try:
             from app.web.routes import cleanup_resources
+
             cleanup_resources()
         except KeyboardInterrupt:
             # Allow forced exit during cleanup

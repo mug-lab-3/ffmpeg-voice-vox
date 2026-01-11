@@ -1,16 +1,16 @@
-
 import os
 import unittest
 from unittest.mock import patch, MagicMock
 from server import generate_and_save_voice, OUTPUT_DIR, format_srt_time
 
+
 class TestSRTGeneration(unittest.TestCase):
-    @patch('server.urllib.request.urlopen')
+    @patch("server.urllib.request.urlopen")
     def test_srt(self, mock_urlopen):
         # Mock responses
         # 1. audio_query response
         mock_res1 = MagicMock()
-        mock_res1.read.return_value = b'{}' # json.load reads from this, but wait, json.load takes a file-like object
+        mock_res1.read.return_value = b"{}"  # json.load reads from this, but wait, json.load takes a file-like object
         # server.py usage: json.load(res)
         # So mocks needs to be a file-like object or return a simple dict for json.load?
         # Actually server.py does `query_data = json.load(res)`.
@@ -26,7 +26,7 @@ class TestSRTGeneration(unittest.TestCase):
         # json.load calls read().
 
         mock_response_synth = MagicMock()
-        mock_response_synth.read.return_value = b'FAKE_AUDIO_DATA'
+        mock_response_synth.read.return_value = b"FAKE_AUDIO_DATA"
 
         # Configure the side_effect for urlopen
         # urlopen returns a context manager
@@ -61,6 +61,7 @@ class TestSRTGeneration(unittest.TestCase):
             expected_time = "00:00:03,500"
             self.assertIn(expected_time, content)
             self.assertIn(text, content)
+
 
 if __name__ == "__main__":
     if not os.path.exists(OUTPUT_DIR):

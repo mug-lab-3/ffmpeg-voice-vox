@@ -8,6 +8,7 @@ from app.core.audio import AudioManager
 from app.core.processor import StreamProcessor
 from app.core.voicevox import VoiceVoxClient
 
+
 class TestHistoryLoading(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
@@ -24,7 +25,7 @@ class TestHistoryLoading(unittest.TestCase):
 
     def create_dummy_file(self, filename, content="test content"):
         path = os.path.join(self.test_dir, filename)
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
         return path
 
@@ -32,11 +33,13 @@ class TestHistoryLoading(unittest.TestCase):
         # Create valid files
         # 123456_Speaker1_Hello.wav
         self.create_dummy_file("100000_Metan_Hello.wav", "RIFF....")
-        self.create_dummy_file("100000_Metan_Hello.srt", "1\n00:00:00,000 --> 00:00:01,000\nHello World")
+        self.create_dummy_file(
+            "100000_Metan_Hello.srt", "1\n00:00:00,000 --> 00:00:01,000\nHello World"
+        )
 
         # Create older file
         older_path = self.create_dummy_file("090000_Zundamon_Hi.wav", "RIFF....")
-        os.utime(older_path, (10000, 10000)) # Set old time
+        os.utime(older_path, (10000, 10000))  # Set old time
 
         # Create invalid file
         self.create_dummy_file("invalid_file.wav", "RIFF....")
@@ -46,12 +49,12 @@ class TestHistoryLoading(unittest.TestCase):
         self.assertEqual(len(files), 2)
 
         # First one should be the newer one (Metan)
-        self.assertEqual(files[0]['speaker_name'], "Metan")
-        self.assertEqual(files[0]['text'], "Hello World") # From SRT
+        self.assertEqual(files[0]["speaker_name"], "Metan")
+        self.assertEqual(files[0]["text"], "Hello World")  # From SRT
 
         # Second one
-        self.assertEqual(files[1]['speaker_name'], "Zundamon")
-        self.assertEqual(files[1]['text'], "Hi") # From filename (fallback)
+        self.assertEqual(files[1]["speaker_name"], "Zundamon")
+        self.assertEqual(files[1]["text"], "Hi")  # From filename (fallback)
 
     def test_processor_loading(self):
         # Setup mocks
@@ -60,14 +63,17 @@ class TestHistoryLoading(unittest.TestCase):
 
         # Create files
         self.create_dummy_file("100000_Metan_Hello.wav", "RIFF....")
-        self.create_dummy_file("100000_Metan_Hello.srt", "1\n00:00:00,000 --> 00:00:01,000\nHello World")
+        self.create_dummy_file(
+            "100000_Metan_Hello.srt", "1\n00:00:00,000 --> 00:00:01,000\nHello World"
+        )
 
         processor = StreamProcessor(mock_vv, self.audio_manager)
 
         logs = processor.get_logs()
         self.assertEqual(len(logs), 1)
-        self.assertEqual(logs[0]['text'], "Hello World")
-        self.assertEqual(logs[0]['config']['speaker_id'], 1) # Should map "Metan" -> 1
+        self.assertEqual(logs[0]["text"], "Hello World")
+        self.assertEqual(logs[0]["config"]["speaker_id"], 1)  # Should map "Metan" -> 1
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

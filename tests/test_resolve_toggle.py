@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import MagicMock, patch
 import os
@@ -9,6 +8,7 @@ sys.path.append(os.getcwd())
 
 from app.config import ConfigManager
 
+
 class TestResolveToggle(unittest.TestCase):
     def setUp(self):
         # Use a dummy config file
@@ -16,7 +16,7 @@ class TestResolveToggle(unittest.TestCase):
         self.config_path = os.path.join("data", self.config_filename)
         # Ensure cleanup first
         if os.path.exists(self.config_path):
-             os.remove(self.config_path)
+            os.remove(self.config_path)
 
         self.config = ConfigManager(self.config_filename)
         # Ensure output dir is set for audio tests
@@ -43,7 +43,6 @@ class TestResolveToggle(unittest.TestCase):
         # In Python "false" string is truthy if not checked properly?
         # But config just stores what is given.
         self.assertEqual(self.config.get("resolve.enabled"), False)
-
 
 
 if __name__ == "__main__":

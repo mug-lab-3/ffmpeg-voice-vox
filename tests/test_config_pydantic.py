@@ -4,6 +4,7 @@ import shutil
 from app.config import ConfigManager
 from app.schemas import ConfigSchema
 
+
 def test_config_validation():
     config_filename = "test_config.json"
     test_config_path = os.path.join("data", config_filename)
@@ -19,10 +20,10 @@ def test_config_validation():
 
     print("\n--- Test 2: Missing fields ---")
     # Manually corrupt file by removing a section
-    with open(test_config_path, 'r', encoding='utf-8') as f:
+    with open(test_config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     del data["voicevox"]
-    with open(test_config_path, 'w', encoding='utf-8') as f:
+    with open(test_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
     cm2 = ConfigManager(config_filename)
@@ -31,10 +32,10 @@ def test_config_validation():
     print("Test 2 passed: Missing section restored from defaults.")
 
     print("\n--- Test 3: Invalid types ---")
-    with open(test_config_path, 'r', encoding='utf-8') as f:
+    with open(test_config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     data["synthesis"]["speaker_id"] = "invalid_int"
-    with open(test_config_path, 'w', encoding='utf-8') as f:
+    with open(test_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
     cm3 = ConfigManager(config_filename)
@@ -42,16 +43,16 @@ def test_config_validation():
     print("Test 3 passed: Invalid type corrected to default.")
 
     print("\n--- Test 3a: Range validation (out of bounds) ---")
-    with open(test_config_path, 'r', encoding='utf-8') as f:
+    with open(test_config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     data["synthesis"]["speed_scale"] = 5.0  # Max is 2.0
-    data["ffmpeg"]["queue_length"] = 500    # Max is 100
-    with open(test_config_path, 'w', encoding='utf-8') as f:
+    data["ffmpeg"]["queue_length"] = 500  # Max is 100
+    with open(test_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
     cm3a = ConfigManager(config_filename)
-    assert cm3a.config["synthesis"]["speed_scale"] == 1.0 # Section fallback to default
-    assert cm3a.config["ffmpeg"]["queue_length"] == 10    # Section fallback to default
+    assert cm3a.config["synthesis"]["speed_scale"] == 1.0  # Section fallback to default
+    assert cm3a.config["ffmpeg"]["queue_length"] == 10  # Section fallback to default
     print("Test 3a passed: Out of range values corrected to defaults.")
 
     print("\n--- Test 4: Custom validation (warning only) ---")
@@ -75,6 +76,7 @@ def test_config_validation():
     if os.path.exists(test_config_path):
         os.remove(test_config_path)
     print("\nAll tests passed!")
+
 
 if __name__ == "__main__":
     test_config_validation()

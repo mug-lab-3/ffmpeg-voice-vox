@@ -9,6 +9,7 @@ from datetime import datetime
 
 from app.config import config
 
+
 class AudioManager:
     def __init__(self):
         # We no longer set a fixed output_dir here.
@@ -18,7 +19,7 @@ class AudioManager:
             "is_playing": False,
             "filename": None,
             "start_time": 0,
-            "duration": 0
+            "duration": 0,
         }
         self.playback_lock = threading.Lock()
 
@@ -68,8 +69,8 @@ class AudioManager:
             raise ValueError(f"Invalid output directory: {output_dir}")
 
         # Sanitize text for filename (safely truncated)
-        safe_text = re.sub(r'[\\/:*?"<>|]+', '', text)
-        safe_text = safe_text.replace('\n', '').replace('\r', '')
+        safe_text = re.sub(r'[\\/:*?"<>|]+', "", text)
+        safe_text = safe_text.replace("\n", "").replace("\r", "")
         prefix_text = safe_text[:8]
 
         filename_base = f"{db_id}_{prefix_text}"
@@ -97,6 +98,7 @@ class AudioManager:
 
         # Use a unique ID to prevent race conditions
         import uuid
+
         playback_id = str(uuid.uuid4())
 
         with self.playback_lock:
@@ -106,12 +108,12 @@ class AudioManager:
 
         def play_worker(path, dur, pid):
             from app.core.events import event_manager
+
             try:
                 # Notify Start
-                event_manager.publish("playback_change", {
-                    "is_playing": True,
-                    "filename": filename
-                })
+                event_manager.publish(
+                    "playback_change", {"is_playing": True, "filename": filename}
+                )
 
                 # Use sounddevice + soundfile for cross-platform playback
                 # Read file
@@ -133,12 +135,13 @@ class AudioManager:
                         self.playback_status["is_playing"] = False
 
                         # Notify End
-                        event_manager.publish("playback_change", {
-                            "is_playing": False,
-                            "filename": None
-                        })
+                        event_manager.publish(
+                            "playback_change", {"is_playing": False, "filename": None}
+                        )
 
-        threading.Thread(target=play_worker, args=(wav_path, duration, playback_id), daemon=True).start()
+        threading.Thread(
+            target=play_worker, args=(wav_path, duration, playback_id), daemon=True
+        ).start()
         return duration, start_time
 
     def get_playback_status(self):
@@ -158,7 +161,7 @@ class AudioManager:
         return {
             "is_playing": current_status["is_playing"] and remaining > 0,
             "filename": current_status["filename"],
-            "remaining": remaining
+            "remaining": remaining,
         }
 
     def delete_file(self, filename: str) -> bool:
@@ -208,10 +211,8 @@ class AudioManager:
 
                 # Check if file exists (redundant but safe)
                 if os.path.exists(wav_path):
-                    logs.append({
-                        "id": db_id,
-                        "filename": filename,
-                        "duration": duration
-                    })
+                    logs.append(
+                        {"id": db_id, "filename": filename, "duration": duration}
+                    )
 
         return logs

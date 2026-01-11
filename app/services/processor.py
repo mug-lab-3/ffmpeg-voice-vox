@@ -6,6 +6,7 @@ from app.core.voicevox import VoiceVoxClient
 from app.core.audio import AudioManager
 from app.core.database import db_manager
 
+
 class StreamProcessor:
     def __init__(self, voicevox_client: VoiceVoxClient, audio_manager: AudioManager):
         self.vv_client = voicevox_client
@@ -22,7 +23,7 @@ class StreamProcessor:
             output_dir = self.audio_manager.get_output_dir()
             print(f"  -> Loading from: {output_dir}")
 
-            for entry in reversed(db_logs): # Add oldest first for list append order
+            for entry in reversed(db_logs):  # Add oldest first for list append order
                 filename = entry["output_path"]
                 duration = entry["audio_duration"]
 
@@ -31,7 +32,9 @@ class StreamProcessor:
                     full_path = os.path.normpath(os.path.join(output_dir, filename))
                     if not os.path.exists(full_path):
                         # File missing on disk, but DB says it exists -> Delete from DB and skip
-                        print(f"  -> File MISSING on disk: {filename}. Deleting record ID {entry['id']} from DB.")
+                        print(
+                            f"  -> File MISSING on disk: {filename}. Deleting record ID {entry['id']} from DB."
+                        )
                         db_manager.delete_log(entry["id"])
                         continue
                     else:
@@ -39,7 +42,11 @@ class StreamProcessor:
 
                 log_entry = {
                     "id": entry["id"],
-                    "timestamp": entry["timestamp"].split()[1] if ' ' in entry["timestamp"] else entry["timestamp"],
+                    "timestamp": (
+                        entry["timestamp"].split()[1]
+                        if " " in entry["timestamp"]
+                        else entry["timestamp"]
+                    ),
                     "text": entry["text"],
                     "duration": f"{duration:.2f}s",
                     "config": {
@@ -49,9 +56,13 @@ class StreamProcessor:
                         "intonation_scale": entry["intonation_scale"],
                         "volume_scale": entry["volume_scale"],
                         "pre_phoneme_length": entry["pre_phoneme_length"],
-                        "post_phoneme_length": entry["post_phoneme_length"]
+                        "post_phoneme_length": entry["post_phoneme_length"],
                     },
-                    "filename": filename if (filename and duration > 0) else f"pending_{entry['id']}.wav"
+                    "filename": (
+                        filename
+                        if (filename and duration > 0)
+                        else f"pending_{entry['id']}.wav"
+                    ),
                 }
                 self.received_logs.append(log_entry)
 
@@ -68,12 +79,12 @@ class StreamProcessor:
         buffer = ""
         for chunk in stream_iterator:
             if chunk:
-                buffer += chunk.decode('utf-8', errors='ignore')
+                buffer += chunk.decode("utf-8", errors="ignore")
 
-                while '}' in buffer:
-                    brace_index = buffer.find('}')
-                    json_str = buffer[:brace_index+1]
-                    buffer = buffer[brace_index+1:]
+                while "}" in buffer:
+                    brace_index = buffer.find("}")
+                    json_str = buffer[: brace_index + 1]
+                    buffer = buffer[brace_index + 1 :]
 
                     try:
                         self._process_json_chunk(json_str)
@@ -103,7 +114,7 @@ class StreamProcessor:
             speaker_id=speaker_id,
             config_dict=current_config,
             output_path=None,
-            audio_duration=0.0
+            audio_duration=0.0,
         )
 
         generated_file = None
@@ -121,7 +132,7 @@ class StreamProcessor:
 
                 # 5. Save with DB ID
                 generated_file, actual_duration = self.audio_manager.save_audio(
-                   audio_data, text, db_id
+                    audio_data, text, db_id
                 )
 
                 # 6. Update DB with file info
@@ -138,7 +149,9 @@ class StreamProcessor:
                 print("  -> Synthesis Skipped (Disabled)")
 
         # 7. Add to UI logs (or update existing)
-        self._add_log_from_db(db_id, text, actual_duration, generated_file, speaker_id, current_config)
+        self._add_log_from_db(
+            db_id, text, actual_duration, generated_file, speaker_id, current_config
+        )
 
     def synthesize_item(self, db_id: int):
         """Perform synthesis for an existing DB record and save the file."""
@@ -169,17 +182,22 @@ class StreamProcessor:
             query_data["intonationScale"] = float(record["intonation_scale"] or 1.0)
             query_data["volumeScale"] = float(record["volume_scale"] or 1.0)
             query_data["prePhonemeLength"] = float(record["pre_phoneme_length"] or 0.1)
-            query_data["postPhonemeLength"] = float(record["post_phoneme_length"] or 0.1)
+            query_data["postPhonemeLength"] = float(
+                record["post_phoneme_length"] or 0.1
+            )
 
             audio_data = self.vv_client.synthesis(query_data, speaker_id)
         except Exception as e:
             print(f"[Processor] Synthesis CRITICAL Error for ID {db_id}: {e}")
             import traceback
+
             traceback.print_exc()
             raise
 
         # 4. Save
-        generated_file, actual_duration = self.audio_manager.save_audio(audio_data, text, db_id)
+        generated_file, actual_duration = self.audio_manager.save_audio(
+            audio_data, text, db_id
+        )
 
         # 5. Update DB
         db_manager.update_audio_info(db_id, generated_file, actual_duration)
@@ -192,18 +210,31 @@ class StreamProcessor:
                 break
 
         from app.core.events import event_manager
+
         event_manager.publish("log_update", {})
 
         return generated_file, actual_duration
 
-    def _add_log_from_db(self, db_id: int, text: str, duration: float, filename: str, speaker_id: int, log_config: dict):
+    def _add_log_from_db(
+        self,
+        db_id: int,
+        text: str,
+        duration: float,
+        filename: str,
+        speaker_id: int,
+        log_config: dict,
+    ):
         log_entry = {
             "id": db_id,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "text": text,
             "duration": f"{duration:.2f}s",
             "config": log_config.copy(),
-            "filename": filename if (filename and filename != "Pending" and duration > 0) else f"pending_{db_id}.wav"
+            "filename": (
+                filename
+                if (filename and filename != "Pending" and duration > 0)
+                else f"pending_{db_id}.wav"
+            ),
         }
 
         if len(self.received_logs) >= 50:
@@ -211,6 +242,7 @@ class StreamProcessor:
         self.received_logs.append(log_entry)
 
         from app.core.events import event_manager
+
         event_manager.publish("log_update", {})
 
     def get_logs(self):
@@ -221,22 +253,32 @@ class StreamProcessor:
         # 1. Identify ID from filename
         db_id = None
         import re
+
         if filename.startswith("pending_"):
             match = re.search(r"pending_(\d+)", filename)
-            if match: db_id = int(match.group(1))
+            if match:
+                db_id = int(match.group(1))
         else:
             match = re.match(r"^(\d+)_", filename)
-            if match: db_id = int(match.group(1))
+            if match:
+                db_id = int(match.group(1))
 
         # 2. Delete from DB if ID found
         if db_id:
-            print(f"[Processor] Deleting record ID {db_id} from DB (triggered by UI delete)")
+            print(
+                f"[Processor] Deleting record ID {db_id} from DB (triggered by UI delete)"
+            )
             db_manager.delete_log(db_id)
         else:
             # Fallback: maybe it was an old filename format or something else
-            print(f"[Processor] Could not identify DB ID for: {filename}. Skipping DB deletion.")
+            print(
+                f"[Processor] Could not identify DB ID for: {filename}. Skipping DB deletion."
+            )
 
         # 3. Cache deletion
-        self.received_logs = [log for log in self.received_logs if log.get('filename') != filename]
+        self.received_logs = [
+            log for log in self.received_logs if log.get("filename") != filename
+        ]
+
 
 # Singleton-alike instance creation would happen in app factory or DI container

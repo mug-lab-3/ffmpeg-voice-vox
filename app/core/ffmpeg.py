@@ -1,10 +1,10 @@
-
 import subprocess
 import threading
 import os
 import signal
 import platform
 import shlex
+
 
 class FFmpegClient:
     def __init__(self):
@@ -16,14 +16,20 @@ class FFmpegClient:
         Validates the FFmpeg configuration.
         Returns (True, None) if valid, (False, error_message) otherwise.
         """
-        required_keys = ["ffmpeg_path", "input_device", "model_path", "vad_model_path", "queue_length"]
+        required_keys = [
+            "ffmpeg_path",
+            "input_device",
+            "model_path",
+            "vad_model_path",
+            "queue_length",
+        ]
         for key in required_keys:
             if not config_data.get(key):
                 return False, f"Missing required setting: {key}"
 
         # Basic formatting checks could go here
         if not config_data.get("host"):
-             return False, "Missing required setting: host"
+            return False, "Missing required setting: host"
 
         return True, None
 
@@ -59,25 +65,27 @@ class FFmpegClient:
 
             if not os.path.exists(model_path):
                 print(f"[FFmpeg] WARNING: Model path not found: {model_path}")
+
             def _escape(path):
-                if not path: return "''"
+                if not path:
+                    return "''"
                 # Pattern based on user provided working example:
                 # model='C\:\\Users...'
                 # destination=http\\://...
 
                 # 1. Escape backslashes (literal \ -> \\)
                 # We must do this FIRST so we don't escape the backslashes we add for colons later.
-                p = path.replace('\\', '\\\\')
+                p = path.replace("\\", "\\\\")
                 # 2. Escape colons (literal : -> \:)
-                p = p.replace(':', '\\:')
+                p = p.replace(":", "\\:")
 
                 return f"'{p}'"
 
             def _escape_url(path):
                 # Using double backslash for URL colons to match user example
                 # destination=http\\://...
-                p = path.replace('\\', '\\\\')
-                p = p.replace(':', '\\\\:')
+                p = path.replace("\\", "\\\\")
+                p = p.replace(":", "\\\\:")
                 return p
 
             model_path_esc = _escape(model_path)
@@ -103,7 +111,9 @@ class FFmpegClient:
                 # If user selects name, we might need index mapping, but let's assume index or name works if ffmpeg supports it
                 # avfoundation uses "none:index" or "none:name" for audio only, or "video:audio"
                 # Simple approach: "none:DEVICE" if only audio
-                formatted_input = f"none:{input_device}" if ":" not in input_device else input_device
+                formatted_input = (
+                    f"none:{input_device}" if ":" not in input_device else input_device
+                )
             else:
                 input_format = "dshow"
                 null_device = "NUL"
@@ -111,12 +121,16 @@ class FFmpegClient:
 
             cmd = [
                 ffmpeg_path,
-                "-f", input_format,
-                "-i", formatted_input,
+                "-f",
+                input_format,
+                "-i",
+                formatted_input,
                 "-vn",
-                "-af", filter_arg,
-                "-f", "null",
-                null_device
+                "-af",
+                filter_arg,
+                "-f",
+                "null",
+                null_device,
             ]
 
             print(f"[FFmpeg] Starting with command: {' '.join(cmd)}")
@@ -164,30 +178,30 @@ class FFmpegClient:
         Returns a list of device names.
         """
         if not ffmpeg_path or not os.path.exists(ffmpeg_path):
-             print(f"[FFmpeg] Path not found or empty: {ffmpeg_path}")
-             return []
+            print(f"[FFmpeg] Path not found or empty: {ffmpeg_path}")
+            return []
 
         if platform.system() == "Darwin":
-             cmd = [ffmpeg_path, "-list_devices", "true", "-f", "avfoundation", "-i", ""]
+            cmd = [ffmpeg_path, "-list_devices", "true", "-f", "avfoundation", "-i", ""]
         else:
-             cmd = [ffmpeg_path, "-list_devices", "true", "-f", "dshow", "-i", "dummy"]
+            cmd = [ffmpeg_path, "-list_devices", "true", "-f", "dshow", "-i", "dummy"]
 
         try:
             # Capture as bytes to handle encoding manually
             result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            raw_output = result.stderr # device list is in stderr
+            raw_output = result.stderr  # device list is in stderr
 
             output = ""
             # Try utf-8 strict first.
             # UTF-8 is stricter than CP932. If bytes are valid UTF-8, it's likely UTF-8.
             # If input is Shift-JIS (e.g. 0x83...), utf-8 strict will fail.
             try:
-                output = raw_output.decode('utf-8')
+                output = raw_output.decode("utf-8")
             except UnicodeDecodeError:
                 try:
-                    output = raw_output.decode('cp932')
+                    output = raw_output.decode("cp932")
                 except UnicodeDecodeError:
-                    output = raw_output.decode('utf-8', errors='replace')
+                    output = raw_output.decode("utf-8", errors="replace")
 
             devices = []
 
@@ -208,7 +222,8 @@ class FFmpegClient:
                     if in_audio_section:
                         # Match "[0] Some Device"
                         import re
-                        match = re.search(r'\[\d+\]\s+(.+)', line)
+
+                        match = re.search(r"\[\d+\]\s+(.+)", line)
                         if match:
                             devices.append(match.group(1).strip())
             else:
@@ -217,7 +232,8 @@ class FFmpegClient:
                 for line in output.splitlines():
                     if "(audio)" in line:
                         import re
-                        match = re.search(r'\"(.+?)\"', line)
+
+                        match = re.search(r"\"(.+?)\"", line)
                         if match:
                             device_name = match.group(1)
                             if device_name != "dummy":
@@ -225,10 +241,10 @@ class FFmpegClient:
 
             print(f"[FFmpeg] Found devices: {devices}")
             if not devices:
-                 try:
-                     print(f"[FFmpeg] Raw output (decoded): {output}")
-                 except:
-                     print(f"[FFmpeg] Raw output (bytes): {raw_output}")
+                try:
+                    print(f"[FFmpeg] Raw output (decoded): {output}")
+                except:
+                    print(f"[FFmpeg] Raw output (bytes): {raw_output}")
 
             return devices
 

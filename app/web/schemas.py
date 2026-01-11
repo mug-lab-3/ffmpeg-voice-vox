@@ -4,18 +4,24 @@ from app.schemas import FfmpegConfig, ResolveConfig
 
 # --- API Schemas ---
 
+
 class BaseResponse(BaseModel):
     """Base scheme for all API responses."""
+
     status: str = "ok"
     message: Optional[str] = None
+
 
 class StatusResponse(BaseModel):
     """Simple status response."""
+
     status: str = "ok"
     message: Optional[str] = None
 
+
 class APIConfigSchema(BaseModel):
     """Flattened config structure for frontend."""
+
     speaker_id: int
     speed_scale: float
     pitch_scale: float
@@ -24,11 +30,13 @@ class APIConfigSchema(BaseModel):
     ffmpeg: FfmpegConfig
     resolve: ResolveConfig
 
+
 class ConfigResponse(BaseResponse):
     config: APIConfigSchema
     outputDir: str
     resolve_available: bool
     voicevox_available: bool
+
 
 class LogEntry(BaseModel):
     timestamp: str
@@ -37,8 +45,10 @@ class LogEntry(BaseModel):
     config: dict
     filename: str
 
+
 class LogsResponse(BaseResponse):
     logs: List[LogEntry]
+
 
 class ControlStateResponse(BaseResponse):
     enabled: bool
@@ -46,20 +56,26 @@ class ControlStateResponse(BaseResponse):
     resolve_available: bool
     voicevox_available: bool
 
+
 class PlayResponse(BaseResponse):
     duration: float
     start_time: float
 
+
 class DeleteResponse(BaseResponse):
     deleted: List[str]
+
 
 class BrowseResponse(BaseResponse):
     path: Optional[str] = None
 
+
 class DevicesResponse(BaseResponse):
     devices: List[str]
 
+
 # --- Request Schemas ---
+
 
 class ConfigRequest(BaseModel):
     speaker: Optional[int] = None
@@ -74,8 +90,10 @@ class ConfigRequest(BaseModel):
     outputDir: Optional[str] = None
     ffmpeg: Optional[Dict[str, Any]] = None
 
+
 class ControlStateRequest(BaseModel):
     enabled: bool
+
 
 class FilenameRequest(BaseModel):
     filename: str

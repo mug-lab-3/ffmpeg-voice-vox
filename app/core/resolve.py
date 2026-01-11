@@ -16,14 +16,19 @@ RESOLVE_CLIENT_LOG = "resolve.log"
 DEFAULT_VIDEO_TRACK = 2
 DEFAULT_AUDIO_TRACK = 1
 
+
 def get_resolve_module_path():
     """Returns the expected path for DaVinci Resolve scripting modules based on OS."""
     system = platform.system()
     if system == "Windows":
-        return os.path.join(os.getenv('PROGRAMDATA', ''), 'Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules')
+        return os.path.join(
+            os.getenv("PROGRAMDATA", ""),
+            "Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules",
+        )
     elif system == "Darwin":
         return "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules"
     return None
+
 
 def normalize_fps(fps_val):
     """
@@ -34,13 +39,17 @@ def normalize_fps(fps_val):
         if not isinstance(fps_val, (int, float)):
             fps_val = float(fps_val)
 
-        if 29.0 < fps_val < 30.0: return 30
-        elif 59.0 < fps_val < 60.0: return 60
-        elif 23.0 < fps_val < 24.0: return 24
+        if 29.0 < fps_val < 30.0:
+            return 30
+        elif 59.0 < fps_val < 60.0:
+            return 60
+        elif 23.0 < fps_val < 24.0:
+            return 24
 
         return int(round(fps_val))
     except (ValueError, TypeError):
         return 0
+
 
 def _log_monitor(msg):
     """Standalone logger for the monitor process."""
@@ -56,6 +65,7 @@ def _log_monitor(msg):
     except:
         pass
 
+
 # Standalone function for the separate process
 def monitor_resolve_process(shared_status, running_event):
     """
@@ -65,7 +75,7 @@ def monitor_resolve_process(shared_status, running_event):
     """
     _log_monitor("Monitor process started")
 
-    last_status = None # None indicates startup/unknown
+    last_status = None  # None indicates startup/unknown
     dvr_module = None
 
     while running_event.is_set():
@@ -76,38 +86,52 @@ def monitor_resolve_process(shared_status, running_event):
             is_running = False
             try:
                 import psutil
+
                 # Iterate over all running processes
-                for proc in psutil.process_iter(['name']):
+                for proc in psutil.process_iter(["name"]):
                     try:
-                        name = proc.info['name']
+                        name = proc.info["name"]
                         if name and "Resolve" in name:
                             is_running = True
                             break
-                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    except (
+                        psutil.NoSuchProcess,
+                        psutil.AccessDenied,
+                        psutil.ZombieProcess,
+                    ):
                         pass
             except ImportError:
-                _log_monitor("psutil not found, assuming Resolve is running to trigger probe")
+                _log_monitor(
+                    "psutil not found, assuming Resolve is running to trigger probe"
+                )
                 is_running = True
             except Exception as e:
                 _log_monitor(f"Process check error: {e}")
-                is_running = True # If check fails, fall back to probe
+                is_running = True  # If check fails, fall back to probe
 
             if is_running:
                 try:
                     # Setup path just in case (only once)
                     expected_path = get_resolve_module_path()
 
-                    if expected_path and os.path.exists(expected_path) and expected_path not in sys.path:
+                    if (
+                        expected_path
+                        and os.path.exists(expected_path)
+                        and expected_path not in sys.path
+                    ):
                         sys.path.append(expected_path)
 
                     # Try to import/reload only if not connected or not yet imported
                     if dvr_module is None:
                         try:
                             import DaVinciResolveScript as dvr
+
                             dvr_module = dvr
                         except ImportError:
                             pass
-                    elif not last_status: # If module exists but was disconnected, try reload
+                    elif (
+                        not last_status
+                    ):  # If module exists but was disconnected, try reload
                         try:
                             importlib.reload(dvr_module)
                         except:
@@ -138,7 +162,7 @@ def monitor_resolve_process(shared_status, running_event):
                 last_status = success
 
             # Sleep with sensitivity to running_event
-            for _ in range(50): # 5 seconds total
+            for _ in range(50):  # 5 seconds total
                 if not running_event.is_set():
                     break
                 time.sleep(0.1)
@@ -149,26 +173,27 @@ def monitor_resolve_process(shared_status, running_event):
             _log_monitor(f"Monitor process critical error: {e}")
             time.sleep(5)
 
+
 class ResolveClient:
     def __init__(self):
         self.resolve = None
         self._lock = threading.Lock()
 
         # Multiprocessing setup
-        self._shared_status = multiprocessing.Value('i', 0)
+        self._shared_status = multiprocessing.Value("i", 0)
         self._running_event = multiprocessing.Event()
         self._running_event.set()
 
         self._proc = multiprocessing.Process(
             target=monitor_resolve_process,
             args=(self._shared_status, self._running_event),
-            daemon=True
+            daemon=True,
         )
         self._proc.start()
 
     def shutdown(self):
         """Cleanly shutdown the monitor process."""
-        if hasattr(self, '_proc') and self._proc.is_alive():
+        if hasattr(self, "_proc") and self._proc.is_alive():
             print("[Resolve] Stopping monitor process...")
             self._running_event.clear()
 
@@ -183,6 +208,7 @@ class ResolveClient:
                 print("[Resolve] Monitor process still alive, killing...")
                 try:
                     import signal
+
                     os.kill(self._proc.pid, signal.SIGTERM)
                 except:
                     pass
@@ -197,16 +223,18 @@ class ResolveClient:
             return True
 
         try:
-             import DaVinciResolveScript as dvr_script
-             self.resolve = dvr_script.scriptapp("Resolve")
+            import DaVinciResolveScript as dvr_script
+
+            self.resolve = dvr_script.scriptapp("Resolve")
         except ImportError:
             # Try path add
             path = get_resolve_module_path()
 
             if path and path not in sys.path:
-                 sys.path.append(path)
+                sys.path.append(path)
             try:
                 import DaVinciResolveScript as dvr_script
+
                 self.resolve = dvr_script.scriptapp("Resolve")
             except:
                 pass
@@ -226,10 +254,10 @@ class ResolveClient:
         """Convert HH:MM:SS:FF timecode to frame count."""
         try:
             # Handle Drop Frame semicolons
-            timecode = timecode.replace(';', ':')
+            timecode = timecode.replace(";", ":")
             fps = normalize_fps(fps_str)
 
-            parts = timecode.split(':')
+            parts = timecode.split(":")
             if len(parts) != 4:
                 self._log(f"Invalid timecode format: {timecode}")
                 return 0
@@ -245,7 +273,8 @@ class ResolveClient:
         """Convert frame count back to HH:MM:SS:FF timecode."""
         try:
             fps = normalize_fps(fps_str)
-            if fps == 0: return "00:00:00:00"
+            if fps == 0:
+                return "00:00:00:00"
 
             h = total_frames // (3600 * fps)
             m = (total_frames // (60 * fps)) % 60
@@ -260,9 +289,9 @@ class ResolveClient:
     def _srt_time_to_frames(self, srt_time, fps_str):
         """Convert SRT time string HH:MM:SS,mmm to frame count."""
         try:
-            fps = float(fps_str) # Keeping float here for precision in calculation
+            fps = float(fps_str)  # Keeping float here for precision in calculation
             # "00:00:05,123"
-            parts = srt_time.replace(',', ':').split(':')
+            parts = srt_time.replace(",", ":").split(":")
             h, m, s, ms = map(int, parts)
             total_seconds = h * 3600 + m * 60 + s + (ms / 1000.0)
             return int(round(total_seconds * fps))
@@ -298,8 +327,13 @@ class ResolveClient:
 
                 # --- 0. Template Management ---
                 from app.config import config
-                target_bin_name = config.get("resolve.template_bin", "VoiceVox Captions")
-                target_clip_name = config.get("resolve.template_name", "DefaultTemplate")
+
+                target_bin_name = config.get(
+                    "resolve.template_bin", "VoiceVox Captions"
+                )
+                target_clip_name = config.get(
+                    "resolve.template_name", "DefaultTemplate"
+                )
 
                 root_folder = media_pool.GetRootFolder()
                 template_item = None
@@ -314,7 +348,9 @@ class ResolveClient:
                 # Step 2: Auto-create the bin if missing
                 if not target_bin:
                     try:
-                        target_bin = media_pool.AddSubFolder(root_folder, target_bin_name)
+                        target_bin = media_pool.AddSubFolder(
+                            root_folder, target_bin_name
+                        )
                         self._log(f"Created Bin: {target_bin_name}")
                     except Exception as e:
                         self._log(f"Failed to create bin: {e}")
@@ -334,24 +370,31 @@ class ResolveClient:
                         for clip in clips:
                             c_type = clip.GetClipProperty("Type")
                             c_path = clip.GetClipProperty("File Path")
-                            if c_path == "" and ("Text" in c_type or "Fusion" in c_type):
+                            if c_path == "" and (
+                                "Text" in c_type or "Fusion" in c_type
+                            ):
                                 template_item = clip
                                 break
 
                 # Step 4: Final fallback - Global recursive search
                 if not template_item:
+
                     def find_template_recursive(folder):
                         for clip in folder.GetClipList():
                             if clip.GetClipProperty("Clip Name") == target_clip_name:
                                 return clip
                         for sub in folder.GetSubFolderList():
                             res = find_template_recursive(sub)
-                            if res: return res
+                            if res:
+                                return res
                         return None
+
                     template_item = find_template_recursive(root_folder)
 
                 if not template_item:
-                    self._log(f"INFO: No template found. Please ensure a Text+ clip is in the Media Pool.")
+                    self._log(
+                        f"INFO: No template found. Please ensure a Text+ clip is in the Media Pool."
+                    )
 
                 # 1. Import Media
                 items = media_pool.ImportMedia([file_path])
@@ -388,8 +431,12 @@ class ResolveClient:
                     duration_frames = self._timecode_to_frames(duration_tc, fps_str)
 
                 # --- Track Management ---
-                target_track_video = config.get("resolve.subtitle_track_index", DEFAULT_VIDEO_TRACK)
-                target_track_audio = config.get("resolve.audio_track_index", DEFAULT_AUDIO_TRACK)
+                target_track_video = config.get(
+                    "resolve.subtitle_track_index", DEFAULT_VIDEO_TRACK
+                )
+                target_track_audio = config.get(
+                    "resolve.audio_track_index", DEFAULT_AUDIO_TRACK
+                )
 
                 # Ensure Video Tracks exist
                 video_track_count = timeline.GetTrackCount("video")
@@ -408,25 +455,33 @@ class ResolveClient:
                         break
 
                 # A. Insert Audio
-                media_pool.AppendToTimeline([{
-                    "mediaPoolItem": media_item,
-                    "startFrame": 0,
-                    "endFrame": duration_frames,
-                    "recordFrame": playhead_frame,
-                    "trackIndex": target_track_audio,
-                    "mediaType": 2 # Audio
-                }])
+                media_pool.AppendToTimeline(
+                    [
+                        {
+                            "mediaPoolItem": media_item,
+                            "startFrame": 0,
+                            "endFrame": duration_frames,
+                            "recordFrame": playhead_frame,
+                            "trackIndex": target_track_audio,
+                            "mediaType": 2,  # Audio
+                        }
+                    ]
+                )
 
                 # B. Insert Template (Text+) if available
                 if template_item:
-                    appended_items = media_pool.AppendToTimeline([{
-                        "mediaPoolItem": template_item,
-                        "startFrame": 0,
-                        "endFrame": duration_frames,
-                        "recordFrame": playhead_frame,
-                        "trackIndex": target_track_video,
-                        "mediaType": 1 # Video
-                    }])
+                    appended_items = media_pool.AppendToTimeline(
+                        [
+                            {
+                                "mediaPoolItem": template_item,
+                                "startFrame": 0,
+                                "endFrame": duration_frames,
+                                "recordFrame": playhead_frame,
+                                "trackIndex": target_track_video,
+                                "mediaType": 1,  # Video
+                            }
+                        ]
+                    )
 
                     if appended_items and len(appended_items) > 0:
                         timeline_item = appended_items[0]
@@ -451,7 +506,11 @@ class ResolveClient:
                 if not tool:
                     tools = comp.GetToolList(False, "TextPlus")
                     if tools:
-                        tool = list(tools.values())[0] if isinstance(tools, dict) else tools[0]
+                        tool = (
+                            list(tools.values())[0]
+                            if isinstance(tools, dict)
+                            else tools[0]
+                        )
                 if tool:
                     tool.SetInput("StyledText", text)
                 else:

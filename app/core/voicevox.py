@@ -3,6 +3,7 @@ import urllib.request
 import urllib.parse
 from app.config import config
 
+
 class VoiceVoxClient:
     def __init__(self):
         pass
@@ -16,7 +17,7 @@ class VoiceVoxClient:
     def is_available(self) -> bool:
         try:
             url = f"{self.base_url}/version"
-            req = urllib.request.Request(url, method='GET')
+            req = urllib.request.Request(url, method="GET")
             with urllib.request.urlopen(req, timeout=1) as res:
                 return res.getcode() == 200
         except:
@@ -29,30 +30,25 @@ class VoiceVoxClient:
         # For now, we return the static list from the original requirements to avoid breaking changes if the API is offline during init.
         # Actually, let's keep the static map in a better place or just return it here.
         # Original map:
-        return {
-            1: "ずんだもん",
-            2: "四国めたん",
-            8: "春日部つむぎ",
-            9: "波音リツ"
-        }
+        return {1: "ずんだもん", 2: "四国めたん", 8: "春日部つむぎ", 9: "波音リツ"}
 
     def audio_query(self, text: str, speaker_id: int) -> dict:
         url = f"{self.base_url}/audio_query?text={urllib.parse.quote(text)}&speaker={speaker_id}"
-        req = urllib.request.Request(url, method='POST')
+        req = urllib.request.Request(url, method="POST")
         with urllib.request.urlopen(req) as res:
             return json.load(res)
 
     def synthesis(self, query_data: dict, speaker_id: int) -> bytes:
         # Apply config overrides
-        query_data['speedScale'] = config.get("synthesis.speed_scale", 1.0)
-        query_data['pitchScale'] = config.get("synthesis.pitch_scale", 0.0)
-        query_data['intonationScale'] = config.get("synthesis.intonation_scale", 1.0)
-        query_data['volumeScale'] = config.get("synthesis.volume_scale", 1.0)
+        query_data["speedScale"] = config.get("synthesis.speed_scale", 1.0)
+        query_data["pitchScale"] = config.get("synthesis.pitch_scale", 0.0)
+        query_data["intonationScale"] = config.get("synthesis.intonation_scale", 1.0)
+        query_data["volumeScale"] = config.get("synthesis.volume_scale", 1.0)
 
         url = f"{self.base_url}/synthesis?speaker={speaker_id}"
-        json_data = json.dumps(query_data).encode('utf-8')
-        req = urllib.request.Request(url, data=json_data, method='POST')
-        req.add_header('Content-Type', 'application/json')
+        json_data = json.dumps(query_data).encode("utf-8")
+        req = urllib.request.Request(url, data=json_data, method="POST")
+        req.add_header("Content-Type", "application/json")
 
         with urllib.request.urlopen(req) as res:
             return res.read()

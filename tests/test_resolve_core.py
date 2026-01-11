@@ -4,26 +4,26 @@ import unittest
 from unittest.mock import patch, MagicMock
 import pytest
 
-from app.core.resolve import (
-    get_resolve_module_path,
-    normalize_fps,
-    ResolveClient
-)
+from app.core.resolve import get_resolve_module_path, normalize_fps, ResolveClient
+
 
 class TestResolveCore:
 
-    @pytest.mark.parametrize("input_fps,expected", [
-        (23.976, 24),
-        (24.0, 24),
-        (29.97, 30),
-        (30.0, 30),
-        (59.94, 60),
-        (60.0, 60),
-        ("29.97", 30),
-        (25, 25),
-        ("invalid", 0),
-        (None, 0)
-    ])
+    @pytest.mark.parametrize(
+        "input_fps,expected",
+        [
+            (23.976, 24),
+            (24.0, 24),
+            (29.97, 30),
+            (30.0, 30),
+            (59.94, 60),
+            (60.0, 60),
+            ("29.97", 30),
+            (25, 25),
+            ("invalid", 0),
+            (None, 0),
+        ],
+    )
     def test_normalize_fps(self, input_fps, expected):
         """Test FPS normalization logic."""
         assert normalize_fps(input_fps) == expected
@@ -31,7 +31,7 @@ class TestResolveCore:
     def test_get_resolve_module_path_windows(self):
         """Test path resolution on Windows."""
         with patch("platform.system", return_value="Windows"):
-             with patch.dict(os.environ, {"PROGRAMDATA": "C:\\ProgramData"}):
+            with patch.dict(os.environ, {"PROGRAMDATA": "C:\\ProgramData"}):
                 path = get_resolve_module_path()
                 expected = "C:\\ProgramData\\Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules"
                 # Normalize slashes for comparison if needed, but the code uses join which might use backslash
@@ -45,7 +45,10 @@ class TestResolveCore:
         """Test path resolution on Mac."""
         with patch("platform.system", return_value="Darwin"):
             path = get_resolve_module_path()
-            assert path == "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules"
+            assert (
+                path
+                == "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules"
+            )
 
     def test_get_resolve_module_path_linux(self):
         """Test path resolution on Linux/Unknown."""
@@ -70,7 +73,7 @@ class TestResolveCore:
 
         # 00:00:01:12 at 30fps -> 30 + 12 = 42 frames
         frames = client._timecode_to_frames("00:00:01:12", 29.97)
-        assert frames == 42 # 29.97 -> 30
+        assert frames == 42  # 29.97 -> 30
 
     @patch("app.core.resolve.multiprocessing.Process")
     def test_frames_to_timecode(self, mock_process):
@@ -92,8 +95,9 @@ class TestResolveCore:
         frames = client._srt_time_to_frames("00:00:01,500", "30")
         assert frames == 45
 
+
 class TestMonitorProcess:
-    @patch("app.core.resolve.time.sleep") # Prevent slow tests
+    @patch("app.core.resolve.time.sleep")  # Prevent slow tests
     @patch("app.core.resolve._log_monitor")
     @patch("app.core.resolve.get_resolve_module_path")
     def test_monitor_loop(self, mock_path, mock_log, mock_sleep):
@@ -108,7 +112,7 @@ class TestMonitorProcess:
 
         # Mock process iteration finding "Resolve"
         mock_proc = MagicMock()
-        mock_proc.info = {'name': 'DaVinci Resolve'}
+        mock_proc.info = {"name": "DaVinci Resolve"}
 
         # Mock psutil module
         mock_psutil_mod = MagicMock()
@@ -125,28 +129,28 @@ class TestMonitorProcess:
         mock_dvr.scriptapp.return_value = mock_resolve
 
         # Patch both psutil and DaVinciResolveScript
-        with patch.dict(sys.modules, {
-            'DaVinciResolveScript': mock_dvr,
-            'psutil': mock_psutil_mod
-        }):
+        with patch.dict(
+            sys.modules, {"DaVinciResolveScript": mock_dvr, "psutil": mock_psutil_mod}
+        ):
             monitor_resolve_process(shared_status, running_event)
 
         # Verify status was updated to 1 because resolve was found and scriptapp returned object
         assert shared_status.value == 1
+
 
 class TestResolveClientLifecycle:
     @patch("app.core.resolve.multiprocessing.Process")
     def test_shutdown(self, mock_proc_cls):
         """Test shutdown logic."""
         client = ResolveClient()
-        mock_proc = client._proc # Mock process object
+        mock_proc = client._proc  # Mock process object
         # Initial check -> join -> check -> terminate -> check -> kill
         # Should provide enough False
         mock_proc.is_alive.side_effect = [True, False, False, False, False]
 
         client.shutdown()
 
-        assert client._running_event.is_set() is False # Should include clear()
+        assert client._running_event.is_set() is False  # Should include clear()
         mock_proc.join.assert_called()
 
     @patch("app.core.resolve.multiprocessing.Process")
@@ -164,7 +168,7 @@ class TestResolveClientLifecycle:
         from app.core.resolve import monitor_resolve_process
 
         # 1. psutil ImportError
-        with patch.dict(sys.modules, {'psutil': None}): # removes psutil
+        with patch.dict(sys.modules, {"psutil": None}):  # removes psutil
             shared = MagicMock()
             stop_evt = MagicMock()
             stop_evt.is_set.side_effect = [True, False, False]
@@ -177,10 +181,12 @@ class TestResolveClientLifecycle:
         # 2. Resolve Import Error
         mock_psutil = MagicMock()
         mock_proc = MagicMock()
-        mock_proc.info = {'name': 'Resolve'}
+        mock_proc.info = {"name": "Resolve"}
         mock_psutil.process_iter.return_value = [mock_proc]
 
-        with patch.dict(sys.modules, {'psutil': mock_psutil, 'DaVinciResolveScript': None}):
+        with patch.dict(
+            sys.modules, {"psutil": mock_psutil, "DaVinciResolveScript": None}
+        ):
             shared = MagicMock()
             stop_evt = MagicMock()
             stop_evt.is_set.side_effect = [True, False, False]
@@ -237,16 +243,18 @@ class TestResolveInsertion:
 
         # Mock Media Import
         mock_media_item = MagicMock()
-        mock_media_item.GetClipProperty.side_effect = lambda prop: "100" if prop == "Frames" else "00:00:03:10"
+        mock_media_item.GetClipProperty.side_effect = lambda prop: (
+            "100" if prop == "Frames" else "00:00:03:10"
+        )
         self.mock_media_pool.ImportMedia.return_value = [mock_media_item]
 
         # Mock Bin Structure for Template
         mock_root = MagicMock()
         self.mock_media_pool.GetRootFolder.return_value = mock_root
-        mock_root.GetSubFolderList.return_value = [] # No existing bin, force create
+        mock_root.GetSubFolderList.return_value = []  # No existing bin, force create
         mock_new_bin = MagicMock()
         self.mock_media_pool.AddSubFolder.return_value = mock_new_bin
-        mock_new_bin.GetClipList.return_value = [] # No template found in new bin
+        mock_new_bin.GetClipList.return_value = []  # No template found in new bin
 
         # Run Insertion
         success = client.insert_file("C:/test.wav", text="Hello World")
@@ -268,11 +276,11 @@ class TestResolveInsertion:
             item_list = args[0]
             item_data = item_list[0]
 
-            if item_data["mediaType"] == 2: # Audio
+            if item_data["mediaType"] == 2:  # Audio
                 assert item_data["trackIndex"] == 1
                 assert item_data["mediaPoolItem"] == mock_media_item
                 found_audio = True
-            elif item_data["mediaType"] == 1: # Video
+            elif item_data["mediaType"] == 1:  # Video
                 assert item_data["trackIndex"] == 2
                 found_video = True
 
@@ -298,7 +306,9 @@ class TestResolveInsertion:
 
         # Create a mock template clip
         mock_template_clip = MagicMock()
-        mock_template_clip.GetClipProperty.side_effect = lambda x: "DefaultTemplate" if x == "Clip Name" else ""
+        mock_template_clip.GetClipProperty.side_effect = lambda x: (
+            "DefaultTemplate" if x == "Clip Name" else ""
+        )
 
         # Setup recursive search to find it
         mock_root.GetClipList.return_value = [mock_template_clip]
@@ -329,9 +339,9 @@ class TestResolveInsertion:
         video_call_found = False
         for call in self.mock_media_pool.AppendToTimeline.call_args_list:
             data = call[0][0][0]
-            if data['mediaType'] == 1:
-                assert data['trackIndex'] == 2
-                assert data['mediaPoolItem'] == mock_template_clip
+            if data["mediaType"] == 1:
+                assert data["trackIndex"] == 2
+                assert data["mediaPoolItem"] == mock_template_clip
                 video_call_found = True
 
         assert video_call_found, "Template (Video) was not inserted"
