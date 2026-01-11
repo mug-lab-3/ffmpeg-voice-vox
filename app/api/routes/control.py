@@ -17,7 +17,12 @@ from app.services.control_service import (
     delete_audio_handler,
     update_text_handler,
 )
-from app.api.schemas.control import ControlStateResponse, PlayResponse, DeleteResponse
+from app.api.schemas.control import (
+    ControlStateResponse,
+    PlayResponse,
+    DeleteResponse,
+    ItemIdRequest,
+)
 from app.api.schemas.system import BrowseResponse
 from app.web.routes import (
     vv_client,
@@ -63,31 +68,39 @@ def handle_control_state():
 @control_bp.route("/api/control/resolve_insert", methods=["POST"])
 def handle_resolve_insert():
     data = request.json
-    filename = data.get("filename")
-    if not filename:
-        return jsonify({"status": "error", "message": "No filename"}), 400
+    try:
+        req = ItemIdRequest(**data)
+        db_id = req.id
+    except Exception:
+        return jsonify({"status": "error", "message": "Invalid or missing ID"}), 400
+
     try:
         from app.core.database import DatabaseManager
 
         db_manager = DatabaseManager()
         resolve_insert_handler(
-            filename, audio_manager, processor, get_resolve_client, db_manager
+            db_id, audio_manager, processor, get_resolve_client, db_manager
         )
         return jsonify({"status": "ok"})
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Internal error: {str(e)}"}), 500
 
 
 @control_bp.route("/api/control/play", methods=["POST"])
 def handle_play():
     data = request.json
-    filename = data.get("filename")
-    if not filename:
-        return jsonify({"status": "error", "message": "No filename"}), 400
+    try:
+        req = ItemIdRequest(**data)
+        db_id = req.id
+    except Exception:
+        return jsonify({"status": "error", "message": "Invalid or missing ID"}), 400
+
     try:
         request_id = data.get("request_id")
         duration, start_time = play_audio_handler(
-            filename, audio_manager, processor, request_id=request_id
+            db_id, audio_manager, processor, request_id=request_id
         )
         return jsonify(
             PlayResponse(duration=duration, start_time=start_time).model_dump()
@@ -99,11 +112,14 @@ def handle_play():
 @control_bp.route("/api/control/delete", methods=["POST"])
 def handle_delete():
     data = request.json
-    filename = data.get("filename")
-    if not filename:
-        return jsonify({"status": "error", "message": "No filename"}), 400
     try:
-        deleted_files = delete_audio_handler(filename, audio_manager, processor)
+        req = ItemIdRequest(**data)
+        db_id = req.id
+    except Exception:
+        return jsonify({"status": "error", "message": "Invalid or missing ID"}), 400
+
+    try:
+        deleted_files = delete_audio_handler(db_id, audio_manager, processor)
         return jsonify(DeleteResponse(deleted=deleted_files).model_dump())
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -112,12 +128,17 @@ def handle_delete():
 @control_bp.route("/api/control/update_text", methods=["POST"])
 def handle_update_text():
     data = request.json
-    filename = data.get("filename")
-    new_text = data.get("text")
-    if not filename or new_text is None:
-        return jsonify({"status": "error", "message": "Missing filename or text"}), 400
     try:
-        update_text_handler(filename, new_text, processor)
+        req = ItemIdRequest(**data)
+        db_id = req.id
+    except Exception:
+        return jsonify({"status": "error", "message": "Invalid or missing ID"}), 400
+
+    new_text = data.get("text")
+    if new_text is None:
+        return jsonify({"status": "error", "message": "Missing text"}), 400
+    try:
+        update_text_handler(db_id, new_text, processor)
         return jsonify({"status": "ok"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500

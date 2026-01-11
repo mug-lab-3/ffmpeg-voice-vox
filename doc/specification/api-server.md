@@ -81,11 +81,11 @@
 
 #### `POST /api/control/resolve_insert`
 生成済みの音声ファイルをDaVinci Resolveのタイムラインへ挿入します。
-- **ボディ**: `{"filename": string}`
+- **ボディ**: `{"id": integer}`
 
 #### `POST /api/control/play`
 生成済みの音声ファイルを再生します。
-- **ボディ**: `{"filename": string, "request_id": string (optional)}`
+- **ボディ**: `{"id": integer, "request_id": string (optional)}`
 - **挙動**:
     - リクエストはサーバー側でキューイングされ、受信順に処理されます。
     - 既に再生中の場合は、現在の再生が終了するのを待機してから次の再生を開始します。
@@ -93,9 +93,9 @@
 
 #### `POST /api/control/update_text`
 既存のログエントリのテキスト内容を更新します。
-- **ボディ**: `{"filename": string, "text": string}`
+- **ボディ**: `{"id": integer, "text": string}`
 - **挙動**:
-    - `filename` からDBレコードIDを特定し、`text` 内容を更新します。
+    - `id` からDBレコードを特定し、`text` 内容を更新します。
     - 既に生成済みの音声ファイルがある場合は物理的に削除され、エントリのステータスは「未生成 (pending)」状態に戻ります。
     - この操作はシステムが「停止中」かつ「非再生中」の場合にのみ許可されます（UIレイヤーで制御）。
 

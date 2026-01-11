@@ -44,5 +44,11 @@ class ControlStateRequest(BaseModel):
     enabled: bool
 
 
+class ItemIdRequest(BaseModel):
+    id: int
+
+
 class FilenameRequest(BaseModel):
+    # Backward compatibility: marked as deprecated in spirit, but kept for a moment if needed.
+    # Actually, we will replace its usage in routes.
     filename: str

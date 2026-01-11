@@ -109,35 +109,35 @@ export class ApiClient {
         });
     }
 
-    async playAudio(filename, request_id = null) {
+    async playAudio(id, request_id = null) {
         return this._fetchJson(this.endpoints.CONTROL_PLAY, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename, request_id })
+            body: JSON.stringify({ id, request_id })
         });
     }
 
-    async deleteFile(filename) {
+    async deleteFile(id) {
         return this._fetchJson(this.endpoints.CONTROL_DELETE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename })
+            body: JSON.stringify({ id })
         });
     }
 
-    async updateText(filename, text) {
+    async updateText(id, text) {
         return this._fetchJson(this.endpoints.CONTROL_UPDATE_TEXT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename, text })
+            body: JSON.stringify({ id, text })
         });
     }
 
-    async insertToResolve(filename) {
+    async insertToResolve(id) {
         return this._fetchJson(this.endpoints.CONTROL_RESOLVE_INSERT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename })
+            body: JSON.stringify({ id })
         });
     }
 

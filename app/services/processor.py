@@ -248,68 +248,50 @@ class StreamProcessor:
     def get_logs(self):
         return self.received_logs
 
-    def delete_log(self, filename: str):
-        """Removes from UI list AND Database by identifying the ID from filename."""
-        # 1. Identify ID from filename
-        db_id = None
-        import re
+    def delete_log(self, db_id: int):
+        """Removes from UI list AND Database by ID."""
+        # 1. Delete from DB
+        print(f"[Processor] Deleting record ID {db_id} from DB (triggered by UI delete)")
+        # We need to find the filename before deleting from cache to return it
+        filename = None
+        for log in self.received_logs:
+            if log.get("id") == db_id:
+                filename = log.get("filename")
+                break
 
-        if filename.startswith("pending_"):
-            match = re.search(r"pending_(\d+)", filename)
-            if match:
-                db_id = int(match.group(1))
-        else:
-            match = re.match(r"^(\d+)_", filename)
-            if match:
-                db_id = int(match.group(1))
+        db_manager.delete_log(db_id)
 
-        # 2. Delete from DB if ID found
-        if db_id:
-            print(
-                f"[Processor] Deleting record ID {db_id} from DB (triggered by UI delete)"
-            )
-            db_manager.delete_log(db_id)
-        else:
-            # Fallback: maybe it was an old filename format or something else
-            print(
-                f"[Processor] Could not identify DB ID for: {filename}. Skipping DB deletion."
-            )
-
-        # 3. Cache deletion
+        # 2. Cache deletion
         self.received_logs = [
-            log for log in self.received_logs if log.get("filename") != filename
+            log for log in self.received_logs if log.get("id") != db_id
         ]
 
+        from app.core.events import event_manager
+        event_manager.publish("log_update", {})
 
-    def update_log_text(self, filename: str, new_text: str):
-        """Updates text for a log entry, deletes old audio if exists, and resets state."""
-        # 1. Identify ID from filename
-        db_id = None
-        import re
+        return filename
 
-        if filename.startswith("pending_"):
-            match = re.search(r"pending_(\d+)", filename)
-            if match:
-                db_id = int(match.group(1))
-        else:
-            match = re.match(r"^(\d+)_", filename)
-            if match:
-                db_id = int(match.group(1))
 
-        if not db_id:
-            raise ValueError(f"Could not identify DB ID for: {filename}")
+    def update_log_text(self, db_id: int, new_text: str):
+        """Updates text for a log entry by ID, deletes old audio if exists, and resets state."""
+        # 1. Find Current Cache Entry to check for old filename
+        old_filename = None
+        for log in self.received_logs:
+            if log.get("id") == db_id:
+                old_filename = log.get("filename")
+                break
 
         # 2. Update Database
         print(f"[Processor] Updating text for ID {db_id}: '{new_text}'")
         db_manager.update_transcription_text(db_id, new_text)
 
         # 3. Delete physical file if it was a real file
-        if not filename.startswith("pending_"):
-            print(f"[Processor] Deleting old audio file: {filename}")
+        if old_filename and not old_filename.startswith("pending_"):
+            print(f"[Processor] Deleting old audio file: {old_filename}")
             try:
-                self.audio_manager.delete_file(filename)
+                self.audio_manager.delete_file(old_filename)
             except Exception as e:
-                print(f"[Processor] Error deleting file {filename}: {e}")
+                print(f"[Processor] Error deleting file {old_filename}: {e}")
 
         # 4. Update Cache (Reset to pending state)
         found = False

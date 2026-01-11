@@ -731,7 +731,7 @@ function updateLogRow(row, entry) {
         };
         textCell.onblur = () => {
             textCell.style.background = "";
-            doUpdateText(entry.filename, textCell);
+            doUpdateText(entry.id, textCell);
         };
         textCell.onkeydown = (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -773,7 +773,7 @@ function updateLogRow(row, entry) {
         playBtn.classList.remove('playing', 'playing-anim');
         playBtn.disabled = isLocked;
         playBtn.title = isLocked ? "Function disabled while running/playing" : "Play audio";
-        playBtn.onclick = isLocked ? null : () => doPlay(entry.filename, playBtn);
+        playBtn.onclick = isLocked ? null : () => doPlay(entry.id, playBtn);
 
         // On-demand (pending) items get red Play button
         if (isPending) {
@@ -795,7 +795,7 @@ function updateLogRow(row, entry) {
         rsvBtn.disabled = isLocked;
         rsvBtn.title = isLocked ? "Wait for current task" : "Insert to DaVinci Resolve";
         if (!isLocked) {
-            rsvBtn.onclick = () => doResolveInsert(entry.filename, rsvBtn);
+            rsvBtn.onclick = () => doResolveInsert(entry.id, rsvBtn);
         }
         rsvCell.appendChild(rsvBtn);
     }
@@ -810,7 +810,7 @@ function updateLogRow(row, entry) {
         delBtn.disabled = isLocked;
         delBtn.title = isLocked ? "Wait for current task" : "Delete file";
         if (!isLocked) {
-            delBtn.onclick = () => doDelete(entry.filename);
+            delBtn.onclick = () => doDelete(entry.id, entry.filename);
         }
         delCell.appendChild(delBtn);
     }
@@ -818,7 +818,7 @@ function updateLogRow(row, entry) {
 
 // --- Action Implementations ---
 
-async function doPlay(filename, btn) {
+async function doPlay(id, btn) {
     // 1. Provisional UI Lock: Prevent other playback interactions immediately
     const allPlayBtns = document.querySelectorAll('.btn-icon-play');
     allPlayBtns.forEach(b => b.disabled = true);
@@ -831,7 +831,7 @@ async function doPlay(filename, btn) {
 
     try {
         // 2. Send Request with ID
-        const res = await api.playAudio(filename, requestId);
+        const res = await api.playAudio(id, requestId);
 
         if (res.ok && res.data.status === 'ok') {
             // Request Accepted. 
@@ -857,10 +857,10 @@ async function doPlay(filename, btn) {
     }
 }
 
-async function doDelete(filename) {
+async function doDelete(id, filename) {
     if (await showConfirmDialog(filename)) {
         try {
-            const res = await api.deleteFile(filename);
+            const res = await api.deleteFile(id);
             if (res.ok && res.data.status === 'ok') {
                 const lRes = await api.getLogs();
                 if (lRes.ok) store.setLogs(lRes.data);
@@ -874,7 +874,7 @@ async function doDelete(filename) {
 }
 
 
-async function doUpdateText(filename, cell) {
+async function doUpdateText(id, cell) {
     const newText = cell.textContent.trim();
     const oldText = cell.dataset.originalText;
 
@@ -886,7 +886,7 @@ async function doUpdateText(filename, cell) {
     }
 
     try {
-        const res = await api.updateText(filename, newText);
+        const res = await api.updateText(id, newText);
         if (res.ok && res.data.status === 'ok') {
             // Success. SSE will trigger refresh.
         } else {
@@ -900,13 +900,13 @@ async function doUpdateText(filename, cell) {
     }
 }
 
-async function doResolveInsert(filename, btn) {
+async function doResolveInsert(id, btn) {
     if (btn) {
         btn.disabled = true;
         btn.style.opacity = '0.5';
     }
     try {
-        const res = await api.insertToResolve(filename);
+        const res = await api.insertToResolve(id);
         if (res.ok && res.data.status === 'ok') {
             if (btn) {
                 btn.style.color = '#fff'; // Flash white

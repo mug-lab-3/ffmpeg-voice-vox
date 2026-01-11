@@ -116,64 +116,45 @@ def handle_control_state_logic(
     return config.get("system.is_synthesis_enabled")
 
 
-def ensure_audio_file(filename: str, audio_manager, processor) -> str:
-    """Check if file exists, if not and it's a pending file, trigger synthesis."""
+def ensure_audio_file(db_id: int, audio_manager, processor) -> str:
+    """Check if file exists by DB ID, if not, trigger synthesis."""
+    # 1. Fetch from DB
+    from app.core.database import db_manager
+
+    record = db_manager.get_transcription(db_id)
+    if not record:
+        raise ValueError(f"Record not found: {db_id}")
+
+    filename = record["output_path"]
+    duration = record["audio_duration"]
+
     output_dir = audio_manager.get_output_dir()
+
+    # If filename is None or duration is 0, it needs synthesis
+    if not filename or duration <= 0:
+        print(f"[Service] Audio missing/pending for ID {db_id}. Triggering synthesis...")
+        new_filename, _ = processor.synthesize_item(db_id)
+        return new_filename
+
     abs_path = os.path.join(output_dir, filename)
-
     if not os.path.exists(abs_path):
-        # Check if it's a pending filename pattern: pending_{id}.wav or {id}_{prefix}.wav
-        import re
-
-        db_id = None
-        if filename.startswith("pending_"):
-            match = re.search(r"pending_(\d+)", filename)
-            if match:
-                db_id = int(match.group(1))
-        else:
-            # Try to extract ID from standard filename {ID}_{prefix}.wav
-            match = re.match(r"^(\d+)_", filename)
-            if match:
-                db_id = int(match.group(1))
-
-        if db_id:
-            print(
-                f"[Service] Audio missing/pending for ID {db_id}. Triggering synthesis..."
-            )
-            new_filename, _ = processor.synthesize_item(db_id)
-            return new_filename
-        else:
-            raise ValueError(f"Audio file not found: {filename}")
+        # File recorded in DB but missing on disk -> Re-synthesize
+        print(f"[Service] File recorded but missing on disk for ID {db_id}. Retriggering...")
+        new_filename, _ = processor.synthesize_item(db_id)
+        return new_filename
 
     return filename
 
 
 def resolve_insert_handler(
-    filename: str, audio_manager, processor, get_resolve_client, database
+    db_id: int, audio_manager, processor, get_resolve_client, database
 ):
-    """Inserts a file into Resolve, synthesizing if necessary."""
-    filename = ensure_audio_file(filename, audio_manager, processor)
+    """Inserts a file into Resolve by ID, synthesizing if necessary."""
+    filename = ensure_audio_file(db_id, audio_manager, processor)
 
-    # Extract db_id from filename if possible for logging
-    db_id = None
-    import re
-
-    if filename.startswith("pending_"):
-        match = re.search(r"pending_(\d+)", filename)
-        if match:
-            db_id = int(match.group(1))
-    else:
-        match = re.match(r"^(\d+)_", filename)
-        if match:
-            db_id = int(match.group(1))
-
-    transcription = None
-    if db_id:
-        transcription = database.get_transcription(db_id)
-
-    if transcription:
-        # Debug logging if needed, or just proceed
-        pass
+    transcription = database.get_transcription(db_id)
+    if not transcription:
+        raise ValueError(f"Transcription not found for ID {db_id}")
 
     output_dir = audio_manager.get_output_dir()
     abs_path = os.path.join(output_dir, filename)
@@ -181,33 +162,33 @@ def resolve_insert_handler(
 
     client = get_resolve_client()
 
-    text = None
-    if transcription:
-        text = transcription.get("text")
+    text = transcription.get("text")
 
     if not client.insert_file(abs_path, text=text):
         raise ValueError("Failed to insert into Resolve timeline")
     return True
 
 
-def play_audio_handler(filename: str, audio_manager, processor, request_id: str = None):
-    """Plays an audio file, synthesizing if necessary."""
-    filename = ensure_audio_file(filename, audio_manager, processor)
+def play_audio_handler(db_id: int, audio_manager, processor, request_id: str = None):
+    """Plays an audio file by ID, synthesizing if necessary."""
+    filename = ensure_audio_file(db_id, audio_manager, processor)
     return audio_manager.play_audio(filename, request_id=request_id)
 
 
-def delete_audio_handler(filename: str, audio_manager, processor):
-    """Deletes an audio file and its log entry."""
-    processor.delete_log(filename)
-    success = audio_manager.delete_file(filename)
+def delete_audio_handler(db_id: int, audio_manager, processor):
+    """Deletes an audio file and its log entry by ID."""
+    filename = processor.delete_log(db_id)
+    success = False
+    if filename:
+        success = audio_manager.delete_file(filename)
 
     from app.core.events import event_manager
 
     event_manager.publish("log_update", {})
-    return [filename] if success else []
+    return [filename] if (filename and success) else []
 
 
-def update_text_handler(filename: str, new_text: str, processor):
-    """Updates log text."""
-    processor.update_log_text(filename, new_text)
+def update_text_handler(db_id: int, new_text: str, processor):
+    """Updates log text by ID."""
+    processor.update_log_text(db_id, new_text)
     return True
