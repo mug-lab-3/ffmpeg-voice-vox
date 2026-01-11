@@ -284,6 +284,9 @@ class TestResolveInsertion:
                 found_video = True
 
         assert found_audio, "Audio clip was not added to timeline"
+        # [Verification 5] Ensure SetCurrentFolder was called before ImportMedia
+        self.mock_media_pool.SetCurrentFolder.assert_called_with(mock_new_bin)
+        
         # Video might not be added if template is not found (logic behavior)
         # In our mock above, we returned empty lists so no template found -> no video track insertion.
         assert not found_video

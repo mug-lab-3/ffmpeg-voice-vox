@@ -397,6 +397,9 @@ class ResolveClient:
                         return False
 
                 # 1. Import Media
+                if target_bin:
+                    media_pool.SetCurrentFolder(target_bin)
+                
                 items = media_pool.ImportMedia([file_path])
                 if not items or len(items) == 0:
                     self._log(f"Failed to import media: {file_path}")
