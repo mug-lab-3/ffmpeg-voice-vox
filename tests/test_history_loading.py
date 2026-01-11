@@ -2,77 +2,86 @@ import unittest
 import os
 import shutil
 import tempfile
-from datetime import datetime
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from app.core.audio import AudioManager
-from app.core.processor import StreamProcessor
+from app.services.processor import StreamProcessor
 from app.core.voicevox import VoiceVoxClient
+from app.core.database import db_manager
 
 
 class TestHistoryLoading(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
-
         # Mock Config to return test_dir
-        self.original_get_output_dir = AudioManager.get_output_dir
-        AudioManager.get_output_dir = MagicMock(return_value=self.test_dir)
+        from app.config import config
+
+        config.update("system.output_dir", self.test_dir)
 
         self.audio_manager = AudioManager()
+        self.mock_vv = MagicMock(spec=VoiceVoxClient)
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
-        AudioManager.get_output_dir = self.original_get_output_dir
 
-    def create_dummy_file(self, filename, content="test content"):
-        path = os.path.join(self.test_dir, filename)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content)
-        return path
+    @patch("app.core.database.db_manager.get_recent_logs")
+    def test_processor_loading(self, mock_get_logs):
+        # Setup DB mock return
+        mock_get_logs.return_value = [
+            {
+                "id": 1,
+                "timestamp": "2026-01-12 12:00:00",
+                "text": "Hello World",
+                "speaker_id": 1,
+                "speed_scale": 1.0,
+                "pitch_scale": 0.0,
+                "intonation_scale": 1.0,
+                "volume_scale": 1.0,
+                "pre_phoneme_length": 0.1,
+                "post_phoneme_length": 0.1,
+                "output_path": "001_Hello.wav",
+                "audio_duration": 1.5,
+            }
+        ]
 
-    def test_scan_output_dir(self):
-        # Create valid files
-        # 123456_Speaker1_Hello.wav
-        self.create_dummy_file("100000_Metan_Hello.wav", "RIFF....")
-        self.create_dummy_file(
-            "100000_Metan_Hello.srt", "1\n00:00:00,000 --> 00:00:01,000\nHello World"
-        )
+        # Create the file on disk to satisfy physical check in _load_history
+        wav_path = os.path.join(self.test_dir, "001_Hello.wav")
+        with open(wav_path, "wb") as f:
+            f.write(b"FAKE_WAV")
 
-        # Create older file
-        older_path = self.create_dummy_file("090000_Zundamon_Hi.wav", "RIFF....")
-        os.utime(older_path, (10000, 10000))  # Set old time
-
-        # Create invalid file
-        self.create_dummy_file("invalid_file.wav", "RIFF....")
-
-        files = self.audio_manager.scan_output_dir()
-
-        self.assertEqual(len(files), 2)
-
-        # First one should be the newer one (Metan)
-        self.assertEqual(files[0]["speaker_name"], "Metan")
-        self.assertEqual(files[0]["text"], "Hello World")  # From SRT
-
-        # Second one
-        self.assertEqual(files[1]["speaker_name"], "Zundamon")
-        self.assertEqual(files[1]["text"], "Hi")  # From filename (fallback)
-
-    def test_processor_loading(self):
-        # Setup mocks
-        mock_vv = MagicMock(spec=VoiceVoxClient)
-        mock_vv.get_speakers.return_value = {1: "Metan", 3: "Zundamon"}
-
-        # Create files
-        self.create_dummy_file("100000_Metan_Hello.wav", "RIFF....")
-        self.create_dummy_file(
-            "100000_Metan_Hello.srt", "1\n00:00:00,000 --> 00:00:01,000\nHello World"
-        )
-
-        processor = StreamProcessor(mock_vv, self.audio_manager)
+        processor = StreamProcessor(self.mock_vv, self.audio_manager)
 
         logs = processor.get_logs()
         self.assertEqual(len(logs), 1)
         self.assertEqual(logs[0]["text"], "Hello World")
-        self.assertEqual(logs[0]["config"]["speaker_id"], 1)  # Should map "Metan" -> 1
+        self.assertEqual(logs[0]["id"], 1)
+        self.assertEqual(logs[0]["filename"], "001_Hello.wav")
+
+    @patch("app.core.database.db_manager.get_recent_logs")
+    @patch("app.core.database.db_manager.delete_log")
+    def test_missing_file_cleanup(self, mock_delete, mock_get_logs):
+        # DB says file exists, but it's missing on disk
+        mock_get_logs.return_value = [
+            {
+                "id": 99,
+                "timestamp": "2026-01-12 12:00:00",
+                "text": "Missing",
+                "speaker_id": 1,
+                "speed_scale": 1.0,
+                "pitch_scale": 0.0,
+                "intonation_scale": 1.0,
+                "volume_scale": 1.0,
+                "pre_phoneme_length": 0.1,
+                "post_phoneme_length": 0.1,
+                "output_path": "missing.wav",
+                "audio_duration": 1.5,
+            }
+        ]
+
+        processor = StreamProcessor(self.mock_vv, self.audio_manager)
+
+        # Should have called delete_log for ID 99
+        mock_delete.assert_called_with(99)
+        self.assertEqual(len(processor.get_logs()), 0)
 
 
 if __name__ == "__main__":

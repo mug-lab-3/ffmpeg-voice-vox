@@ -75,9 +75,8 @@ def handle_resolve_insert():
         return jsonify({"status": "error", "message": "Invalid or missing ID"}), 400
 
     try:
-        from app.core.database import DatabaseManager
+        from app.core.database import db_manager
 
-        db_manager = DatabaseManager()
         resolve_insert_handler(
             db_id, audio_manager, processor, get_resolve_client, db_manager
         )

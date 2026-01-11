@@ -224,9 +224,11 @@ class StreamProcessor:
         speaker_id: int,
         log_config: dict,
     ):
+        from datetime import timezone
+
         log_entry = {
             "id": db_id,
-            "timestamp": f"{datetime.utcnow().isoformat()}Z",
+            "timestamp": f"{datetime.now(timezone.utc).isoformat()}Z",
             "text": text,
             "duration": f"{duration:.2f}s",
             "config": log_config.copy(),

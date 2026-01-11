@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from app.core.processor import StreamProcessor
+from app.services.processor import StreamProcessor
 from app.config import config
 
 
@@ -17,7 +17,14 @@ class TestLogConsistency(unittest.TestCase):
         config.update("synthesis.speaker_id", 1)
 
         # 2. Add a log entry
-        self.processor._add_log("Hello", 1.0, "hello.wav", speaker_id=1)
+        self.processor._add_log_from_db(
+            db_id=1,
+            text="Hello",
+            duration=1.0,
+            filename="hello.wav",
+            speaker_id=1,
+            log_config={"speaker_id": 1},
+        )
 
         # 3. Verify first log has speaker 1
         logs = self.processor.get_logs()
@@ -35,7 +42,14 @@ class TestLogConsistency(unittest.TestCase):
         )
 
         # 6. Add another log entry
-        self.processor._add_log("World", 1.0, "world.wav", speaker_id=2)
+        self.processor._add_log_from_db(
+            db_id=2,
+            text="World",
+            duration=1.0,
+            filename="world.wav",
+            speaker_id=2,
+            log_config={"speaker_id": 2},
+        )
 
         # 7. Verify second log has speaker 2
         self.assertEqual(len(logs), 2)

@@ -80,7 +80,8 @@ class DatabaseManager:
     def add_transcription(
         self, text, speaker_id, config_dict, output_path=None, audio_duration=0.0
     ):
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             cursor = conn.execute(
                 """
                 INSERT INTO transcriptions (
@@ -104,9 +105,12 @@ class DatabaseManager:
             )
             conn.commit()
             return cursor.lastrowid
+        finally:
+            conn.close()
 
     def update_audio_info(self, db_id, output_path, audio_duration):
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             conn.execute(
                 """
                 UPDATE transcriptions
@@ -116,9 +120,12 @@ class DatabaseManager:
                 (output_path, audio_duration, db_id),
             )
             conn.commit()
+        finally:
+            conn.close()
 
     def get_recent_logs(self, limit=50):
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             cursor = conn.execute(
                 """
                 SELECT * FROM transcriptions
@@ -128,15 +135,21 @@ class DatabaseManager:
                 (limit,),
             )
             return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
 
     def delete_log(self, db_id):
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             conn.execute("DELETE FROM transcriptions WHERE id = ?", (db_id,))
             conn.commit()
+        finally:
+            conn.close()
 
     def get_transcription(self, db_id):
         """Retrieves transcription details by ID."""
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             cursor = conn.execute(
                 "SELECT id, text, output_path, audio_duration FROM transcriptions WHERE id = ?",
                 (db_id,),
@@ -149,10 +162,13 @@ class DatabaseManager:
                     "output_path": row["output_path"],
                     "audio_duration": row["audio_duration"],
                 }
+        finally:
+            conn.close()
         return None
 
     def update_transcription_text(self, db_id, new_text):
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             conn.execute(
                 """
                 UPDATE transcriptions
@@ -162,6 +178,8 @@ class DatabaseManager:
                 (new_text, db_id),
             )
             conn.commit()
+        finally:
+            conn.close()
 
     def close_all_connections(self):
         """

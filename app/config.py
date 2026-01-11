@@ -81,7 +81,7 @@ class ConfigManager:
         if not isinstance(data, dict):
             return default_obj
 
-        for section_name in default_obj.model_fields:
+        for section_name in default_obj.__class__.model_fields:
             if section_name in data and isinstance(data[section_name], dict):
                 section_data = data[section_name]
                 section_model = getattr(default_obj, section_name).__class__

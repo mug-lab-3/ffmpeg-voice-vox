@@ -93,14 +93,21 @@ class AudioManager:
         wav_path = os.path.join(output_dir, wav_filename)
 
         # Write WAV
-        with open(wav_path, "wb") as f:
-            f.write(audio_data)
+        try:
+            with open(wav_path, "wb") as f:
+                f.write(audio_data)
 
-        # Calculate duration
-        actual_duration = self.get_wav_duration(wav_path)
-        duration = max(0.0, actual_duration)
+            # Calculate duration
+            actual_duration = self.get_wav_duration(wav_path)
+            duration = max(0.0, actual_duration)
 
-        return wav_filename, duration
+            return wav_filename, duration
+        except Exception as e:
+            print(f"[AudioManager] Critical Error in save_audio: {e}")
+            import traceback
+
+            traceback.print_exc()
+            raise
 
     def play_audio(self, filename: str, request_id: str = None):
         """
