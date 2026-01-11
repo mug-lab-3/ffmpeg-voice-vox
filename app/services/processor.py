@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from app.config import config
 from app.core.voicevox import VoiceVoxClient
 from app.core.audio import AudioManager
@@ -224,7 +224,6 @@ class StreamProcessor:
         speaker_id: int,
         log_config: dict,
     ):
-        from datetime import timezone
 
         log_entry = {
             "id": db_id,
