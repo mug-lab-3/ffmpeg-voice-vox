@@ -88,7 +88,7 @@ class AudioManager:
         safe_text = safe_text.replace("\n", "").replace("\r", "")
         prefix_text = safe_text[:8]
 
-        filename_base = f"{db_id}_{prefix_text}"
+        filename_base = f"{db_id:03d}_{prefix_text}"
         wav_filename = f"{filename_base}.wav"
         wav_path = os.path.join(output_dir, wav_filename)
 

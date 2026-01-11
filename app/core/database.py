@@ -7,65 +7,75 @@ from app.config import config
 
 class DatabaseManager:
     def __init__(self):
-        # Now located in 'data' directory
-        self.db_path = os.path.join(os.getcwd(), "data", "transcriptions.db")
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        self._migrate_old_db()
-        self._init_db()
+        # We no longer set a fixed db_path here.
+        # It will be determined dynamically in _get_connection.
+        pass
 
-    def _migrate_old_db(self):
-        """Migrate DB from logs/ to data/ if needed."""
-        old_path = os.path.join(os.getcwd(), "logs", "transcriptions.db")
-        if os.path.exists(old_path) and not os.path.exists(self.db_path):
-            try:
-                print(f"[Database] Migrating DB to {self.db_path}")
-                import shutil
+    def _get_db_path(self):
+        """Get the database path based on the current output directory."""
+        from app.config import config
 
-                shutil.move(old_path, self.db_path)
-            except Exception as e:
-                print(f"[Database] Migration failed: {e}")
+        output_dir = config.get("system.output_dir", "")
+        if not output_dir:
+            # Fallback to data directory if no output_dir is set
+            return os.path.join(os.getcwd(), "data", "transcriptions.db")
+
+        return os.path.join(output_dir, "transcriptions.db")
 
     def _get_connection(self):
-        conn = sqlite3.connect(self.db_path)
+        db_path = self._get_db_path()
+        db_dir = os.path.dirname(db_path)
+
+        if not os.path.exists(db_dir):
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+            except Exception as e:
+                print(f"[Database] Failed to create directory {db_dir}: {e}")
+                # Fallback to a temporary or default location if needed?
+                # For now, let it fail or use fallback path
+
+        # Initialize if not exists
+        is_new = not os.path.exists(db_path)
+
+        conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
 
         # Optimization for SSD and Memory usage
         try:
-            conn.execute(
-                "PRAGMA journal_mode = WAL"
-            )  # Write-Ahead Logging for better concurrency and fewer writes
-            conn.execute("PRAGMA synchronous = NORMAL")  # Fewer disk syncs
-            conn.execute("PRAGMA cache_size = -64000")  # Use ~64MB of RAM for cache
-            conn.execute("PRAGMA temp_store = MEMORY")  # Store temp tables in RAM
-            conn.execute(
-                "PRAGMA mmap_size = 268435456"
-            )  # Memory-map the DB file (up to 256MB)
+            conn.execute("PRAGMA journal_mode = WAL")
+            conn.execute("PRAGMA synchronous = NORMAL")
+            conn.execute("PRAGMA cache_size = -64000")
+            conn.execute("PRAGMA temp_store = MEMORY")
+            conn.execute("PRAGMA mmap_size = 268435456")
         except Exception as e:
             print(f"[Database] Optimization PRAGMAs failed: {e}")
 
+        if is_new:
+            self._init_db_conn(conn)
+
         return conn
 
-    def _init_db(self):
-        with self._get_connection() as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS transcriptions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    text TEXT NOT NULL,
-                    speaker_id INTEGER,
-                    speed_scale REAL,
-                    pitch_scale REAL,
-                    intonation_scale REAL,
-                    volume_scale REAL,
-                    pre_phoneme_length REAL,
-                    post_phoneme_length REAL,
-                    output_path TEXT,
-                    audio_duration REAL DEFAULT 0.0
-                )
+    def _init_db_conn(self, conn):
+        """Initialize the database schema using an existing connection."""
+        conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS transcriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                text TEXT NOT NULL,
+                speaker_id INTEGER,
+                speed_scale REAL,
+                pitch_scale REAL,
+                intonation_scale REAL,
+                volume_scale REAL,
+                pre_phoneme_length REAL,
+                post_phoneme_length REAL,
+                output_path TEXT,
+                audio_duration REAL DEFAULT 0.0
             )
-            conn.commit()
+        """
+        )
+        conn.commit()
 
     def add_transcription(
         self, text, speaker_id, config_dict, output_path=None, audio_duration=0.0
@@ -141,7 +151,6 @@ class DatabaseManager:
                 }
         return None
 
-
     def update_transcription_text(self, db_id, new_text):
         with self._get_connection() as conn:
             conn.execute(
@@ -153,6 +162,16 @@ class DatabaseManager:
                 (new_text, db_id),
             )
             conn.commit()
+
+    def close_all_connections(self):
+        """
+        Closes all connections. 
+        Note: SQLite with WAL mode might still keep files open if not handled carefully,
+        but for simple scripts, ensuring no active connection helps.
+        """
+        # In this simple implementation, we don't keep a pool, 
+        # but calling this can be a placeholder or we can use it to force a sync.
+        pass
 
 
 db_manager = DatabaseManager()
