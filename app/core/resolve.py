@@ -398,16 +398,24 @@ class ResolveClient:
                      self._log("Failed to determine clip duration")
                      return False
                 
-                # From app config
+                # Ensure enough audio tracks exist
                 from app.config import config
-                track_index = config.get("resolve.track_index", 1) 
+                audio_track_index = config.get("resolve.audio_track_index", 1)
+                audio_track_count = timeline.GetTrackCount("audio")
+                while audio_track_count < audio_track_index:
+                    if timeline.AddTrack("audio"):
+                        audio_track_count += 1
+                        self._log(f"Added audio track. New count: {audio_track_count}")
+                    else:
+                        self._log("Failed to add audio track")
+                        break
                 
                 # Construct Clip Info definition
                 clip_info = {
                     "mediaPoolItem": media_item,
                     "startFrame": 0,
                     "endFrame": duration_frames - 1,
-                    "trackIndex": track_index,
+                    "trackIndex": audio_track_index,
                     "recordFrame": record_frame,
                     "mediaType": 2 # 1=Video, 2=Audio
                 }
@@ -474,10 +482,15 @@ class ResolveClient:
                             # If track Index 2 does not exist, AppendToTimeline might fail.
                             # Ensure enough tracks exist.
                             video_track_count = timeline.GetTrackCount("video")
-                            target_track_index = 2
-                            if video_track_count < target_track_index:
-                                self._log(f"Video track count ({video_track_count}) is less than target ({target_track_index}). Defaulting to track 1 or adding might be needed.")
-                                # Note: AppendToTimeline usually creates tracks if needed, but let's be safe.
+                            target_track_index = config.get("resolve.subtitle_track_index", 2)
+                            # Auto-create video tracks if needed
+                            while video_track_count < target_track_index:
+                                if timeline.AddTrack("video"):
+                                    video_track_count += 1
+                                    self._log(f"Added video track. New count: {video_track_count}")
+                                else:
+                                    self._log("Failed to add video track")
+                                    break
 
                             for block in blocks:
                                 lines = block.strip().split('\n')

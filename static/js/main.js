@@ -29,7 +29,11 @@ const elements = {
         modelPath: document.getElementById('cfg-model-path'),
         vadPath: document.getElementById('cfg-vad-path'),
         queueLength: document.getElementById('cfg-queue-length'),
-        host: document.getElementById('cfg-host')
+        host: document.getElementById('cfg-host'),
+        audioTrackIndex: document.getElementById('cfg-audio-track-index'),
+        subtitleTrackIndex: document.getElementById('cfg-subtitle-track-index'),
+        templateBin: document.getElementById('cfg-template-bin'),
+        templateName: document.getElementById('cfg-template-name')
     }
 };
 
@@ -65,11 +69,8 @@ async function init() {
         if (speakersRes.ok) store.setSpeakers(speakersRes.data);
         if (speakersRes.ok) store.setSpeakers(speakersRes.data);
         if (configRes.ok) {
-            let fullConfig = configRes.data.config || configRes.data;
-            if (configRes.data.ffmpeg) {
-                fullConfig = { ...fullConfig, ffmpeg: configRes.data.ffmpeg };
-            }
-            store.setConfig(fullConfig, configRes.data.outputDir, configRes.data.resolve_available, configRes.data.voicevox_available);
+            const data = configRes.data;
+            store.setConfig(data.config, data.outputDir, data.resolve_available, data.voicevox_available);
         }
         if (controlRes.ok) store.setControlState(controlRes.data.enabled, controlRes.data.playback, controlRes.data.resolve_available, controlRes.data.voicevox_available);
         if (logsRes.ok) store.setLogs(logsRes.data);
@@ -123,7 +124,20 @@ function setupUIListeners() {
             host: elements.cfgInputs.host.value
         };
         try {
-            await api.updateConfig({ ffmpeg: currentFFmpeg });
+            const updates = { ffmpeg: currentFFmpeg };
+
+            // Only add numeric/string values if valid to avoid overwriting with NaN/Empty
+            const audioIdx = parseInt(elements.cfgInputs.audioTrackIndex.value);
+            const subIdx = parseInt(elements.cfgInputs.subtitleTrackIndex.value);
+            if (!isNaN(audioIdx)) updates.audioTrackIndex = audioIdx;
+            if (!isNaN(subIdx)) updates.subtitleTrackIndex = subIdx;
+
+            if (elements.cfgInputs.templateBin.value.trim())
+                updates.templateBin = elements.cfgInputs.templateBin.value;
+            if (elements.cfgInputs.templateName.value.trim())
+                updates.templateName = elements.cfgInputs.templateName.value;
+
+            await api.updateConfig(updates);
         } catch (e) {
             console.error("Auto-save failed", e);
         }
@@ -435,6 +449,14 @@ function renderConfig() {
         setIfExists(elements.cfgInputs.vadPath, config.ffmpeg.vad_model_path);
         setIfExists(elements.cfgInputs.queueLength, config.ffmpeg.queue_length);
         setIfExists(elements.cfgInputs.host, config.ffmpeg.host);
+    }
+
+    // Render Resolve Settings
+    if (config.resolve) {
+        setIfExists(elements.cfgInputs.audioTrackIndex, config.resolve.audio_track_index);
+        setIfExists(elements.cfgInputs.subtitleTrackIndex, config.resolve.subtitle_track_index);
+        setIfExists(elements.cfgInputs.templateBin, config.resolve.template_bin);
+        setIfExists(elements.cfgInputs.templateName, config.resolve.template_name);
     }
 }
 

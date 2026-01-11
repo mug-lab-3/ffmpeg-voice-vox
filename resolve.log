@@ -412,3 +412,207 @@ TypeError: 'NoneType' object is not callable
 [2026-01-11 05:34:58] Bulk inserting 1 subtitle clips via AppendToTimeline
 [2026-01-11 05:34:58] Successfully appended 1 items.
 [2026-01-11 05:34:59] SRT process completed.
+[2026-01-11 06:01:58] Attempting to insert: C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav
+[2026-01-11 06:01:58] Searching bin 'VoiceVox Captions' (Clip count: 2)
+[2026-01-11 06:01:58] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 06:01:58] Checking clip: '2026-01-11 05-33-12.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\capture\2026-01-11 05-33-12.mp4')
+[2026-01-11 06:01:58] Using first compatible Text+ as template: Text+
+[2026-01-11 06:01:58] Imported Media Frames: 
+[2026-01-11 06:01:58] Timeline FPS: 60.0, TC: 01:16:08:19
+[2026-01-11 06:01:58] Calculated Record Frame: 274099
+[2026-01-11 06:01:58] Frames property empty, using Duration TC: 00:00:03:51
+[2026-01-11 06:01:58] Final Clip Duration Frames: 231
+[2026-01-11 06:01:58] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x000002AF6B1C2DD0>, 'startFrame': 0, 'endFrame': 230, 'trackIndex': 1, 'recordFrame': 274099, 'mediaType': 2}
+[2026-01-11 06:01:58] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x000002AF6B1C2D30>]
+[2026-01-11 06:01:58] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.srt
+[2026-01-11 06:01:58] Starting calibration with template: Text+
+[2026-01-11 06:01:58] Calibrated Duration Multiplier: 1.0101010101010102 (Test: 100, Real: 99)
+[2026-01-11 06:01:58] Bulk inserting 1 subtitle clips via AppendToTimeline
+[2026-01-11 06:01:58] Successfully appended 1 items.
+[2026-01-11 06:01:58] SRT process completed.
+[2026-01-11 06:02:10] Attempting to insert: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav
+[2026-01-11 06:02:10] Searching bin 'VoiceVox Captions' (Clip count: 3)
+[2026-01-11 06:02:10] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 06:02:10] Checking clip: '2026-01-11 05-33-12.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\capture\2026-01-11 05-33-12.mp4')
+[2026-01-11 06:02:10] Checking clip: '009030_ずんだもん_あ、間違えました.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav')
+[2026-01-11 06:02:10] Using first compatible Text+ as template: Text+
+[2026-01-11 06:02:10] Imported Media Frames: 
+[2026-01-11 06:02:10] Timeline FPS: 60.0, TC: 01:16:13:22
+[2026-01-11 06:02:10] Calculated Record Frame: 274402
+[2026-01-11 06:02:10] Frames property empty, using Duration TC: 00:00:04:29
+[2026-01-11 06:02:10] Final Clip Duration Frames: 269
+[2026-01-11 06:02:10] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x000002AF6B1C0E30>, 'startFrame': 0, 'endFrame': 268, 'trackIndex': 1, 'recordFrame': 274402, 'mediaType': 2}
+[2026-01-11 06:02:10] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x000002AF6B1C0DF0>]
+[2026-01-11 06:02:10] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.srt
+[2026-01-11 06:02:10] Starting calibration with template: Text+
+[2026-01-11 06:02:10] Calibrated Duration Multiplier: 1.0101010101010102 (Test: 100, Real: 99)
+[2026-01-11 06:02:10] Bulk inserting 1 subtitle clips via AppendToTimeline
+[2026-01-11 06:02:10] Successfully appended 1 items.
+[2026-01-11 06:02:10] SRT process completed.
+[2026-01-11 06:02:23] Attempting to insert: C:\Users\mug\Videos\vvout\018880_四国めたん_キャラクターも変.wav
+[2026-01-11 06:02:23] Searching bin 'VoiceVox Captions' (Clip count: 4)
+[2026-01-11 06:02:23] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 06:02:23] Checking clip: '2026-01-11 05-33-12.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\capture\2026-01-11 05-33-12.mp4')
+[2026-01-11 06:02:23] Checking clip: '009030_ずんだもん_あ、間違えました.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav')
+[2026-01-11 06:02:23] Checking clip: '012770_ずんだもん_ボイスボックス変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav')
+[2026-01-11 06:02:23] Using first compatible Text+ as template: Text+
+[2026-01-11 06:02:23] Imported Media Frames: 
+[2026-01-11 06:02:23] Timeline FPS: 60.0, TC: 01:16:21:47
+[2026-01-11 06:02:23] Calculated Record Frame: 274907
+[2026-01-11 06:02:23] Frames property empty, using Duration TC: 00:00:01:38
+[2026-01-11 06:02:23] Final Clip Duration Frames: 98
+[2026-01-11 06:02:23] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x000002AF6B1C0D70>, 'startFrame': 0, 'endFrame': 97, 'trackIndex': 1, 'recordFrame': 274907, 'mediaType': 2}
+[2026-01-11 06:02:23] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x000002AF6B1C0370>]
+[2026-01-11 06:02:23] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\018880_四国めたん_キャラクターも変.srt
+[2026-01-11 06:02:23] Starting calibration with template: Text+
+[2026-01-11 06:02:23] Calibrated Duration Multiplier: 1.0101010101010102 (Test: 100, Real: 99)
+[2026-01-11 06:02:23] Bulk inserting 1 subtitle clips via AppendToTimeline
+[2026-01-11 06:02:23] Successfully appended 1 items.
+[2026-01-11 06:02:24] SRT process completed.
+[2026-01-11 08:46:13] Attempting to insert: C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav
+[2026-01-11 08:46:13] Created Bin: 
+[2026-01-11 08:46:13] Global recursive search for ''...
+[2026-01-11 08:46:13] INFO: No template found in '' or globally. Please ensure a Text+ clip is in the Media Pool.
+[2026-01-11 08:46:13] Imported Media Frames: 
+[2026-01-11 08:46:13] Timeline FPS: 60.0, TC: 01:16:25:05
+[2026-01-11 08:46:13] Calculated Record Frame: 275105
+[2026-01-11 08:46:13] Frames property empty, using Duration TC: 00:00:03:51
+[2026-01-11 08:46:13] Final Clip Duration Frames: 231
+[2026-01-11 08:46:13] Added audio track. New count: 2
+[2026-01-11 08:46:13] Added audio track. New count: 3
+[2026-01-11 08:46:13] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x00000211E9C85870>, 'startFrame': 0, 'endFrame': 230, 'trackIndex': 3, 'recordFrame': 275105, 'mediaType': 2}
+[2026-01-11 08:46:13] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x00000211E9C85850>]
+[2026-01-11 08:46:13] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.srt
+[2026-01-11 08:46:13] SRT insertion aborted: No valid Text+ template_item available.
+[2026-01-11 08:46:13] SRT process completed.
+[2026-01-11 08:46:58] Attempting to insert: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav
+[2026-01-11 08:46:58] Created Bin: 
+[2026-01-11 08:46:58] Global recursive search for ''...
+[2026-01-11 08:46:58] INFO: No template found in '' or globally. Please ensure a Text+ clip is in the Media Pool.
+[2026-01-11 08:46:58] Imported Media Frames: 
+[2026-01-11 08:46:58] Timeline FPS: 60.0, TC: 01:16:40:11
+[2026-01-11 08:46:58] Calculated Record Frame: 276011
+[2026-01-11 08:46:58] Frames property empty, using Duration TC: 00:00:04:29
+[2026-01-11 08:46:58] Final Clip Duration Frames: 269
+[2026-01-11 08:46:58] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x00000211E9C858B0>, 'startFrame': 0, 'endFrame': 268, 'trackIndex': 3, 'recordFrame': 276011, 'mediaType': 2}
+[2026-01-11 08:46:58] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x00000211E9C84AD0>]
+[2026-01-11 08:46:58] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.srt
+[2026-01-11 08:46:58] SRT insertion aborted: No valid Text+ template_item available.
+[2026-01-11 08:46:58] SRT process completed.
+[2026-01-11 08:47:06] Attempting to insert: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav
+[2026-01-11 08:47:06] Created Bin: 
+[2026-01-11 08:47:06] Global recursive search for ''...
+[2026-01-11 08:47:06] INFO: No template found in '' or globally. Please ensure a Text+ clip is in the Media Pool.
+[2026-01-11 08:47:06] Imported Media Frames: 
+[2026-01-11 08:47:06] Timeline FPS: 60.0, TC: 01:16:44:39
+[2026-01-11 08:47:06] Calculated Record Frame: 276279
+[2026-01-11 08:47:06] Frames property empty, using Duration TC: 00:00:04:29
+[2026-01-11 08:47:06] Final Clip Duration Frames: 269
+[2026-01-11 08:47:06] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x00000211E9C85950>, 'startFrame': 0, 'endFrame': 268, 'trackIndex': 3, 'recordFrame': 276279, 'mediaType': 2}
+[2026-01-11 08:47:06] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x00000211E9C84C70>]
+[2026-01-11 08:47:06] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.srt
+[2026-01-11 08:47:06] SRT insertion aborted: No valid Text+ template_item available.
+[2026-01-11 08:47:06] SRT process completed.
+[2026-01-11 08:47:21] Attempting to insert: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav
+[2026-01-11 08:47:21] Created Bin: 
+[2026-01-11 08:47:21] Global recursive search for ''...
+[2026-01-11 08:47:21] INFO: No template found in '' or globally. Please ensure a Text+ clip is in the Media Pool.
+[2026-01-11 08:47:21] Imported Media Frames: 
+[2026-01-11 08:47:21] Timeline FPS: 60.0, TC: 01:16:53:15
+[2026-01-11 08:47:21] Calculated Record Frame: 276795
+[2026-01-11 08:47:21] Frames property empty, using Duration TC: 00:00:04:29
+[2026-01-11 08:47:21] Final Clip Duration Frames: 269
+[2026-01-11 08:47:21] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x00000211E9C84B50>, 'startFrame': 0, 'endFrame': 268, 'trackIndex': 3, 'recordFrame': 276795, 'mediaType': 2}
+[2026-01-11 08:47:21] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x00000211E9C84BD0>]
+[2026-01-11 08:47:21] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.srt
+[2026-01-11 08:47:21] Added video track. New count: 5
+[2026-01-11 08:47:21] SRT insertion aborted: No valid Text+ template_item available.
+[2026-01-11 08:47:21] SRT process completed.
+[2026-01-11 08:47:55] Attempting to insert: C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav
+[2026-01-11 08:47:55] Created Bin: 
+[2026-01-11 08:47:55] Global recursive search for ''...
+[2026-01-11 08:47:56] INFO: No template found in '' or globally. Please ensure a Text+ clip is in the Media Pool.
+[2026-01-11 08:47:56] Imported Media Frames: 
+[2026-01-11 08:47:56] Timeline FPS: 60.0, TC: 01:16:04:27
+[2026-01-11 08:47:56] Calculated Record Frame: 273867
+[2026-01-11 08:47:56] Frames property empty, using Duration TC: 00:00:03:34
+[2026-01-11 08:47:56] Final Clip Duration Frames: 214
+[2026-01-11 08:47:56] Added audio track. New count: 2
+[2026-01-11 08:47:56] Added audio track. New count: 3
+[2026-01-11 08:47:56] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x00000211E9C84AF0>, 'startFrame': 0, 'endFrame': 213, 'trackIndex': 3, 'recordFrame': 273867, 'mediaType': 2}
+[2026-01-11 08:47:56] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x00000211E9C84E70>]
+[2026-01-11 08:47:56] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.srt
+[2026-01-11 08:47:56] Added video track. New count: 2
+[2026-01-11 08:47:56] Added video track. New count: 3
+[2026-01-11 08:47:56] Added video track. New count: 4
+[2026-01-11 08:47:56] Added video track. New count: 5
+[2026-01-11 08:47:56] SRT insertion aborted: No valid Text+ template_item available.
+[2026-01-11 08:47:56] SRT process completed.
+[2026-01-11 08:48:11] Attempting to insert: C:\Users\mug\Videos\vvout\000000_ずんだもん_喋ってる内容を文.wav
+[2026-01-11 08:48:11] Created Bin: 
+[2026-01-11 08:48:11] Global recursive search for ''...
+[2026-01-11 08:48:11] INFO: No template found in '' or globally. Please ensure a Text+ clip is in the Media Pool.
+[2026-01-11 08:48:11] Imported Media Frames: 
+[2026-01-11 08:48:11] Timeline FPS: 60.0, TC: 01:16:15:03
+[2026-01-11 08:48:11] Calculated Record Frame: 274503
+[2026-01-11 08:48:11] Frames property empty, using Duration TC: 00:00:02:58
+[2026-01-11 08:48:11] Final Clip Duration Frames: 178
+[2026-01-11 08:48:11] Added audio track. New count: 4
+[2026-01-11 08:48:11] Added audio track. New count: 5
+[2026-01-11 08:48:11] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x00000211E9C859D0>, 'startFrame': 0, 'endFrame': 177, 'trackIndex': 5, 'recordFrame': 274503, 'mediaType': 2}
+[2026-01-11 08:48:11] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x00000211E9C84C50>]
+[2026-01-11 08:48:11] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\000000_ずんだもん_喋ってる内容を文.srt
+[2026-01-11 08:48:11] SRT insertion aborted: No valid Text+ template_item available.
+[2026-01-11 08:48:11] SRT process completed.
+[2026-01-11 08:50:53] Attempting to insert: C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav
+[2026-01-11 08:50:53] Created Bin: 
+[2026-01-11 08:50:53] Global recursive search for ''...
+[2026-01-11 08:50:53] INFO: No template found in '' or globally. Please ensure a Text+ clip is in the Media Pool.
+[2026-01-11 08:50:53] Imported Media Frames: 
+[2026-01-11 08:50:53] Timeline FPS: 60.0, TC: 01:16:18:00
+[2026-01-11 08:50:53] Calculated Record Frame: 274680
+[2026-01-11 08:50:53] Frames property empty, using Duration TC: 00:00:03:34
+[2026-01-11 08:50:53] Final Clip Duration Frames: 214
+[2026-01-11 08:50:53] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x0000023136D7B690>, 'startFrame': 0, 'endFrame': 213, 'trackIndex': 5, 'recordFrame': 274680, 'mediaType': 2}
+[2026-01-11 08:50:53] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x0000023136D7B9F0>]
+[2026-01-11 08:50:53] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.srt
+[2026-01-11 08:50:53] SRT insertion aborted: No valid Text+ template_item available.
+[2026-01-11 08:50:53] SRT process completed.
+[2026-01-11 08:51:44] Attempting to insert: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav
+[2026-01-11 08:51:44] Created Bin: 
+[2026-01-11 08:51:44] Global recursive search for ''...
+[2026-01-11 08:51:44] INFO: No template found in '' or globally. Please ensure a Text+ clip is in the Media Pool.
+[2026-01-11 08:51:44] Imported Media Frames: 
+[2026-01-11 08:51:44] Timeline FPS: 60.0, TC: 01:16:27:03
+[2026-01-11 08:51:44] Calculated Record Frame: 275223
+[2026-01-11 08:51:44] Frames property empty, using Duration TC: 00:00:04:29
+[2026-01-11 08:51:44] Final Clip Duration Frames: 269
+[2026-01-11 08:51:44] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x0000021AC5ABFBB0>, 'startFrame': 0, 'endFrame': 268, 'trackIndex': 5, 'recordFrame': 275223, 'mediaType': 2}
+[2026-01-11 08:51:44] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x0000021AC5ABF850>]
+[2026-01-11 08:51:44] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.srt
+[2026-01-11 08:51:44] SRT insertion aborted: No valid Text+ template_item available.
+[2026-01-11 08:51:44] SRT process completed.
+[2026-01-11 09:02:03] Attempting to insert: C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav
+[2026-01-11 09:02:03] Searching bin 'VoiceVox Captions' (Clip count: 8)
+[2026-01-11 09:02:03] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 09:02:03] Checking clip: '009030_ずんだもん_あ、間違えました.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav')
+[2026-01-11 09:02:03] Checking clip: '012770_ずんだもん_ボイスボックス変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav')
+[2026-01-11 09:02:03] Checking clip: '018880_四国めたん_キャラクターも変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\018880_四国めたん_キャラクターも変.wav')
+[2026-01-11 09:02:03] Checking clip: '2026-01-11 06-00-52.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\vv\2026-01-11 06-00-52.mp4')
+[2026-01-11 09:02:03] Checking clip: 'Timeline 5' (Type: 'Timeline', Path: '')
+[2026-01-11 09:02:03] Checking clip: '004420_ずんだもん_その内容を画便値.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav')
+[2026-01-11 09:02:03] Checking clip: '000000_ずんだもん_喋ってる内容を文.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_ずんだもん_喋ってる内容を文.wav')
+[2026-01-11 09:02:03] Using first compatible Text+ as template: Text+
+[2026-01-11 09:02:03] Imported Media Frames: 
+[2026-01-11 09:02:03] Timeline FPS: 60.0, TC: 01:16:41:07
+[2026-01-11 09:02:03] Calculated Record Frame: 276067
+[2026-01-11 09:02:03] Frames property empty, using Duration TC: 00:00:03:34
+[2026-01-11 09:02:03] Final Clip Duration Frames: 214
+[2026-01-11 09:02:03] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x00000231FAB97910>, 'startFrame': 0, 'endFrame': 213, 'trackIndex': 5, 'recordFrame': 276067, 'mediaType': 2}
+[2026-01-11 09:02:03] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x00000231FAB977D0>]
+[2026-01-11 09:02:03] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.srt
+[2026-01-11 09:02:03] Starting calibration with template: Text+
+[2026-01-11 09:02:03] Calibrated Duration Multiplier: 1.0101010101010102 (Test: 100, Real: 99)
+[2026-01-11 09:02:03] Bulk inserting 1 subtitle clips via AppendToTimeline
+[2026-01-11 09:02:03] Successfully appended 1 items.
+[2026-01-11 09:02:04] SRT process completed.

@@ -169,12 +169,22 @@ def handle_config():
             "speedScale": "synthesis.speed_scale",
             "pitchScale": "synthesis.pitch_scale",
             "intonationScale": "synthesis.intonation_scale",
-            "volumeScale": "synthesis.volume_scale"
+            "volumeScale": "synthesis.volume_scale",
+            "audioTrackIndex": "resolve.audio_track_index",
+            "subtitleTrackIndex": "resolve.subtitle_track_index",
+            "templateBin": "resolve.template_bin",
+            "templateName": "resolve.template_name"
         }
         
         for client_key, config_key in mapping.items():
             if client_key in new_config:
                 val = new_config[client_key]
+                
+                # Reject empty strings for critical resolve settings
+                if client_key in ["templateBin", "templateName"] and not str(val).strip():
+                    print(f"[API] Config Update Rejected: {client_key} cannot be empty. Falling back.")
+                    continue
+
                 print(f"[API] Config Update: {client_key} = {val} (Type: {type(val)})")
                 config.update(config_key, val)
 
@@ -200,9 +210,12 @@ def handle_config():
 
         return jsonify({
             "status": "ok", 
-            "config": config.get("synthesis"),
+            "config": {
+                **config.get("synthesis"),
+                "ffmpeg": config.get("ffmpeg"),
+                "resolve": config.get("resolve")
+            },
             "outputDir": config.get("system.output_dir"),
-            "ffmpeg": config.get("ffmpeg"),
             "resolve_available": resolve_available,
             "voicevox_available": voicevox_available
         })
@@ -210,11 +223,17 @@ def handle_config():
         # Return full config structure for frontend compatibility
         resolve_available = get_resolve_client().is_available()
         voicevox_available = vv_client.is_available()
+        
+        full_cfg = {
+            **config.get("synthesis"),
+            "ffmpeg": config.get("ffmpeg"),
+            "resolve": config.get("resolve")
+        }
+        print(f"[API] Config GET: {full_cfg}")
 
         return jsonify({
-            "config": config.get("synthesis"),
+            "config": full_cfg,
             "outputDir": config.get("system.output_dir"),
-            "ffmpeg": config.get("ffmpeg"),
             "resolve_available": resolve_available,
             "voicevox_available": voicevox_available
         })

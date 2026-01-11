@@ -1,5 +1,6 @@
 import json
 import os
+import copy
 from typing import Dict, Any
 
 class ConfigManager:
@@ -32,7 +33,8 @@ class ConfigManager:
         },
         "resolve": {
             "enabled": False,
-            "track_index": 1,
+            "audio_track_index": 1,
+            "subtitle_track_index": 2,
             "template_bin": "VoiceVox Captions",
             "template_name": "DefaultTemplate"
         }
@@ -45,30 +47,65 @@ class ConfigManager:
     def load_config(self) -> Dict[str, Any]:
         """Load config from file, or create with defaults if not exists."""
         if not os.path.exists(self.config_path):
+            print(f"[Config] Creating new config file: {self.config_path}")
             self.save_config(self.DEFAULT_CONFIG)
-            return self.DEFAULT_CONFIG.copy()
+            return copy.deepcopy(self.DEFAULT_CONFIG)
         
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 loaded_config = json.load(f)
-                # Merge with defaults to ensure all keys exist
-                final_config = self._merge_configs(self.DEFAULT_CONFIG.copy(), loaded_config)
-                # Force reset synthesis state to False on startup
-                if "system" in final_config:
-                    final_config["system"]["is_synthesis_enabled"] = False
-                return final_config
+                
+            # Use deepcopy to ensure we don't modify the class constant
+            final_config = copy.deepcopy(self.DEFAULT_CONFIG)
+            self._merge_configs(final_config, loaded_config)
+            
+            # Force reset synthesis state to False on startup
+            if "system" in final_config:
+                final_config["system"]["is_synthesis_enabled"] = False
+            
+            # Validation and Correction logic
+            is_corrected = False
+            
+            # Resolve Settings Correction
+            if "resolve" in final_config:
+                r = final_config["resolve"]
+                defaults = self.DEFAULT_CONFIG["resolve"]
+                
+                # Check for empty strings or missing keys in critical fields
+                for key in ["template_bin", "template_name"]:
+                    if not r.get(key) or str(r.get(key)).strip() == "":
+                        r[key] = defaults[key]
+                        is_corrected = True
+                
+                # Check for numeric track indices
+                for key in ["audio_track_index", "subtitle_track_index"]:
+                    if not isinstance(r.get(key), int):
+                        try:
+                            # Try to convert if it's a string, else use default
+                            r[key] = int(r.get(key))
+                        except (ValueError, TypeError):
+                            r[key] = defaults[key]
+                        is_corrected = True
+
+            if is_corrected:
+                print(f"[Config] Corrections applied to {self.config_path}")
+                # Save immediately to ensure file is in sync
+                self.save_config(final_config)
+            
+            print(f"[Config] Loaded successfully")
+            return final_config
         except Exception as e:
             print(f"Error loading config: {e}. Using defaults.")
-            return self.DEFAULT_CONFIG.copy()
+            return copy.deepcopy(self.DEFAULT_CONFIG)
 
-    def _merge_configs(self, default: Dict, other: Dict) -> Dict:
-        """Recursive merge of dictionaries."""
+    def _merge_configs(self, base: Dict, other: Dict) -> Dict:
+        """Recursive merge of dictionaries into base."""
         for key, value in other.items():
-            if key in default and isinstance(default[key], dict) and isinstance(value, dict):
-                self._merge_configs(default[key], value)
+            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+                self._merge_configs(base[key], value)
             else:
-                default[key] = value
-        return default
+                base[key] = value
+        return base
 
     def save_config(self, config: Dict[str, Any] = None):
         """Save current config to file."""
