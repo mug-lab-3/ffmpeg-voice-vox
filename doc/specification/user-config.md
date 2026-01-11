@@ -51,7 +51,7 @@
 | 項目 | 型 | デフォルト | バリデーション |
 | :--- | :--- | :--- | :--- |
 | `speaker_id` | integer | `1` | 数値型チェック, **0以上** |
-| `speed_scale` | float | `1.0` | 浮動小数点数チェック, **0.5 〜 2.0** |
+| `speed_scale` | float | `1.0` | 浮動小数点数チェック, **0.5 〜 1.5** |
 | `pitch_scale` | float | `0.0` | 浮動小数点数チェック, **-0.15 〜 0.15** |
 | `intonation_scale` | float | `1.0` | 浮動小数点数チェック, **0.0 〜 2.0** |
 | `volume_scale` | float | `1.0` | 浮動小数点数チェック, **0.0 〜 2.0** |
@@ -69,14 +69,14 @@
 | `model_path` | string | `""` | 文字列形式チェック |
 | `vad_model_path` | string | `""` | 文字列形式チェック |
 | `host` | string | `127.0.0.1` | 文字列形式チェック |
-| `queue_length` | integer | `10` | 数値型チェック, **1 〜 100** |
+| `queue_length` | integer | `10` | 数値型チェック, **1 〜 30** |
 
 ### 6. `resolve` (DaVinci Resolve 連携)
 | 項目 | 型 | デフォルト | バリデーション |
 | :--- | :--- | :--- | :--- |
 | `enabled` | boolean | `false` | 真偽値チェック |
-| `audio_track_index` | integer | `1` | 数値型チェック, **1 〜 100** |
-| `subtitle_track_index` | integer | `2` | 数値型チェック, **1 〜 100** |
+| `audio_track_index` | integer | `1` | 数値型チェック, **1 〜 50** |
+| `subtitle_track_index` | integer | `2` | 数値型チェック, **1 〜 50** |
 | `template_bin` | string | `VoiceVox Captions` | 文字列形式チェック |
 | `template_name` | string | `DefaultTemplate` | 文字列形式チェック |
 

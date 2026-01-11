@@ -22,7 +22,7 @@ class VoiceVoxConfig(BaseModel):
 
 class SynthesisConfig(BaseModel):
     speaker_id: Annotated[int, Field(ge=0)] = 1
-    speed_scale: Annotated[float, Field(ge=0.5, le=2.0)] = 1.0
+    speed_scale: Annotated[float, Field(ge=0.5, le=1.5)] = 1.0
     pitch_scale: Annotated[float, Field(ge=-0.15, le=0.15)] = 0.0
     intonation_scale: Annotated[float, Field(ge=0.0, le=2.0)] = 1.0
     volume_scale: Annotated[float, Field(ge=0.0, le=2.0)] = 1.0
@@ -43,7 +43,7 @@ class FfmpegConfig(BaseModel):
     model_path: str = ""
     vad_model_path: str = ""
     host: str = "127.0.0.1"
-    queue_length: Annotated[int, Field(ge=1, le=100)] = 10
+    queue_length: Annotated[int, Field(ge=1, le=30)] = 10
 
     @field_validator("ffmpeg_path")
     @classmethod
@@ -54,8 +54,8 @@ class FfmpegConfig(BaseModel):
 
 class ResolveConfig(BaseModel):
     enabled: bool = False
-    audio_track_index: Annotated[int, Field(ge=1, le=100)] = 1
-    subtitle_track_index: Annotated[int, Field(ge=1, le=100)] = 2
+    audio_track_index: Annotated[int, Field(ge=1, le=50)] = 1
+    subtitle_track_index: Annotated[int, Field(ge=1, le=50)] = 2
     template_bin: str = "VoiceVox Captions"
     template_name: str = "DefaultTemplate"
 

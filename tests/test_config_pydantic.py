@@ -59,6 +59,17 @@ def test_config_validation():
     assert cm3.config["system"]["output_dir"] == "non_existent_path_xyz"
     print("Test 4 passed: Path existence warning triggered and value kept.")
 
+    print("\n--- Test 5: Blocking update validation ---")
+    # Initial valid speed
+    cm3.update("synthesis.speed_scale", 1.2)
+    assert cm3.config["synthesis"]["speed_scale"] == 1.2
+    
+    # Try an invalid speed (max is 1.5)
+    success = cm3.update("synthesis.speed_scale", 2.0)
+    assert success is False
+    assert cm3.config["synthesis"]["speed_scale"] == 1.2  # Should remain unchanged
+    print("Test 5 passed: Invalid update rejected and old value kept.")
+
     # Cleanup
     if os.path.exists(test_config_path):
         os.remove(test_config_path)

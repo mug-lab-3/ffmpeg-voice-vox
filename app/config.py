@@ -90,27 +90,42 @@ class ConfigManager:
         except (KeyError, TypeError):
             return default
 
-    def update(self, key: str, value: Any):
-        """Update a value by dot notation and save."""
+    def update(self, key: str, value: Any) -> bool:
+        """
+        Update a value by dot notation and save.
+        Returns True if successful, False if validation fails.
+        """
         if key == "system.is_synthesis_enabled":
             self.is_synthesis_enabled = bool(value)
-            return
+            return True
 
+        # Create a copy of current data to test the update
+        current_data = self._config_obj.model_dump()
+        
+        # Traverse and update the dict
         keys = key.split('.')
-        target = self._config_obj
-        for k in keys[:-1]:
-            target = getattr(target, k)
-        
-        setattr(target, keys[-1], value)
-        
+        target = current_data
         try:
-            # Re-validate locally
-            validated_data = ConfigSchema(**self._config_obj.model_dump())
-            self._config_obj = validated_data
-        except ValidationError as e:
-            print(f"[Config] Update failed validation: {e}")
+            for k in keys[:-1]:
+                target = target[k]
             
-        self.save_config()
+            # Type conversion attempt (handling strings from WebUI)
+            # This helps WebUI where values might be sent as strings
+            target[keys[-1]] = value
+            
+            # Re-validate the whole structure
+            new_obj = ConfigSchema(**current_data)
+            self._config_obj = new_obj
+            self.save_config()
+            return True
+        except (ValidationError, KeyError, TypeError, ValueError) as e:
+            if isinstance(e, ValidationError):
+                print(f"[Config] Update rejected for '{key}': Validation failed.")
+                for error in e.errors():
+                    print(f"  - {'.'.join(str(i) for i in error['loc'])}: {error['msg']}")
+            else:
+                print(f"[Config] Update rejected for '{key}': {e}")
+            return False
 
 # Global instance
 config = ConfigManager()
