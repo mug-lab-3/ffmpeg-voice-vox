@@ -4,129 +4,135 @@ import copy
 from typing import Dict, Any
 
 class ConfigManager:
-    DEFAULT_CONFIG = {
-        "server": {
-            "host": "127.0.0.1"
-        },
-        "voicevox": {
-            "host": "127.0.0.1",
-            "port": 50021
-        },
-        "synthesis": {
-            "speaker_id": 1,
-            "speed_scale": 1.0,
-            "pitch_scale": 0.0,
-            "intonation_scale": 1.0,
-            "volume_scale": 1.0
-        },
-        "system": {
-            "is_synthesis_enabled": False,
-            "output_dir": ""
-        },
-        "ffmpeg": {
-            "ffmpeg_path": "",
-            "input_device": "",
-            "model_path": "",
-            "vad_model_path": "",
-            "host": "localhost",
-            "queue_length": ""
-        },
-        "resolve": {
-            "enabled": False,
-            "audio_track_index": 1,
-            "subtitle_track_index": 2,
-            "template_bin": "VoiceVox Captions",
-            "template_name": "DefaultTemplate"
-        }
-    }
-
+    DEFAULT_CONFIG_PATH = "default_config.json"
+    
     def __init__(self, config_path: str = "config.json"):
         self.config_path = config_path
+        # Load default config first
+        self.default_config = self._load_default_config()
+        # Then load user config
         self.config = self.load_config()
 
+    def _load_default_config(self) -> Dict[str, Any]:
+        if os.path.exists(self.DEFAULT_CONFIG_PATH):
+            try:
+                with open(self.DEFAULT_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"[Config] Error loading default_config.json: {e}")
+        
+        # Absolute fallback if file missing
+        return {
+            "server": {"host": "127.0.0.1"},
+            "voicevox": {"host": "127.0.0.1", "port": 50021},
+            "synthesis": {"speaker_id": 1, "speed_scale": 1.0, "pitch_scale": 0.0, "intonation_scale": 1.0, "volume_scale": 1.0},
+            "system": {"is_synthesis_enabled": False, "output_dir": ""},
+            "ffmpeg": {"ffmpeg_path": "", "input_device": "", "model_path": "", "vad_model_path": "", "host": "localhost", "queue_length": 10},
+            "resolve": {"enabled": False, "audio_track_index": 1, "subtitle_track_index": 2, "template_bin": "VoiceVox Captions", "template_name": "DefaultTemplate"}
+        }
+
     def load_config(self) -> Dict[str, Any]:
-        """Load config from file, or create with defaults if not exists."""
-        if not os.path.exists(self.config_path):
-            print(f"[Config] Creating new config file: {self.config_path}")
-            self.save_config(self.DEFAULT_CONFIG)
-            return copy.deepcopy(self.DEFAULT_CONFIG)
+        """Load user config, validate against defaults, and correct if needed."""
+        loaded_config = {}
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, 'r', encoding='utf-8') as f:
+                    loaded_config = json.load(f)
+            except Exception as e:
+                print(f"[Config] Error reading {self.config_path}: {e}")
+
+        # Deep copy defaults as base
+        final_config = copy.deepcopy(self.default_config)
         
-        try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                loaded_config = json.load(f)
-                
-            # Use deepcopy to ensure we don't modify the class constant
-            final_config = copy.deepcopy(self.DEFAULT_CONFIG)
-            self._merge_configs(final_config, loaded_config)
+        # Merge and Validate
+        is_corrected = self._merge_and_validate(final_config, loaded_config, self.default_config)
+        
+        # Force reset synthesis state to False on startup
+        if "system" in final_config:
+            final_config["system"]["is_synthesis_enabled"] = False
+        
+        if is_corrected or not os.path.exists(self.config_path):
+            print(f"[Config] Saving corrected configuration to {self.config_path}")
+            self.save_config(final_config)
             
-            # Force reset synthesis state to False on startup
-            if "system" in final_config:
-                final_config["system"]["is_synthesis_enabled"] = False
-            
-            # Validation and Correction logic
-            is_corrected = False
-            
-            # Resolve Settings Correction
-            if "resolve" in final_config:
-                r = final_config["resolve"]
-                defaults = self.DEFAULT_CONFIG["resolve"]
-                
-                # Check for empty strings or missing keys in critical fields
-                for key in ["template_bin", "template_name"]:
-                    if not r.get(key) or str(r.get(key)).strip() == "":
-                        r[key] = defaults[key]
-                        is_corrected = True
-                
-                # Check for numeric track indices
-                for key in ["audio_track_index", "subtitle_track_index"]:
-                    if not isinstance(r.get(key), int):
-                        try:
-                            # Try to convert if it's a string, else use default
-                            r[key] = int(r.get(key))
-                        except (ValueError, TypeError):
-                            r[key] = defaults[key]
-                        is_corrected = True
+        print(f"[Config] Configuration loaded and synchronized")
+        return final_config
 
-            if is_corrected:
-                print(f"[Config] Corrections applied to {self.config_path}")
-                # Save immediately to ensure file is in sync
-                self.save_config(final_config)
+    def _merge_and_validate(self, base: Dict, other: Dict, defaults: Dict) -> bool:
+        """
+        Recursively merge 'other' into 'base'. 
+        If a value in 'other' is invalid (wrong type or empty for critical fields), 
+        keep/use the value from 'defaults'.
+        Returns True if any correction was made.
+        """
+        corrected = False
+        for key, default_val in defaults.items():
+            user_val = other.get(key)
             
-            print(f"[Config] Loaded successfully")
-            return final_config
-        except Exception as e:
-            print(f"Error loading config: {e}. Using defaults.")
-            return copy.deepcopy(self.DEFAULT_CONFIG)
-
-    def _merge_configs(self, base: Dict, other: Dict) -> Dict:
-        """Recursive merge of dictionaries into base."""
-        for key, value in other.items():
-            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
-                self._merge_configs(base[key], value)
+            if isinstance(default_val, dict):
+                # Ensure the section exists in base
+                if key not in base:
+                    base[key] = copy.deepcopy(default_val)
+                    corrected = True
+                
+                # Recurse
+                sub_corrected = self._merge_and_validate(base[key], other.get(key, {}), default_val)
+                if sub_corrected:
+                    corrected = True
             else:
-                base[key] = value
-        return base
+                if user_val is None:
+                    # Key missing in user config, already has default from deepcopy of base
+                    # But we mark it as "needs saving" since it was missing
+                    corrected = True
+                    continue
+                
+                # Type Check
+                if type(user_val) != type(default_val):
+                    # Special case: try converting numeric strings
+                    if isinstance(default_val, int) and isinstance(user_val, str):
+                        try:
+                            base[key] = int(user_val)
+                            continue
+                        except: pass
+                    
+                    print(f"[Config] Type mismatch for '{key}': expected {type(default_val)}, got {type(user_val)}. Using default.")
+                    base[key] = default_val
+                    corrected = True
+                    continue
+                
+                # Empty Value Check for Strings (Optional: define which fields allow empty)
+                # For now, if default is non-empty and user is empty, we consider it a correction needed for template fields
+                if isinstance(default_val, str) and default_val != "" and str(user_val).strip() == "":
+                    # Specifically for Resolve templates and critical paths
+                    critical_fields = ["template_bin", "template_name", "host", "ffmpeg_path"]
+                    if key in critical_fields:
+                        base[key] = default_val
+                        corrected = True
+                        continue
 
-    def save_config(self, config: Dict[str, Any] = None):
+                # Everything OK, use user value
+                base[key] = user_val
+                
+        return corrected
+
+    def save_config(self, config_to_save: Dict[str, Any] = None):
         """Save current config to file."""
-        if config is None:
-            config = self.config
-        
+        data = config_to_save if config_to_save is not None else self.config
         try:
             with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=4, ensure_ascii=False)
+                json.dump(data, f, indent=4, ensure_ascii=False)
         except Exception as e:
-            print(f"Error saving config: {e}")
+            print(f"[Config] Error saving config: {e}")
 
     def get(self, key: str, default=None):
-        """Get a value by dot notation (e.g. 'server.port')."""
+        """Get a value by dot notation (e.g. 'server.host')."""
         keys = key.split('.')
         value = self.config
         try:
             for k in keys:
                 value = value[k]
             return value
-        except KeyError:
+        except (KeyError, TypeError):
             return default
 
     def update(self, key: str, value: Any):

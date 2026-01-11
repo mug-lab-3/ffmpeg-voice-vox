@@ -616,3 +616,27 @@ TypeError: 'NoneType' object is not callable
 [2026-01-11 09:02:03] Bulk inserting 1 subtitle clips via AppendToTimeline
 [2026-01-11 09:02:03] Successfully appended 1 items.
 [2026-01-11 09:02:04] SRT process completed.
+[2026-01-11 09:06:52] Attempting to insert: C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav
+[2026-01-11 09:06:52] Searching bin 'VoiceVox Captions' (Clip count: 8)
+[2026-01-11 09:06:52] Checking clip: 'Text+' (Type: 'Fusion Title', Path: '')
+[2026-01-11 09:06:52] Checking clip: '009030_ずんだもん_あ、間違えました.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.wav')
+[2026-01-11 09:06:52] Checking clip: '012770_ずんだもん_ボイスボックス変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\012770_ずんだもん_ボイスボックス変.wav')
+[2026-01-11 09:06:52] Checking clip: '018880_四国めたん_キャラクターも変.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\018880_四国めたん_キャラクターも変.wav')
+[2026-01-11 09:06:52] Checking clip: '2026-01-11 06-00-52.mp4' (Type: 'Video + Audio', Path: 'C:\Users\mug\Videos\vv\2026-01-11 06-00-52.mp4')
+[2026-01-11 09:06:52] Checking clip: 'Timeline 5' (Type: 'Timeline', Path: '')
+[2026-01-11 09:06:52] Checking clip: '004420_ずんだもん_その内容を画便値.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\004420_ずんだもん_その内容を画便値.wav')
+[2026-01-11 09:06:52] Checking clip: '000000_ずんだもん_喋ってる内容を文.wav' (Type: 'Audio', Path: 'C:\Users\mug\Videos\vvout\000000_ずんだもん_喋ってる内容を文.wav')
+[2026-01-11 09:06:52] Using first compatible Text+ as template: Text+
+[2026-01-11 09:06:52] Imported Media Frames: 
+[2026-01-11 09:06:52] Timeline FPS: 60.0, TC: 01:16:52:15
+[2026-01-11 09:06:52] Calculated Record Frame: 276735
+[2026-01-11 09:06:52] Frames property empty, using Duration TC: 00:00:03:51
+[2026-01-11 09:06:52] Final Clip Duration Frames: 231
+[2026-01-11 09:06:52] Clip Info: {'mediaPoolItem': <BlackmagicFusion.PyRemoteObject object at 0x0000019D445B7650>, 'startFrame': 0, 'endFrame': 230, 'trackIndex': 1, 'recordFrame': 276735, 'mediaType': 2}
+[2026-01-11 09:06:52] Success. Appended: [<BlackmagicFusion.PyRemoteObject object at 0x0000019D445B75D0>]
+[2026-01-11 09:06:52] Parsing SRT for optimized insertion: C:\Users\mug\Videos\vvout\009030_ずんだもん_あ、間違えました.srt
+[2026-01-11 09:06:52] Starting calibration with template: Text+
+[2026-01-11 09:06:52] Calibrated Duration Multiplier: 1.0101010101010102 (Test: 100, Real: 99)
+[2026-01-11 09:06:52] Bulk inserting 1 subtitle clips via AppendToTimeline
+[2026-01-11 09:06:52] Successfully appended 1 items.
+[2026-01-11 09:06:52] SRT process completed.
