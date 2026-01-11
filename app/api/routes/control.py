@@ -84,7 +84,10 @@ def handle_play():
     if not filename:
         return jsonify({"status": "error", "message": "No filename"}), 400
     try:
-        duration, start_time = play_audio_handler(filename, audio_manager, processor)
+        request_id = data.get("request_id")
+        duration, start_time = play_audio_handler(
+            filename, audio_manager, processor, request_id=request_id
+        )
         return jsonify(
             PlayResponse(duration=duration, start_time=start_time).model_dump()
         )

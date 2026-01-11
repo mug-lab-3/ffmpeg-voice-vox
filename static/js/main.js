@@ -382,7 +382,7 @@ async function handleStartStopClick() {
 async function handleServerEvent(msg) {
     switch (msg.type) {
         case "playback_change":
-            store.updatePlaybackState(msg.data.is_playing, msg.data.filename);
+            store.updatePlaybackState(msg.data.is_playing, msg.data.filename, msg.data.request_id);
             break;
         case "state_update":
             store.updateSynthesisState(msg.data.is_enabled);
@@ -766,25 +766,73 @@ function updateLogRow(row, entry) {
 // --- Action Implementations ---
 
 async function doPlay(filename, btn) {
-    // Optimistic visual update
+    // 1. Provisional UI Lock: Prevent other playback interactions immediately
+    const allPlayBtns = document.querySelectorAll('.btn-icon-play');
+    allPlayBtns.forEach(b => b.disabled = true);
+
+    // Optimistic visual update for the clicked button
     btn.classList.add('playing', 'playing-anim');
+
+    // Generate Request ID
+    const requestId = crypto.randomUUID();
+
     try {
-        const res = await api.playAudio(filename);
+        // 2. Send Request with ID
+        const res = await api.playAudio(filename, requestId);
+
         if (res.ok && res.data.status === 'ok') {
-            const durMs = res.data.duration * 1000;
-            setTimeout(async () => {
-                // Check status to ensure UI sync
-                const cRes = await api.getControlState();
-                if (cRes.ok) store.setControlState(cRes.data.enabled, cRes.data.playback, cRes.data.resolve_available);
-            }, durMs + 200);
+            // Request Accepted. 
+            // The server queue will eventually trigger "playback_change" event.
+            // We keep the UI locked? 
+            // The API response includes duration, but actual playback might start later.
+            // The user wanted "until request is sent" (requestを投げるまでは).
+            // However, if we unlock now, the user might click another button while the first is queued.
+            // With the backend queue, this is technically safe!
+            // But visually, we might want to keep *some* lock or indication.
+            // For now, we rely on the backend state updates (SSE) to manage the definitive "Playing" state.
+
+            // If we unlock here, the buttons become enabled. 
+            // If the worker has not started yet, is_playing is false. 
+            // So we might see a flash of enabled buttons.
+
+            // To be safe and avoid confusing "nothing happened" look, we can wait for a bit or just let SSE handle it.
+            // Since we are "queueing", multiple clicks are valid.
+            // So we SHOULD unlock the "global lock" but maybe keep the current button specific state?
+            // Actually, `renderLogs` will re-render buttons based on store state.
+            // If store says "not playing", buttons re-enable.
+
+            // We will let the UI re-sync naturally via SSE or next interaction.
+            // We just ensure we don't block forever if SSE is delayed.
+            // But for the specific "request sending" phase, we blocked.
+
+            // Important: if we return successfully, we do NOT manually revert buttons.
+            // We let `renderLogs` run on next state update? 
+            // `store` state has not changed yet (unless we optimistically updated it).
+            // Let's rely on `renderLogs`.
+            // But we need to un-disable the other buttons if we want to allow queuing.
+            // If the requirement "other playback cannot be done" applies ONLY until request sent,
+            // then we should re-enable them.
+
+            allPlayBtns.forEach(b => b.disabled = false);
+
+            // But the clicked button should probably stay disabled/playing if possible?
+            // `renderLogs` will overwrite this anyway.
+
         } else {
             await showAlert("Playback Failed", res.data?.message || "Unknown error");
+            // Revert state on error
+            btn.classList.remove('playing', 'playing-anim');
+            allPlayBtns.forEach(b => b.disabled = false); // Unlock
+
             // Refresh logs to reset state
             const lRes = await api.getLogs();
             if (lRes.ok) store.setLogs(lRes.data);
         }
     } catch (e) {
         console.error("Play failed", e);
+        // Revert state
+        btn.classList.remove('playing', 'playing-anim');
+        allPlayBtns.forEach(b => b.disabled = false); // Unlock
     }
 }
 

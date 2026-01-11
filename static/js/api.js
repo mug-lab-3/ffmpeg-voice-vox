@@ -108,11 +108,11 @@ export class ApiClient {
         });
     }
 
-    async playAudio(filename) {
+    async playAudio(filename, request_id = null) {
         return this._fetchJson(this.endpoints.CONTROL_PLAY, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename })
+            body: JSON.stringify({ filename, request_id })
         });
     }
 

@@ -190,10 +190,10 @@ def resolve_insert_handler(
     return True
 
 
-def play_audio_handler(filename: str, audio_manager, processor):
+def play_audio_handler(filename: str, audio_manager, processor, request_id: str = None):
     """Plays an audio file, synthesizing if necessary."""
     filename = ensure_audio_file(filename, audio_manager, processor)
-    return audio_manager.play_audio(filename)
+    return audio_manager.play_audio(filename, request_id=request_id)
 
 
 def delete_audio_handler(filename: str, audio_manager, processor):

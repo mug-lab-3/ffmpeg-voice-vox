@@ -32,9 +32,10 @@ def cleanup_resources():
     global _resolve_client
     if _resolve_client:
         _resolve_client.shutdown()
-    global ffmpeg_client
     if ffmpeg_client:
         ffmpeg_client.stop_process()
+    if audio_manager:
+        audio_manager.shutdown()
     voicevox_stop_event.set()
 
 

@@ -81,8 +81,8 @@ export class AppStore extends EventTarget {
         }
     }
 
-    updatePlaybackState(isPlaying, filename) {
-        this.state.serverPlaybackState = { is_playing: isPlaying, filename: filename };
+    updatePlaybackState(isPlaying, filename, requestId) {
+        this.state.serverPlaybackState = { is_playing: isPlaying, filename: filename, request_id: requestId };
         this._emit('state_updated'); // Re-uses state_updated as it affects UI locks
     }
 
