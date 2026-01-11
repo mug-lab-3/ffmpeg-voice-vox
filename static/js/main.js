@@ -520,13 +520,16 @@ function renderResolveStatus() {
     const statusText = available ? "CONNECTED" : "DISCONNECTED";
 
     el.innerHTML = `
-        <span style="color: ${color}; display: flex; align-items: center; gap: 4px;">
+        <span class="online">
             ${SvgIcons.resolve}
-            <span style="font-size: 0.70rem; font-weight: bold; margin-left: 2px;">RESOLVE: ${statusText}</span>
+            <span class="fs-tiny fw-bold ml-2">RESOLVE: ${statusText}</span>
         </span>
     `;
-    el.style.color = color;
-    el.style.borderColor = available ? "#555" : "#444";
+    if (available) {
+        el.classList.add('online');
+    } else {
+        el.classList.remove('online');
+    }
 }
 
 function renderVoicevoxStatus() {
@@ -539,13 +542,16 @@ function renderVoicevoxStatus() {
     const statusText = available ? "CONNECTED" : "DISCONNECTED";
 
     el.innerHTML = `
-        <span style="color: ${color}; display: flex; align-items: center; gap: 4px;">
+        <span class="${available ? 'online' : ''}">
             ${SvgIcons.voicevox}
-            <span style="font-size: 0.70rem; font-weight: bold; margin-left: 2px;">VOICEVOX: ${statusText}</span>
+            <span class="fs-tiny fw-bold ml-2">VOICEVOX: ${statusText}</span>
         </span>
     `;
-    el.style.color = color;
-    el.style.borderColor = available ? "#555" : "#644"; // Suble red border if disconnected
+    if (available) {
+        el.classList.add('online');
+    } else {
+        el.classList.remove('online');
+    }
 }
 
 function renderStartStopUI() {
@@ -560,36 +566,32 @@ function renderStartStopUI() {
 
     if (isEnabled) {
         btn.textContent = "STOP";
-        btn.style.backgroundColor = "#ff6b6b";
+        btn.classList.add('btn-stop');
+        btn.classList.remove('btn-primary');
         btn.title = "Click to Stop Synthesis";
         btn.classList.remove('disabled');
-        btn.style.opacity = '1';
-        btn.style.cursor = 'pointer';
 
         dirInput.disabled = true;
         browseBtn.disabled = true;
-        browseBtn.style.opacity = '0.5';
-        dirInput.style.opacity = '0.5';
+        browseBtn.classList.add('disabled-opacity');
+        dirInput.classList.add('disabled-opacity');
     } else {
         btn.textContent = "START";
-        btn.style.backgroundColor = "var(--primary)";
+        btn.classList.remove('btn-stop');
+        btn.classList.add('btn-primary');
         btn.title = "Click to Start Synthesis";
 
         dirInput.disabled = false;
         browseBtn.disabled = false;
-        browseBtn.style.opacity = '1';
-        dirInput.style.opacity = '1';
+        browseBtn.classList.remove('disabled-opacity');
+        dirInput.classList.remove('disabled-opacity');
 
         // Check startability
         if (hasDir && store.isVoicevoxAvailable) {
             btn.classList.remove('disabled');
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
             btn.title = "Click to Start Synthesis";
         } else {
             btn.classList.add('disabled');
-            btn.style.opacity = '0.5';
-            btn.style.cursor = 'not-allowed';
             if (!store.isVoicevoxAvailable) {
                 btn.title = "VOICEVOX is disconnected. Please start VOICEVOX.";
             } else {
@@ -662,20 +664,20 @@ function renderLogs() {
 
 function createLogRow(entry) {
     const row = document.createElement('tr');
-    row.style.borderBottom = '1px solid #333';
+    row.classList.add('log-row');
     row.setAttribute('data-filename', entry.filename);
 
 
     // Columns: Play, ID (with tooltip), Text, Dur, Config, Resolve, Delete
     // Just simpler construction here
     row.innerHTML = `
-        <td class="col-play" style="padding: 8px; text-align: center;"></td>
-        <td style="padding: 8px; color: #aaa; text-align: center; font-size: 0.85em;" title="Created at: ${new Date(entry.timestamp).toLocaleString()}">${entry.id}</td>
-        <td class="col-text" style="padding: 8px; font-weight: bold; outline: none; transition: background 0.2s;" spellcheck="false"></td>
-        <td class="col-duration" style="padding: 8px; color: #aaa;">${entry.filename.startsWith("pending_") ? "--" : entry.duration}</td>
-        <td class="col-config" style="padding: 8px;"></td>
-        <td class="col-resolve" style="padding: 8px; text-align: center;"></td>
-        <td class="col-delete" style="padding: 8px; text-align: center;"></td>
+        <td class="col-play text-center"></td>
+        <td class="text-center text-muted fs-small" title="Created at: ${new Date(entry.timestamp).toLocaleString()}">${entry.id}</td>
+        <td class="col-text fw-bold"></td>
+        <td class="col-duration text-muted">${entry.filename.startsWith("pending_") ? "--" : entry.duration}</td>
+        <td class="col-config"></td>
+        <td class="col-resolve text-center"></td>
+        <td class="col-delete text-center"></td>
     `;
 
     // Populate dynamic/complex bits that were easier to do with innerHTML but now need specific element refs
@@ -688,7 +690,7 @@ function updateLogRow(row, entry) {
     // Re-bind Speaker Name in config cell (might have changed if speakers reloaded?)
     const configCell = row.querySelector('.col-config');
     const spName = store.speakers[entry.config.speaker_id] || `ID:${entry.config.speaker_id}`;
-    configCell.innerHTML = `<span style="color: var(--primary)">${spName}</span> <span style="font-size: 0.8em; color: #666;">(x${entry.config.speed_scale.toFixed(2)})</span>`;
+    configCell.innerHTML = `<span class="text-primary">${spName}</span> <span class="text-muted fs-small">(x${entry.config.speed_scale.toFixed(2)})</span>`;
 
     // Tooltip with all config details
     const cfg = entry.config;
@@ -727,10 +729,10 @@ function updateLogRow(row, entry) {
         // Attach events only once ideally, but reassignment is okay for simple handlers
         textCell.onfocus = () => {
             textCell.dataset.originalText = textCell.textContent; // Sync on focus
-            textCell.style.background = "#2a2a2a";
+            textCell.classList.add('editing');
         };
         textCell.onblur = () => {
-            textCell.style.background = "";
+            textCell.classList.remove('editing');
             doUpdateText(entry.id, textCell);
         };
         textCell.onkeydown = (e) => {
@@ -777,11 +779,9 @@ function updateLogRow(row, entry) {
 
         // On-demand (pending) items get red Play button
         if (isPending) {
-            playBtn.style.color = "#ff6b6b";
-            playBtn.style.borderColor = "#ff6b6b";
+            playBtn.classList.add('btn-on-demand');
         } else {
-            playBtn.style.color = "";
-            playBtn.style.borderColor = "";
+            playBtn.classList.remove('btn-on-demand');
         }
     }
 
