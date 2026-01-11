@@ -1,7 +1,6 @@
 import os
 import re
 import wave
-import wave
 import threading
 import time
 import sounddevice as sd
@@ -49,10 +48,7 @@ class AudioManager:
 
     def get_wav_duration(self, filepath: str) -> float:
         try:
-            with wave.open(filepath, 'rb') as wf:
-                frames = wf.getnframes()
-                rate = wf.getframerate()
-                return frames / float(rate)
+            return sf.info(filepath).duration
         except Exception as e:
             print(f"Error getting wav duration: {e}")
             return 0.0
