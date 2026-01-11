@@ -205,3 +205,9 @@ def delete_audio_handler(filename: str, audio_manager, processor):
 
     event_manager.publish("log_update", {})
     return [filename] if success else []
+
+
+def update_text_handler(filename: str, new_text: str, processor):
+    """Updates log text."""
+    processor.update_log_text(filename, new_text)
+    return True

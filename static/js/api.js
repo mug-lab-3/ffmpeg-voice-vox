@@ -10,6 +10,7 @@ const ENDPOINTS = {
     CONTROL_PLAY: '/api/control/play',
     CONTROL_DELETE: '/api/control/delete',
     CONTROL_RESOLVE_INSERT: '/api/control/resolve_insert',
+    CONTROL_UPDATE_TEXT: '/api/control/update_text',
     SYSTEM_BROWSE: '/api/system/browse',
     SYSTEM_BROWSE_FILE: '/api/system/browse_file',
     FFMPEG_DEVICES: '/api/ffmpeg/devices',
@@ -121,6 +122,14 @@ export class ApiClient {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename })
+        });
+    }
+
+    async updateText(filename, text) {
+        return this._fetchJson(this.endpoints.CONTROL_UPDATE_TEXT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename, text })
         });
     }
 

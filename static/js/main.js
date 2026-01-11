@@ -665,12 +665,13 @@ function createLogRow(entry) {
     row.style.borderBottom = '1px solid #333';
     row.setAttribute('data-filename', entry.filename);
 
+
     // Columns: Play, ID (with tooltip), Text, Dur, Config, Resolve, Delete
     // Just simpler construction here
     row.innerHTML = `
         <td class="col-play" style="padding: 8px; text-align: center;"></td>
         <td style="padding: 8px; color: #aaa; text-align: center; font-size: 0.85em;" title="Created at: ${new Date(entry.timestamp).toLocaleString()}">${entry.id}</td>
-        <td style="padding: 8px; font-weight: bold;">${entry.text}</td>
+        <td class="col-text" style="padding: 8px; font-weight: bold; outline: none; transition: background 0.2s;" spellcheck="false"></td>
         <td class="col-duration" style="padding: 8px; color: #aaa;">${entry.filename.startsWith("pending_") ? "--" : entry.duration}</td>
         <td class="col-config" style="padding: 8px;"></td>
         <td class="col-resolve" style="padding: 8px; text-align: center;"></td>
@@ -707,8 +708,48 @@ function updateLogRow(row, entry) {
 
     configCell.title = tooltipText.join('\n');
 
-    // Button States
+    // Text Editing Logic
+    const textCell = row.querySelector('.col-text');
     const isLocked = store.isSynthesisEnabled || store.playbackState.is_playing;
+
+    // Only update content if NOT currently focused (to avoid jumping cursor)
+    if (document.activeElement !== textCell) {
+        textCell.textContent = entry.text;
+        textCell.dataset.originalText = entry.text;
+    }
+
+    if (!isLocked) {
+        textCell.contentEditable = "true";
+        textCell.classList.remove('text-locked');
+        textCell.style.cursor = "text";
+        textCell.title = "Click to edit";
+
+        // Attach events only once ideally, but reassignment is okay for simple handlers
+        textCell.onfocus = () => {
+            textCell.dataset.originalText = textCell.textContent; // Sync on focus
+            textCell.style.background = "#2a2a2a";
+        };
+        textCell.onblur = () => {
+            textCell.style.background = "";
+            doUpdateText(entry.filename, textCell);
+        };
+        textCell.onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                textCell.blur(); // Triggers update
+            }
+        };
+    } else {
+        textCell.contentEditable = "false";
+        textCell.classList.add('text-locked');
+        textCell.style.cursor = "not-allowed";
+        textCell.title = "Editing disabled while running/playing";
+        textCell.onfocus = null;
+        textCell.onblur = null;
+        textCell.onkeydown = null;
+    }
+
+    // Button States
     const isThisPlaying = store.playbackState.is_playing && store.playbackState.filename === entry.filename;
     const isPending = entry.filename && entry.filename.startsWith("pending_");
 
@@ -829,6 +870,33 @@ async function doDelete(filename) {
         } catch (e) {
             await showAlert("Error", "Delete request failed");
         }
+    }
+}
+
+
+async function doUpdateText(filename, cell) {
+    const newText = cell.textContent.trim();
+    const oldText = cell.dataset.originalText;
+
+    if (newText === oldText) return;
+    if (!newText) {
+        cell.textContent = oldText;
+        await showAlert("Notice", "Text cannot be empty");
+        return;
+    }
+
+    try {
+        const res = await api.updateText(filename, newText);
+        if (res.ok && res.data.status === 'ok') {
+            // Success. SSE will trigger refresh.
+        } else {
+            cell.textContent = oldText;
+            await showAlert("Update Failed", res.data?.message || "Unknown Error");
+        }
+    } catch (e) {
+        console.error(e);
+        cell.textContent = oldText;
+        await showAlert("Error", "Update request failed");
     }
 }
 

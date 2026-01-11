@@ -142,4 +142,17 @@ class DatabaseManager:
         return None
 
 
+    def update_transcription_text(self, db_id, new_text):
+        with self._get_connection() as conn:
+            conn.execute(
+                """
+                UPDATE transcriptions
+                SET text = ?, output_path = NULL, audio_duration = 0.0
+                WHERE id = ?
+            """,
+                (new_text, db_id),
+            )
+            conn.commit()
+
+
 db_manager = DatabaseManager()

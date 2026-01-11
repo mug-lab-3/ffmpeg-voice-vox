@@ -15,6 +15,7 @@ from app.services.control_service import (
     resolve_insert_handler,
     play_audio_handler,
     delete_audio_handler,
+    update_text_handler,
 )
 from app.api.schemas.control import ControlStateResponse, PlayResponse, DeleteResponse
 from app.api.schemas.system import BrowseResponse
@@ -104,6 +105,20 @@ def handle_delete():
     try:
         deleted_files = delete_audio_handler(filename, audio_manager, processor)
         return jsonify(DeleteResponse(deleted=deleted_files).model_dump())
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@control_bp.route("/api/control/update_text", methods=["POST"])
+def handle_update_text():
+    data = request.json
+    filename = data.get("filename")
+    new_text = data.get("text")
+    if not filename or new_text is None:
+        return jsonify({"status": "error", "message": "Missing filename or text"}), 400
+    try:
+        update_text_handler(filename, new_text, processor)
+        return jsonify({"status": "ok"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

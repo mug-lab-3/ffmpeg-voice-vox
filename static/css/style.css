@@ -459,3 +459,10 @@ fieldset.settings-group legend {
     pointer-events: none;
     opacity: 0.7;
 }
+
+/* Locked Text Styling */
+.text-locked {
+    color: #888;
+    cursor: not-allowed;
+    font-style: italic;
+}

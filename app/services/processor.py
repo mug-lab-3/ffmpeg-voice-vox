@@ -281,4 +281,49 @@ class StreamProcessor:
         ]
 
 
-# Singleton-alike instance creation would happen in app factory or DI container
+    def update_log_text(self, filename: str, new_text: str):
+        """Updates text for a log entry, deletes old audio if exists, and resets state."""
+        # 1. Identify ID from filename
+        db_id = None
+        import re
+
+        if filename.startswith("pending_"):
+            match = re.search(r"pending_(\d+)", filename)
+            if match:
+                db_id = int(match.group(1))
+        else:
+            match = re.match(r"^(\d+)_", filename)
+            if match:
+                db_id = int(match.group(1))
+
+        if not db_id:
+            raise ValueError(f"Could not identify DB ID for: {filename}")
+
+        # 2. Update Database
+        print(f"[Processor] Updating text for ID {db_id}: '{new_text}'")
+        db_manager.update_transcription_text(db_id, new_text)
+
+        # 3. Delete physical file if it was a real file
+        if not filename.startswith("pending_"):
+            print(f"[Processor] Deleting old audio file: {filename}")
+            try:
+                self.audio_manager.delete_file(filename)
+            except Exception as e:
+                print(f"[Processor] Error deleting file {filename}: {e}")
+
+        # 4. Update Cache (Reset to pending state)
+        found = False
+        for log in self.received_logs:
+            if log.get("id") == db_id:
+                log["text"] = new_text
+                log["duration"] = "0.00s"  # Reset duration
+                log["filename"] = f"pending_{db_id}.wav"  # Reset filename
+                found = True
+                break
+        
+        if not found:
+             # Should reload if not found, but it should be there.
+             pass
+
+        from app.core.events import event_manager
+        event_manager.publish("log_update", {})
