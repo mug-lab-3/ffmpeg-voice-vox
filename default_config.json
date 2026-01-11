@@ -14,7 +14,6 @@
         "volume_scale": 1.0
     },
     "system": {
-        "is_synthesis_enabled": false,
         "output_dir": ""
     },
     "ffmpeg": {
@@ -22,7 +21,7 @@
         "input_device": "",
         "model_path": "",
         "vad_model_path": "",
-        "host": "localhost",
+        "host": "127.0.0.1",
         "queue_length": 10
     },
     "resolve": {
