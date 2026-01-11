@@ -64,39 +64,28 @@ class AudioManager:
         return f"{hours:02}:{minutes:02}:{seconds:02},{millis:03}"
 
     def save_audio(self, audio_data: bytes, text: str, db_id: int) -> tuple:
-        """
-        Saves audio data to WAV and creates a corresponding SRT file.
-        Returns (filename, duration_sec).
-        """
+        """Saves audio data to a WAV file."""
         output_dir = self.get_output_dir()
         if not self.validate_output_dir(output_dir):
             raise ValueError(f"Invalid output directory: {output_dir}")
 
-        # Clean filename: {ID}_{prefix}
+        # Sanitize text for filename (safely truncated)
         safe_text = re.sub(r'[\\/:*?"<>|]+', '', text)
         safe_text = safe_text.replace('\n', '').replace('\r', '')
         prefix_text = safe_text[:8]
-        
+
         filename_base = f"{db_id}_{prefix_text}"
         wav_filename = f"{filename_base}.wav"
-        srt_filename = f"{filename_base}.srt"
-        
         wav_path = os.path.join(output_dir, wav_filename)
-        srt_path = os.path.join(output_dir, srt_filename)
-        
+
         # Write WAV
         with open(wav_path, "wb") as f:
             f.write(audio_data)
-            
+
         # Calculate duration
         actual_duration = self.get_wav_duration(wav_path)
         duration = max(0.0, actual_duration)
 
-        # Write SRT (Keeping for compatibility/external player)
-        srt_content = f"1\n00:00:00,000 --> {self.format_srt_time(duration)}\n{text}\n"
-        with open(srt_path, "w", encoding="utf-8") as f:
-            f.write(srt_content)
-            
         return wav_filename, duration
 
     def play_audio(self, filename: str):
@@ -167,21 +156,22 @@ class AudioManager:
             "remaining": remaining
         }
 
-    def delete_file(self, filename: str) -> list:
+    def delete_file(self, filename: str) -> bool:
+        """Deletes a WAV file from the output directory."""
         output_dir = self.get_output_dir()
         wav_path = os.path.join(output_dir, filename)
-        srt_path = wav_path.replace(".wav", ".srt")
-        deleted = []
-        
-        if os.path.exists(wav_path):
-            os.remove(wav_path)
-            deleted.append(filename)
-            
-        if os.path.exists(srt_path):
-            os.remove(srt_path)
-            deleted.append(os.path.basename(srt_path))
-            
-        return deleted
+
+        success = True
+        try:
+            if os.path.exists(wav_path):
+                os.remove(wav_path)
+            else:
+                success = False
+        except Exception as e:
+            print(f"Error deleting file {wav_path}: {e}")
+            success = False
+
+        return success
 
     def scan_output_dir(self, limit: int = 50) -> list:
         """
@@ -192,64 +182,31 @@ class AudioManager:
         if not self.validate_output_dir(output_dir):
             return []
 
-        files = []
+        # Get list of WAV files
         try:
-            # Pattern: {timestamp}_{speaker}_{text_prefix}.wav
-            # but stricter check via regex later
-            wav_files = [f for f in os.listdir(output_dir) if f.endswith('.wav')]
-            
-            # Sort by modification time (newest first)
-            wav_files.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
-            
-            wav_files = wav_files[:limit]
-            
-            for f in wav_files:
-                # Regex to parse filename: digits_speaker_text.wav
-                # Note: speaker might contain underscores, but usually first part is digits
-                match = re.match(r'^(\d+)_([^_]+)_(.+)\.wav$', f)
-                if not match:
-                    continue
-                    
-                path = os.path.join(output_dir, f)
-                
-                # Basic info from filename
-                timestamp_str = match.group(1) # We probably won't use this raw timestamp for display as it is offset ms
-                speaker_name = match.group(2)
-                # Text from filename is truncated, try SRT
-                text = match.group(3)
-                
-                srt_path = path.replace(".wav", ".srt")
-                if os.path.exists(srt_path):
-                    try:
-                        with open(srt_path, 'r', encoding='utf-8') as srt:
-                            content = srt.read()
-                            # Simply extract lines that are not timestamps or indices
-                            # Standard SRT format:
-                            # 1
-                            # 00:00:00,000 --> 00:00:05,000
-                            # The Text Is Here
-                            
-                            lines = content.strip().split('\n')
-                            if len(lines) >= 3:
-                                # Join all lines after the timestamp line
-                                # Ideally we parse properly, but simple logic:
-                                # skip index (0), skip time (1), take rest
-                                text = " ".join(lines[2:])
-                    except Exception:
-                        pass # Keep filename text if read fails
-                
-                duration = self.get_wav_duration(path)
-                mtime = datetime.fromtimestamp(os.path.getmtime(path))
-                
-                files.append({
-                    "filename": f,
-                    "text": text,
-                    "speaker_name": speaker_name,
-                    "duration": duration,
-                    "timestamp": mtime
-                })
-                
+            files = [f for f in os.listdir(output_dir) if f.endswith(".wav")]
         except Exception as e:
-            print(f"Error scanning output dir: {e}")
-            
-        return files
+            print(f"Error listing directory {output_dir}: {e}")
+            return []
+
+        logs = []
+        for filename in files:
+            # Parse db_id from filename (if possible)
+            # Format: {id}_{text}.wav
+            match = re.match(r"^(\d+)_", filename)
+            if match:
+                db_id = int(match.group(1))
+                wav_path = os.path.join(output_dir, filename)
+                
+                # Use duration from file itself
+                duration = self.get_wav_duration(wav_path)
+                
+                # Check if file exists (redundant but safe)
+                if os.path.exists(wav_path):
+                    logs.append({
+                        "id": db_id,
+                        "filename": filename,
+                        "duration": duration
+                    })
+
+        return logs

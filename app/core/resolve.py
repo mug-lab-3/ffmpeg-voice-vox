@@ -368,198 +368,76 @@ class ResolveClient:
                 # Get settings for position calculation
                 fps_str = timeline.GetSetting("timelineFrameRate")
                 current_tc = timeline.GetCurrentTimecode()
-                self._log(f"Timeline FPS: {fps_str}, TC: {current_tc}")
-                
-                # Calculate absolute frames for recordFrame (Target Position)
-                record_frame = self._timecode_to_frames(current_tc, fps_str)
-                self._log(f"Calculated Record Frame: {record_frame}")
-                
-                # Determine Clip Duration in frames
-                # 'Frames' property might be empty for some audio files
-                frames_prop = media_item.GetClipProperty("Frames")
-                duration_frames = 0
-                
-                if frames_prop and str(frames_prop).strip():
-                    try:
-                        duration_frames = int(frames_prop)
-                    except ValueError:
-                        pass
-                
-                if duration_frames == 0:
-                    # Fallback to Duration timecode
-                    duration_tc = media_item.GetClipProperty("Duration")
-                    self._log(f"Frames property empty, using Duration TC: {duration_tc}")
-                    # Use timeline FPS for audio frame count calculation (audio is frame-agnostic but aligned to timeline)
-                    duration_frames = self._timecode_to_frames(duration_tc, fps_str)
-                    
-                self._log(f"Final Clip Duration Frames: {duration_frames}")
 
-                if duration_frames <= 0:
-                     self._log("Failed to determine clip duration")
-                     return False
-                
-                # Ensure enough audio tracks exist
+                # Conversion Logic: Timecode -> Frame Number
+                def tc_to_frames(tc, fps):
+                    parts = list(map(int, tc.split(':')))
+                    return ((parts[0] * 3600 + parts[1] * 60 + parts[2]) * fps) + parts[3]
+
+                fps = float(fps_str)
+                playhead_frame = tc_to_frames(current_tc, fps)
+                duration_frames = int(frames_prop) if frames_prop else 0
+
+                # --- Track Management (Restored) ---
                 from app.config import config
-                audio_track_index = config.get("resolve.audio_track_index", 1)
+                target_track_video = config.get("resolve.subtitle_track_index", 2)
+                target_track_audio = config.get("resolve.audio_track_index", 1)
+
+                # Ensure Video Tracks exist
+                video_track_count = timeline.GetTrackCount("video")
+                while video_track_count < target_track_video:
+                    if timeline.AddTrack("video"):
+                        video_track_count += 1
+                        self._log(f"Added video track. New count: {video_track_count}")
+                    else:
+                        break
+
+                # Ensure Audio Tracks exist
                 audio_track_count = timeline.GetTrackCount("audio")
-                while audio_track_count < audio_track_index:
+                while audio_track_count < target_track_audio:
                     if timeline.AddTrack("audio"):
                         audio_track_count += 1
                         self._log(f"Added audio track. New count: {audio_track_count}")
                     else:
-                        self._log("Failed to add audio track")
                         break
-                
-                # Construct Clip Info definition
-                clip_info = {
+
+                # A. Insert Audio
+                media_pool.AppendToTimeline([{
                     "mediaPoolItem": media_item,
                     "startFrame": 0,
-                    "endFrame": duration_frames - 1,
-                    "trackIndex": audio_track_index,
-                    "recordFrame": record_frame,
-                    "mediaType": 2 # 1=Video, 2=Audio
-                }
-                self._log(f"Clip Info: {clip_info}")
+                    "endFrame": duration_frames,
+                    "recordFrame": playhead_frame,
+                    "trackIndex": target_track_audio,
+                    "mediaType": 2 # 2=Audio
+                }])
 
-                # Note: AppendToTimeline signature checks
-                # If this method signature is [clipInfo] (list of dicts)
-                appended = media_pool.AppendToTimeline([clip_info])
-                
-                # Since AppendToTimeline returns list of appended items, empty list means failure
-                if appended and len(appended) > 0:
-                    self._log(f"Success. Appended: {appended}")
+                # B. Insert Template (Text+) if available
+                if template_item:
+                    # Append Text+ clip at Video Track
+                    appended_items = media_pool.AppendToTimeline([{
+                        "mediaPoolItem": template_item,
+                        "startFrame": 0,
+                        "endFrame": duration_frames,
+                        "recordFrame": playhead_frame,
+                        "trackIndex": target_track_video,
+                        "mediaType": 1 # 1=Video
+                    }])
                     
-                    # --- SRT Insertion (Optimized AppendToTimeline Method) ---
-                    srt_path = file_path.replace(".wav", ".srt")
-                    if os.path.exists(srt_path):
-                        try:
-                            self._log(f"Parsing SRT for optimized insertion: {srt_path}")
-                            with open(srt_path, 'r', encoding='utf-8') as f:
-                                srt_content = f.read()
-                            
-                            import re
-                            blocks = re.split(r'\n\s*\n', srt_content.strip())
-                            
-                            timeline = project.GetCurrentTimeline()
-                            if not timeline:
-                                self._log("Timeline lost")
-                                return True
+                    if appended_items and len(appended_items) > 0:
+                        timeline_item = appended_items[0]
+                        # Injection: Direct Text -> Fusion Text+
+                        if text:
+                            self._log(f"Injecting text into Text+: {text}")
+                            # In Fusion Text+, the main text parameter is 'StyledText'
+                            timeline_item.SetSetting("StyledText", text)
 
-                            # --- 1. Duration Multiplier Calibration (Inspired by Snap Captions) ---
-                            duration_multiplier = 1.0
-                            if template_item:
-                                test_duration = 100
-                                test_clip_info = {
-                                    "mediaPoolItem": template_item,
-                                    "startFrame": 0,
-                                    "endFrame": test_duration - 1,
-                                    "recordFrame": record_frame,
-                                    "trackIndex": 3, # Use a higher track for test
-                                    "mediaType": 1,
-                                }
-                                try:
-                                    self._log(f"Starting calibration with template: {template_item.GetClipProperty('Clip Name')}")
-                                    test_items = media_pool.AppendToTimeline([test_clip_info])
-                                    if test_items and len(test_items) > 0:
-                                        real_duration = test_items[0].GetDuration()
-                                        if real_duration > 0:
-                                            duration_multiplier = test_duration / real_duration
-                                            self._log(f"Calibrated Duration Multiplier: {duration_multiplier} (Test: {test_duration}, Real: {real_duration})")
-                                        else:
-                                            self._log("Calibration: real_duration is 0")
-                                        timeline.DeleteClips(test_items, False)
-                                    else:
-                                        self._log("Calibration: AppendToTimeline returned None or empty")
-                                except Exception as cal_e:
-                                    import traceback
-                                    self._log(f"Calibration failed: {cal_e}\n{traceback.format_exc()}")
-
-                            # --- 2. Bulk Insert Setup ---
-                            clips_to_insert = []
-                            subtitle_texts = []
-                            
-                            # Determine track index
-                            # If track Index 2 does not exist, AppendToTimeline might fail.
-                            # Ensure enough tracks exist.
-                            video_track_count = timeline.GetTrackCount("video")
-                            target_track_index = config.get("resolve.subtitle_track_index", 2)
-                            # Auto-create video tracks if needed
-                            while video_track_count < target_track_index:
-                                if timeline.AddTrack("video"):
-                                    video_track_count += 1
-                                    self._log(f"Added video track. New count: {video_track_count}")
-                                else:
-                                    self._log("Failed to add video track")
-                                    break
-
-                            for block in blocks:
-                                lines = block.strip().split('\n')
-                                if len(lines) < 3: continue
-                                
-                                # Use more robust time partition in case of variations
-                                time_line = lines[1]
-                                if " --> " not in time_line: continue
-                                
-                                times = time_line.split(" --> ")
-                                start_tc = times[0].strip()
-                                end_tc = times[1].strip()
-                                text = "\n".join(lines[2:])
-                                
-                                # Snap Captions style normalization
-                                text = text.replace('\u2028', '\n') 
-                                
-                                start_frame_rel = self._srt_time_to_frames(start_tc, fps_str)
-                                end_frame_rel = self._srt_time_to_frames(end_tc, fps_str)
-                                duration_raw = end_frame_rel - start_frame_rel
-                                if duration_raw <= 0: duration_raw = 1
-                                
-                                # Apply multiplier
-                                duration_adjusted = int(round(duration_raw * duration_multiplier))
-                                
-                                target_frame = record_frame + start_frame_rel
-                                
-                                clip_info_sub = {
-                                    "mediaPoolItem": template_item or "Text+", 
-                                    "startFrame": 0,
-                                    "endFrame": duration_adjusted - 1,
-                                    "recordFrame": target_frame,
-                                    "trackIndex": target_track_index,
-                                    "mediaType": 1, # Explicitly Video
-                                }
-                                clips_to_insert.append(clip_info_sub)
-                                subtitle_texts.append(text)
-
-                            # --- 3. Execute Insertion ---
-                            if clips_to_insert:
-                                if template_item:
-                                    self._log(f"Bulk inserting {len(clips_to_insert)} subtitle clips via AppendToTimeline")
-                                    timeline_items = media_pool.AppendToTimeline(clips_to_insert)
-                                    
-                                    if timeline_items:
-                                        self._log(f"Successfully appended {len(timeline_items)} items.")
-                                        for i, item in enumerate(timeline_items):
-                                            if i >= len(subtitle_texts): break
-                                            self._update_fusion_text(item, subtitle_texts[i])
-                                    else:
-                                        self._log("AppendToTimeline failed. Verification: Ensure Video Track 2 is not locked or too many tracks.")
-                                else:
-                                    self._log("SRT insertion aborted: No valid Text+ template_item available.")
-
-                        except Exception as srt_e:
-                            import traceback
-                            self._log(f"SRT Insertion Process Error: {srt_e}\n{traceback.format_exc()}")
-                        
-                        self._log("SRT process completed.")
-                    
-                    return True
-                else:
-                    self._log("AppendToTimeline (Audio) returned failure")
-                    return False
+                self._log(f"Inserted media at {current_tc} on video track {target_track_video}")
+                return True
 
             except Exception as e:
+                self._log(f"Insertion error: {e}")
                 import traceback
-                tb = traceback.format_exc()
-                self._log(f"Exception during insertion: {e}\n{tb}")
+                self._log(traceback.format_exc())
                 return False
 
     def _update_fusion_text(self, item, text):
