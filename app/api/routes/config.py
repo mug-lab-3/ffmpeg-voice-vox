@@ -16,14 +16,14 @@ from app.config import config
 config_bp = Blueprint('config_api', __name__)
 
 def handle_validation_error(e: ValidationError):
-    """Common error handler for Pydantic validation errors."""
-    first_error = e.errors()[0]
-    msg = f"{first_error['loc'][0]}: {first_error['msg']}"
-    return jsonify(BaseResponse(
-        status="error",
-        error_code="INVALID_ARGUMENT",
-        message=msg
-    ).model_dump()), 422
+    """Standardized validation error response including current config state."""
+    response_data = get_config_handler().model_dump()
+    response_data.update({
+        "status": "error",
+        "error_code": "INVALID_ARGUMENT",
+        "message": f"{e.errors()[0]['loc'][0]}: {e.errors()[0]['msg']}"
+    })
+    return jsonify(response_data), 422
 
 @config_bp.route('/api/config', methods=['GET'])
 def get_config():

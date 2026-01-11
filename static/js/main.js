@@ -116,8 +116,12 @@ function setupUIListeners() {
             const res = await api.updateSynthesisConfig({ [mapping[key]]: val });
             if (!res.ok && res.status === 422) {
                 await showAlert("Validation Error", res.data.message || "Invalid value");
-                // Re-render to restore previous valid value in UI
-                renderConfig();
+                // Restore previous valid value using data from error response
+                if (res.data.config) {
+                    store.setConfig(res.data.config, res.data.outputDir, res.data.resolve_available, res.data.voicevox_available);
+                } else {
+                    renderConfig(); // Fallback
+                }
             }
         });
     });
@@ -156,7 +160,11 @@ function setupUIListeners() {
 
             if (res && !res.ok && res.status === 422) {
                 await showAlert("Validation Error", res.data.message || "Invalid input");
-                renderConfig();
+                if (res.data.config) {
+                    store.setConfig(res.data.config, res.data.outputDir, res.data.resolve_available, res.data.voicevox_available);
+                } else {
+                    renderConfig();
+                }
             }
         } catch (e) {
             console.error("Auto-save failed", e);
@@ -243,7 +251,11 @@ function setupUIListeners() {
                 const updateRes = await api.updateSystemConfig({ output_dir: path });
                 if (!updateRes.ok && updateRes.status === 422) {
                     await showAlert("Validation Error", updateRes.data.message);
-                    renderConfig();
+                    if (updateRes.data.config) {
+                        store.setConfig(updateRes.data.config, updateRes.data.outputDir, updateRes.data.resolve_available, updateRes.data.voicevox_available);
+                    } else {
+                        renderConfig();
+                    }
                     return;
                 }
 
@@ -427,10 +439,10 @@ function renderConfig() {
     setIfExists(elements.volumeScale, config.volume_scale);
 
     // Update value displays
-    if (config.speed_scale) valueDisplays.speedScale.textContent = config.speed_scale.toFixed(2);
-    if (config.pitch_scale) valueDisplays.pitchScale.textContent = config.pitch_scale.toFixed(2);
-    if (config.intonation_scale) valueDisplays.intonationScale.textContent = config.intonation_scale.toFixed(2);
-    if (config.volume_scale) valueDisplays.volumeScale.textContent = config.volume_scale.toFixed(2);
+    if (config.speed_scale !== undefined) valueDisplays.speedScale.textContent = config.speed_scale.toFixed(2);
+    if (config.pitch_scale !== undefined) valueDisplays.pitchScale.textContent = config.pitch_scale.toFixed(2);
+    if (config.intonation_scale !== undefined) valueDisplays.intonationScale.textContent = config.intonation_scale.toFixed(2);
+    if (config.volume_scale !== undefined) valueDisplays.volumeScale.textContent = config.volume_scale.toFixed(2);
 
     // Output Directory
     elements.outputDir.value = outputDir || "";
