@@ -1,9 +1,15 @@
+
 # System
 logs/
 config.json
 dummy
 val_output/
 data/
+*.log
+*.pid
+resolve_status_debug.txt
+.DS_Store
+__MACOSX/
 
 # Python
 **/__pycache__/
