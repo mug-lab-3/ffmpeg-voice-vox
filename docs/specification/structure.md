@@ -8,7 +8,7 @@
 ffmpeg-voice-vox/
 ├── run.py                 # エントリーポイント (Flaskサーバー起動)
 ├── config.json            # ユーザー設定ファイル
-├── doc/                   # ドキュメント
+├── docs/                  # ドキュメント
 │   └── specification/     # 詳細仕様書
 │       ├── structure.md   # 本ファイル
 │       ├── api-server.md  # API・アーキテクチャ仕様

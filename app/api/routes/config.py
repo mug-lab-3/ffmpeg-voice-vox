@@ -3,7 +3,7 @@ API Implementation for Config Domain.
 
 IMPORTANT:
 The implementation in this file must strictly follow the specifications
-documented in `doc/specification/api-server.md`.
+documented in `docs/specification/api-server.md`.
 Please ensure any changes here are synchronized with the specification.
 """
 

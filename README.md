@@ -34,7 +34,7 @@ graph TD
 
 ## WebUI 管理画面
 
-![WebUI Capture](doc/images/webui.png)
+![WebUI Capture](docs/images/webui.png)
 
 ## 主な機能
 
@@ -166,6 +166,6 @@ python voicevox_controller.py
 *   `static/` / `templates/`: フロントエンド資産。
 *   `config.json`: ユーザー設定。
 *   `data/`: 生成された音声ファイルや履歴データベース（SQLite）。
-*   `doc/specification/`: 詳細な仕様ドキュメント。
+*   `docs/specification/`: 詳細な仕様ドキュメント。
 
-詳細については、`doc/` フォルダ内の仕様書を参照してください。
+詳細については、`docs/` フォルダ内の仕様書を参照してください。

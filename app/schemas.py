@@ -3,7 +3,7 @@ Configuration Schemas and Validation.
 
 IMPORTANT:
 The definitions in this file (schemas.py) are strictly based on the specifications
-documented in `doc/specification/user-config.md`.
+documented in `docs/specification/user-config.md`.
 If you need to change setting items, types, default values, or validation ranges,
 please update the specification document (user-config.md) FIRST, then modify
 this file to ensure they are perfectly synchronized.
