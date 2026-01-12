@@ -464,32 +464,86 @@ function populateResolveClips(clips) {
 
 
 
+const tabChannel = new BroadcastChannel('voicevox_tab_control');
+let isTabActive = true;
+
 function setupSSE() {
-    const evtSource = new EventSource(api.getStreamUrl());
+    const streamUrl = new URL(api.getStreamUrl(), window.location.href).href;
     const serverStatusEl = document.getElementById('server-status');
 
-    // Connection established
-    evtSource.onopen = () => {
-        console.log('[SSE] Connection established');
-        if (serverStatusEl) {
-            serverStatusEl.classList.add('online');
+    // 1. Tab Exclusion Logic
+    tabChannel.postMessage({ type: 'new_tab_opened', timestamp: Date.now() });
+    tabChannel.onmessage = (e) => {
+        if (e.data.type === 'new_tab_opened') {
+            console.log('[Tab] Another tab opened. This tab will deactivate.');
+            deactivateTab();
         }
     };
 
+    function deactivateTab() {
+        isTabActive = false;
+        // Try to close, but it might be blocked by browser
+        window.close();
+
+        // UI feedback if close failed
+        document.body.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#1e1e2e; color:#cdd6f4; font-family:sans-serif; text-align:center; padding:20px;">
+                <h1 style="color:#f38ba8;">Tab Deactivated</h1>
+                <p>別のタブでWebUIが新しく開かれたため、このタブの通信を停止しました。</p>
+                <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#a8df65; border:none; border-radius:4px; font-weight:bold; cursor:pointer; color:#1e1e2e;">このタブを再度有効にする</button>
+            </div>
+        `;
+        if (worker) worker.port.close();
+    }
+
+    // 2. SSE Sharing Logic
+    let worker = null;
+    if (window.SharedWorker) {
+        try {
+            worker = new SharedWorker('/static/js/sse-worker.js');
+            worker.port.start();
+            worker.port.postMessage({ type: 'init', url: streamUrl });
+
+            worker.port.onmessage = (e) => {
+                if (!isTabActive) return;
+                const msg = e.data;
+                if (msg.type === '_worker_open') {
+                    console.log('[SSE] Connection established via worker');
+                    if (serverStatusEl) serverStatusEl.classList.add('online');
+                } else if (msg.type === '_worker_message') {
+                    try {
+                        handleServerEvent(JSON.parse(msg.data));
+                    } catch (err) {
+                        console.error("SSE Parse Error", err);
+                    }
+                } else if (msg.type === '_worker_error') {
+                    console.error('[SSE] Connection error in worker');
+                    if (serverStatusEl) serverStatusEl.classList.remove('online');
+                }
+            };
+            return; // Successful SharedWorker setup
+        } catch (e) {
+            console.error('[SSE] Failed to initialize SharedWorker, falling back to EventSource', e);
+        }
+    }
+
+    // Fallback if SharedWorker not available
+    const evtSource = new EventSource(streamUrl);
+    evtSource.onopen = () => {
+        console.log('[SSE] Connection established (fallback)');
+        if (serverStatusEl) serverStatusEl.classList.add('online');
+    };
     evtSource.onmessage = (e) => {
+        if (!isTabActive) return;
         try {
             handleServerEvent(JSON.parse(e.data));
         } catch (err) {
             console.error("SSE Parse Error", err);
         }
     };
-
-    // Connection error/closed
     evtSource.onerror = (err) => {
         console.error('[SSE] Connection error', err);
-        if (serverStatusEl) {
-            serverStatusEl.classList.remove('online');
-        }
+        if (serverStatusEl) serverStatusEl.classList.remove('online');
     };
 }
 

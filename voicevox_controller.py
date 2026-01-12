@@ -113,23 +113,9 @@ if __name__ == "__main__":
 
     # Open browser logic
     def open_browser():
-        print("[Startup] Browser thread started", flush=True)
-        # Wait a bit to allow existing tabs to reconnect via SSE
-        time.sleep(2)
-        
-        url = f"http://{host}:{port}"
-        
-        if not event_manager.has_had_listeners:
-            print(f"[Startup] No existing tabs detected. Opening browser at {url}", flush=True)
-            webbrowser.open(url, new=0)
-        else:
-            print("[Startup] Existing tab(s) detected. Skipping browser open.", flush=True)
-        
-        # Always notify connected tabs to reload to ensure they have the latest server state
-        print("[Startup] Sending server_restart event to active tabs", flush=True)
-        event_manager.publish_server_restart()
+        webbrowser.open(f"http://{host}:{port}")
 
-    threading.Thread(target=open_browser, daemon=True).start()
+    threading.Thread(target=open_browser).start()
 
     print(f"Starting server on {host}:{port}")
     try:
