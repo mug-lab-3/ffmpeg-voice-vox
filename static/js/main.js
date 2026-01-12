@@ -438,6 +438,20 @@ function populateDeviceSelect(devices) {
     } else if (currentValue) {
         select.value = currentValue;
     }
+
+    // [FIX] Auto-selection Sync
+    // If the select has a value (auto-selected first option or fallback), but it differs from what backend knows,
+    // we must sync it. This happens when implicit selection occurs (e.g. invalid config, or first load with empty config).
+    // Note: select.value will be the first option if we didn't set it above and options exist (browser default behavior),
+    // OR it might be empty if we set it to "" explicitly.
+    // We only care if it reflects a real device.
+    if (select.value && select.value !== store.config?.ffmpeg?.input_device) {
+        // Trigger save to assume this new default
+        // We can't access saveDomainConfig directly here as it's scoped in setupUIListeners.
+        // But we can trigger a change event which listeners handle.
+        const event = new Event('change');
+        select.dispatchEvent(event);
+    }
 }
 
 function populateResolveBins(bins) {
