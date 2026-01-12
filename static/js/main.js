@@ -767,7 +767,7 @@ function renderResolveStatus() {
     const statusText = available ? "CONNECTED" : "DISCONNECTED";
 
     el.innerHTML = `
-        <span class="online">
+        <span class="${available ? 'online' : ''}">
             ${SvgIcons.resolve}
             <span class="fs-tiny fw-bold ml-2">RESOLVE: ${statusText}</span>
         </span>
