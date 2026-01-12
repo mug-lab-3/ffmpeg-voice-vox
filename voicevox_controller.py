@@ -7,6 +7,7 @@ import subprocess
 import socket
 from app import create_app
 from app.config import config
+from app.core.events import event_manager
 
 
 def kill_previous_instances():
@@ -113,12 +114,22 @@ if __name__ == "__main__":
     # Open browser logic
     def open_browser():
         print("[Startup] Browser thread started", flush=True)
+        # Wait a bit to allow existing tabs to reconnect via SSE
         time.sleep(2)
+        
         url = f"http://{host}:{port}"
-        print(f"[Startup] Opening browser at {url}", flush=True)
-        webbrowser.open(url)
+        
+        if not event_manager.has_had_listeners:
+            print(f"[Startup] No existing tabs detected. Opening browser at {url}", flush=True)
+            webbrowser.open(url, new=0)
+        else:
+            print("[Startup] Existing tab(s) detected. Skipping browser open.", flush=True)
+        
+        # Always notify connected tabs to reload to ensure they have the latest server state
+        print("[Startup] Sending server_restart event to active tabs", flush=True)
+        event_manager.publish_server_restart()
 
-    threading.Thread(target=open_browser).start()
+    threading.Thread(target=open_browser, daemon=True).start()
 
     print(f"Starting server on {host}:{port}")
     try:

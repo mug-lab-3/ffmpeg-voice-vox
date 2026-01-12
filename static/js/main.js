@@ -559,6 +559,10 @@ async function handleServerEvent(msg) {
         case "voicevox_status":
             store.updateVoicevoxStatus(msg.data.available);
             break;
+        case "server_restart":
+            console.log('[SSE] Server restart detected. Reloading...');
+            location.reload();
+            break;
     }
 }
 

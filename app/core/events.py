@@ -8,12 +8,14 @@ class EventManager:
     def __init__(self):
         self.listeners = []
         self.lock = threading.Lock()
+        self.has_had_listeners = False
 
     def subscribe(self):
         """Register a new listener queue."""
         q = queue.Queue(maxsize=500)  # Increased buffer to prevent dropped events
         with self.lock:
             self.listeners.append(q)
+            self.has_had_listeners = True
         return q
 
     def unsubscribe(self, q):
@@ -35,6 +37,10 @@ class EventManager:
                 q.put_nowait(encoded)
             except queue.Full:
                 pass
+
+    def publish_server_restart(self):
+        """Specifically published on server startup to notify existing tabs to reload."""
+        self.publish("server_restart", {})
 
     def start_heartbeat(self):
         """Start a background thread to keep connections alive."""
