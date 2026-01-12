@@ -30,6 +30,21 @@
 *   **ダウンロード**: [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
 *   **インストール**: 任意のディレクトリに展開し、そのディレクトリを`config.json`の`ffmpeg_path`で指定してください。
 
+##### Whisper C++ (GGML) モデル
+*   **用途**: 音声認識(文字起こし)
+*   **GitHubリポジトリ**: [https://github.com/ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp)
+*   **モデルファイル**: 
+    *   推奨モデル (スペック・用途に合わせて選択): 
+        *   `ggml-large-v3-turbo.bin` (**標準推奨**: 精度はv2相当、速度は飛躍的に向上。VRAM 6GB以上推奨)
+        *   `ggml-large-v3.bin` (**最高精度**: 処理時間は長いが最も正確。VRAM 10GB以上推奨)
+        *   `ggml-small.bin` (**低スペック/省メモリ**: VRAM 2GB程度の環境やCPU処理向け)
+    *   **直接ダウンロード**: 
+        *   [ggml-large-v3-turbo.bin (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin)
+        *   [ggml-large-v3.bin (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin)
+        *   [ggml-small.bin (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin)
+        *   リポジトリ: [ggerganov/whisper.cpp (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/tree/main)
+*   **設定**: ダウンロードしたモデルファイルのパスを`config.json`の`model_path`で指定してください。
+
 ##### VAD (Voice Activity Detection) モデル
 *   **用途**: 音声区間検出(Sileroモデルを使用、Whisper C++で使用)
 *   **GitHubリポジトリ**: [https://github.com/snakers4/silero-vad](https://github.com/snakers4/silero-vad)
