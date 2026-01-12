@@ -30,7 +30,7 @@ class TestConfigSchema:
         assert config.synthesis.pitch_scale == 0.0
         assert config.synthesis.intonation_scale == 1.0
         assert config.synthesis.volume_scale == 1.0
-        assert config.synthesis.timing == "immediate"
+        assert config.synthesis.timing == "on_demand"
 
         # System
         assert config.system.output_dir == ""
