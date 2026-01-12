@@ -46,7 +46,7 @@ class TestConfigSchema:
         # Resolve
         assert config.resolve.enabled is False
         assert config.resolve.audio_track_index == 1
-        assert config.resolve.subtitle_track_index == 2
+        assert config.resolve.video_track_index == 2
         assert config.resolve.target_bin == "VoiceVox Captions"
         assert config.resolve.template_name == "Auto"
 
@@ -111,14 +111,16 @@ class TestConfigSchema:
             ResolveConfig(audio_track_index=track)
 
         with pytest.raises(ValidationError):
-            ResolveConfig(subtitle_track_index=track)
+            ResolveConfig(audio_track_index=track)
+        with pytest.raises(ValidationError):
+            ResolveConfig(video_track_index=track)
 
     def test_resolve_track_valid(self):
         """Test boundary values for resolve tracks."""
         # 1 and 50 are valid
-        c1 = ResolveConfig(audio_track_index=1, subtitle_track_index=50)
+        c1 = ResolveConfig(audio_track_index=1, video_track_index=50)
         assert c1.audio_track_index == 1
-        assert c1.subtitle_track_index == 50
+        assert c1.video_track_index == 50
 
     def test_extra_fields_ignored(self):
         """Test that unknown fields are ignored (extra='ignore')."""

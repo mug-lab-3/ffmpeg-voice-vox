@@ -25,7 +25,7 @@ class SynthesisUpdate(BaseModel):
 class ResolveUpdate(BaseModel):
     enabled: Optional[bool] = None
     audio_track_index: Optional[int] = Field(None, ge=1, le=50)
-    subtitle_track_index: Optional[int] = Field(None, ge=1, le=50)
+    video_track_index: Optional[int] = Field(None, ge=1, le=50)
     target_bin: Optional[str] = None
     template_name: Optional[str] = None
 

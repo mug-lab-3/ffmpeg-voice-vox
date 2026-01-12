@@ -52,7 +52,7 @@ def update_config_handler(new_config: dict) -> ConfigResponse:
         "intonationScale": "synthesis.intonation_scale",
         "volumeScale": "synthesis.volume_scale",
         "audioTrackIndex": "resolve.audio_track_index",
-        "subtitleTrackIndex": "resolve.subtitle_track_index",
+        "videoTrackIndex": "resolve.video_track_index",
         "templateBin": "resolve.template_bin",
         "templateName": "resolve.template_name",
     }

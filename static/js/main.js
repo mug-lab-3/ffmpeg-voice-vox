@@ -33,7 +33,7 @@ const elements = {
         queueLength: document.getElementById('cfg-queue-length'),
         host: document.getElementById('cfg-host'),
         audioTrackIndex: document.getElementById('cfg-audio-track-index'),
-        subtitleTrackIndex: document.getElementById('cfg-subtitle-track-index'),
+        videoTrackIndex: document.getElementById('cfg-video-track-index'),
         targetBin: document.getElementById('cfg-target-bin'),
         templateName: document.getElementById('cfg-template-name')
     }
@@ -46,7 +46,7 @@ const valueDisplays = {
     volumeScale: document.getElementById('val-volumeScale'),
     queueLength: document.getElementById('val-cfg-queue-length'),
     audioTrackIndex: document.getElementById('val-cfg-audio-track-index'),
-    subtitleTrackIndex: document.getElementById('val-cfg-subtitle-track-index')
+    videoTrackIndex: document.getElementById('val-cfg-video-track-index')
 };
 
 // --- Optimization Cache ---
@@ -172,11 +172,11 @@ function setupUIListeners() {
             } else if (domain === 'resolve') {
                 const updates = {};
                 const audioIdx = parseInt(elements.cfgInputs.audioTrackIndex.value);
-                const subIdx = parseInt(elements.cfgInputs.subtitleTrackIndex.value);
+                const videoIdx = parseInt(elements.cfgInputs.videoTrackIndex.value);
 
                 // Only send updates if valid number, otherwise let backend/store keep current or use defaults if full object
                 if (!isNaN(audioIdx)) updates.audio_track_index = audioIdx;
-                if (!isNaN(subIdx)) updates.subtitle_track_index = subIdx;
+                if (!isNaN(videoIdx)) updates.video_track_index = videoIdx;
 
                 // For strings, send "" if empty
                 updates.target_bin = sanitizeStr(elements.cfgInputs.targetBin.value);
@@ -214,7 +214,7 @@ function setupUIListeners() {
         }
 
         input.addEventListener('change', () => {
-            const domain = ['audioTrackIndex', 'subtitleTrackIndex', 'targetBin', 'templateName'].includes(key) ? 'resolve' : 'ffmpeg';
+            const domain = ['audioTrackIndex', 'videoTrackIndex', 'targetBin', 'templateName'].includes(key) ? 'resolve' : 'ffmpeg';
             saveDomainConfig(domain);
         });
     });
@@ -728,8 +728,8 @@ function renderConfig() {
     if (config.resolve) {
         setIfExists(elements.cfgInputs.audioTrackIndex, config.resolve.audio_track_index);
         if (config.resolve.audio_track_index !== undefined) valueDisplays.audioTrackIndex.textContent = config.resolve.audio_track_index;
-        setIfExists(elements.cfgInputs.subtitleTrackIndex, config.resolve.subtitle_track_index);
-        if (config.resolve.subtitle_track_index !== undefined) valueDisplays.subtitleTrackIndex.textContent = config.resolve.subtitle_track_index;
+        setIfExists(elements.cfgInputs.videoTrackIndex, config.resolve.video_track_index);
+        if (config.resolve.video_track_index !== undefined) valueDisplays.videoTrackIndex.textContent = config.resolve.video_track_index;
 
         // Target Bin Selection
         const binSel = elements.cfgInputs.targetBin;

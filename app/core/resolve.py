@@ -444,7 +444,7 @@ class ResolveClient:
 
                 # --- Track Management ---
                 target_track_video = config.get(
-                    "resolve.subtitle_track_index", DEFAULT_VIDEO_TRACK
+                    "resolve.video_track_index", DEFAULT_VIDEO_TRACK
                 )
                 target_track_audio = config.get(
                     "resolve.audio_track_index", DEFAULT_AUDIO_TRACK
