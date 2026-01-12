@@ -84,7 +84,9 @@ class TestSSEEvents(unittest.TestCase):
         """FFmpeg設定の変更時に config_update イベントが発行されるか検証"""
         q = event_manager.subscribe()
         try:
-            res = self.client.post("/api/config/ffmpeg", json={"ffmpeg_path": "dummy/path"})
+            res = self.client.post(
+                "/api/config/ffmpeg", json={"ffmpeg_path": "dummy/path"}
+            )
             self.assertEqual(res.status_code, 200)
 
             msg = q.get(timeout=2)
