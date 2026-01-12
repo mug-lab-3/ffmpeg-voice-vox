@@ -58,7 +58,11 @@ class StreamProcessor:
                         "pre_phoneme_length": entry["pre_phoneme_length"],
                         "post_phoneme_length": entry["post_phoneme_length"],
                     },
-                    "speaker_info": self._format_speaker_info(entry["speaker_id"]),
+                    "speaker_info": self._format_speaker_info(
+                        entry["speaker_id"],
+                        entry.get("speaker_name"),
+                        entry.get("speaker_style"),
+                    ),
                     "filename": (
                         filename
                         if (filename and duration > 0)
@@ -110,12 +114,19 @@ class StreamProcessor:
         speaker_id = config.get("synthesis.speaker_id", 1)
 
         # 2. Add to DB first (Pending state)
+        # Fetch speaker name/style for persistence
+        style_info = self.vv_client.get_style_info(speaker_id)
+        speaker_name = style_info["speaker_name"] if style_info else None
+        speaker_style = style_info["style_name"] if style_info else None
+
         db_id = db_manager.add_transcription(
             text=text,
             speaker_id=speaker_id,
             config_dict=current_config,
             output_path=None,
             audio_duration=0.0,
+            speaker_name=speaker_name,
+            speaker_style=speaker_style,
         )
 
         generated_file = None
@@ -360,11 +371,18 @@ class StreamProcessor:
 
         from app.core.events import event_manager
 
-    def _format_speaker_info(self, speaker_id: int) -> str:
-        """Helper to format speaker info string from vv_client data."""
+    def _format_speaker_info(
+        self, speaker_id: int, name: str = None, style: str = None
+    ) -> str:
+        """Helper to format speaker info string. Prefers provided name/style, then fallback to cache."""
+        if name and style:
+            return f"{name}({style})"
+
+        # Fallback to cache if database didn't have it (old records)
         info = self.vv_client.get_style_info(speaker_id)
         if info:
             return f"{info['speaker_name']}({info['style_name']})"
+
         return f"ID:{speaker_id}"
 
         event_manager.publish("log_update", {})

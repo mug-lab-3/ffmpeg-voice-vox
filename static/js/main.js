@@ -1051,9 +1051,9 @@ function createLogRow(entry) {
 }
 
 function updateLogRow(row, entry) {
-    // Re-bind Speaker Name in config cell (might have changed if speakers reloaded?)
+    // Speaker Name in config cell (Already formatted by backend since it's persisted now)
     const configCell = row.querySelector('.col-config');
-    const spName = entry.speaker_info || store.speakers[entry.config.speaker_id] || `ID:${entry.config.speaker_id}`;
+    const spName = entry.speaker_info || `ID:${entry.config.speaker_id}`;
     configCell.innerHTML = `<span class="text-primary">${spName}</span> <span class="text-muted fs-small">(x${entry.config.speed_scale.toFixed(2)})</span>`;
 
     // Tooltip with all config details

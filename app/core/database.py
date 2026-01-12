@@ -50,13 +50,12 @@ class DatabaseManager:
         except Exception as e:
             print(f"[Database] Optimization PRAGMAs failed: {e}")
 
-        if is_new:
-            self._init_db_conn(conn)
+        self._init_db_conn(conn)
 
         return conn
 
     def _init_db_conn(self, conn):
-        """Initialize the database schema using an existing connection."""
+        """Initialize the database schema using an existing connection and handle migrations."""
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS transcriptions (
@@ -75,10 +74,29 @@ class DatabaseManager:
             )
         """
         )
+
+        # Migration: Add speaker_name and speaker_style if they don't exist
+        cursor = conn.execute("PRAGMA table_info(transcriptions)")
+        columns = [row["name"] for row in cursor.fetchall()]
+
+        if "speaker_name" not in columns:
+            print("[Database] Migrating: Adding 'speaker_name' column")
+            conn.execute("ALTER TABLE transcriptions ADD COLUMN speaker_name TEXT")
+        if "speaker_style" not in columns:
+            print("[Database] Migrating: Adding 'speaker_style' column")
+            conn.execute("ALTER TABLE transcriptions ADD COLUMN speaker_style TEXT")
+
         conn.commit()
 
     def add_transcription(
-        self, text, speaker_id, config_dict, output_path=None, audio_duration=0.0
+        self,
+        text,
+        speaker_id,
+        config_dict,
+        output_path=None,
+        audio_duration=0.0,
+        speaker_name=None,
+        speaker_style=None,
     ):
         conn = self._get_connection()
         try:
@@ -87,8 +105,8 @@ class DatabaseManager:
                 INSERT INTO transcriptions (
                     text, speaker_id, speed_scale, pitch_scale,
                     intonation_scale, volume_scale, pre_phoneme_length, post_phoneme_length,
-                    output_path, audio_duration
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    output_path, audio_duration, speaker_name, speaker_style
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     text,
@@ -101,6 +119,8 @@ class DatabaseManager:
                     config_dict.get("post_phoneme_length"),
                     output_path,
                     audio_duration,
+                    speaker_name,
+                    speaker_style,
                 ),
             )
             conn.commit()
