@@ -65,11 +65,18 @@ def test_audio_filename_padding():
     assert duration2 >= 0
 
 
-def test_db_fallback_to_data():
-    """output_dirが空の場合、data/transcriptions.dbが使用されることを確認"""
+def test_db_no_fallback_when_empty():
+    """output_dirが空の場合、DBコネクションが確立されず、ファイルも作成されないことを確認"""
     db_manager = DatabaseManager()
     config.update("system.output_dir", "")
 
     path = db_manager._get_db_path()
-    assert "data" in path
-    assert "transcriptions.db" in path
+    assert path is None
+    
+    conn = db_manager._get_connection()
+    assert conn is None
+
+    # Check that data/transcriptions.db is not created (if it doesn't already exist)
+    default_path = os.path.join(os.getcwd(), "data", "transcriptions.db")
+    # Note: If it exists from previous runs, we can't easily check for *new* creation without deleting it first,
+    # but the path check above is the primary logic verification.

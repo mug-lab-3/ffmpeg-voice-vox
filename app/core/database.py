@@ -17,25 +17,23 @@ class DatabaseManager:
 
         output_dir = config.get("system.output_dir", "")
         if not output_dir:
-            # Fallback to data directory if no output_dir is set
-            return os.path.join(os.getcwd(), "data", "transcriptions.db")
+            # DO NOT fallback to default path. Return None to skip DB logic.
+            return None
 
         return os.path.join(output_dir, "transcriptions.db")
 
     def _get_connection(self):
         db_path = self._get_db_path()
-        db_dir = os.path.dirname(db_path)
+        if db_path is None:
+            return None
 
+        db_dir = os.path.dirname(db_path)
         if not os.path.exists(db_dir):
             try:
                 os.makedirs(db_dir, exist_ok=True)
             except Exception as e:
                 print(f"[Database] Failed to create directory {db_dir}: {e}")
-                # Fallback to a temporary or default location if needed?
-                # For now, let it fail or use fallback path
-
-        # Initialize if not exists
-        is_new = not os.path.exists(db_path)
+                return None
 
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
@@ -51,7 +49,6 @@ class DatabaseManager:
             print(f"[Database] Optimization PRAGMAs failed: {e}")
 
         self._init_db_conn(conn)
-
         return conn
 
     def _init_db_conn(self, conn):
@@ -99,6 +96,9 @@ class DatabaseManager:
         speaker_style=None,
     ):
         conn = self._get_connection()
+        if not conn:
+            # Cannot store to DB if output_dir is empty (standardized behavior)
+            return 0
         try:
             cursor = conn.execute(
                 """
@@ -130,6 +130,8 @@ class DatabaseManager:
 
     def update_audio_info(self, db_id, output_path, audio_duration):
         conn = self._get_connection()
+        if not conn:
+            return
         try:
             conn.execute(
                 """
@@ -145,11 +147,13 @@ class DatabaseManager:
 
     def get_recent_logs(self, limit=50):
         conn = self._get_connection()
+        if not conn:
+            return []
         try:
             cursor = conn.execute(
                 """
                 SELECT * FROM transcriptions
-                ORDER BY timestamp DESC
+                ORDER BY id DESC
                 LIMIT ?
             """,
                 (limit,),
@@ -160,6 +164,8 @@ class DatabaseManager:
 
     def delete_log(self, db_id):
         conn = self._get_connection()
+        if not conn:
+            return
         try:
             conn.execute("DELETE FROM transcriptions WHERE id = ?", (db_id,))
             conn.commit()
@@ -169,6 +175,8 @@ class DatabaseManager:
     def get_transcription(self, db_id):
         """Retrieves transcription details by ID."""
         conn = self._get_connection()
+        if not conn:
+            return None
         try:
             cursor = conn.execute(
                 "SELECT id, text, output_path, audio_duration FROM transcriptions WHERE id = ?",
@@ -188,6 +196,8 @@ class DatabaseManager:
 
     def update_transcription_text(self, db_id, new_text):
         conn = self._get_connection()
+        if not conn:
+            return
         try:
             conn.execute(
                 """
