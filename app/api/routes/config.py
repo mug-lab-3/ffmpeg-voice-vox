@@ -56,6 +56,8 @@ def update_synthesis():
                     ),
                     500,
                 )
+        from app.core.events import event_manager
+        event_manager.publish("config_update", {})
         return jsonify({"status": "ok"})
     except ValidationError as e:
         return handle_validation_error(e)
@@ -73,6 +75,8 @@ def update_resolve():
                     ),
                     500,
                 )
+        from app.core.events import event_manager
+        event_manager.publish("config_update", {})
         return jsonify({"status": "ok"})
     except ValidationError as e:
         return handle_validation_error(e)
@@ -115,6 +119,8 @@ def update_ffmpeg():
                     ),
                     500,
                 )
+        from app.core.events import event_manager
+        event_manager.publish("config_update", {})
         return jsonify({"status": "ok"})
     except ValidationError as e:
         return handle_validation_error(e)

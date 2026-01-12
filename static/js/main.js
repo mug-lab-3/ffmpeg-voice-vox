@@ -949,25 +949,31 @@ function renderStartStopUI() {
 
         // Check startability and build dynamic tooltip
         const reasons = [];
-        if (!hasDir) {
-            reasons.push("- Output directory is not set.");
-        }
-        if (!store.isVoicevoxAvailable) {
-            reasons.push("- VOICEVOX is disconnected. Please start VOICEVOX.");
-        }
 
-        const ffmpeg = store.config?.ffmpeg || {};
-        if (!ffmpeg.ffmpeg_path) {
-            reasons.push("- FFmpeg path is not set.");
-        }
-        if (!ffmpeg.input_device) {
-            reasons.push("- Input device is not selected.");
-        }
-        if (!ffmpeg.model_path) {
-            reasons.push("- Whisper model path is not set.");
-        }
-        if (!ffmpeg.vad_model_path) {
-            reasons.push("- VAD model path is not set.");
+        // Check if config is loaded
+        const ffmpeg = store.config?.ffmpeg;
+        if (!ffmpeg) {
+            reasons.push("- Loading configuration...");
+        } else {
+            if (!hasDir) {
+                reasons.push("- Output directory is not set.");
+            }
+            if (!store.isVoicevoxAvailable) {
+                reasons.push("- VOICEVOX is disconnected. Please start VOICEVOX.");
+            }
+
+            if (!ffmpeg.ffmpeg_path) {
+                reasons.push("- FFmpeg path is not set.");
+            }
+            if (!ffmpeg.input_device) {
+                reasons.push("- Input device is not selected.");
+            }
+            if (!ffmpeg.model_path) {
+                reasons.push("- Whisper model path is not set.");
+            }
+            if (!ffmpeg.vad_model_path) {
+                reasons.push("- VAD model path is not set.");
+            }
         }
 
         if (reasons.length === 0) {
