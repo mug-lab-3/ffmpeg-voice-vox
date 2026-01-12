@@ -6,6 +6,11 @@ from app.config import config
 
 class TestLogConsistency(unittest.TestCase):
     def setUp(self):
+        from unittest.mock import patch
+
+        self.config_patcher = patch("app.config.config.save_config")
+        self.config_patcher.start()
+
         self.vv_client = MagicMock()
         self.audio_manager = MagicMock()
         # Mock scan_output_dir to return empty list
@@ -13,6 +18,9 @@ class TestLogConsistency(unittest.TestCase):
         self.processor = StreamProcessor(self.vv_client, self.audio_manager)
         # Clear logs to ensure test starts with 0 logs despite existing DB entries
         self.processor.received_logs = []
+
+    def tearDown(self):
+        self.config_patcher.stop()
 
     def test_log_config_is_copy(self):
         # 1. Set initial speaker

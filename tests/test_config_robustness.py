@@ -5,6 +5,16 @@ from app.config import ConfigManager
 from pydantic import ValidationError
 
 
+@pytest.fixture(autouse=True)
+def protect_config():
+    """本番のconfig.jsonがテストで書き換えられないように保護する"""
+    from unittest.mock import patch
+
+    # ConfigManagerのsave_configをパッチして、テスト中の書き込みを阻止する
+    with patch("app.config.ConfigManager.save_config"):
+        yield
+
+
 @pytest.fixture
 def clean_env(tmp_path):
     config_dir = tmp_path / "data"

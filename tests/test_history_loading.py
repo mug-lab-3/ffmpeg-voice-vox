@@ -12,15 +12,30 @@ from app.core.database import db_manager
 class TestHistoryLoading(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
-        # Mock Config to return test_dir
+        # Use patch to dynamically return test_dir for output_dir
+        # This is safer than config.update as it resets after the with/patch block
         from app.config import config
 
-        config.update("system.output_dir", self.test_dir)
+        self.config_patcher = patch(
+            "app.config.config.get",
+            side_effect=lambda key, default=None: (
+                self.test_dir
+                if key == "system.output_dir"
+                else config.config.get(key, default)
+            ),
+        )
+        self.config_patcher.start()
+
+        # Also patch save_config just in case
+        self.save_patcher = patch("app.config.config.save_config")
+        self.save_patcher.start()
 
         self.audio_manager = AudioManager()
         self.mock_vv = MagicMock(spec=VoiceVoxClient)
 
     def tearDown(self):
+        self.config_patcher.stop()
+        self.save_patcher.stop()
         shutil.rmtree(self.test_dir)
 
     @patch("app.core.database.db_manager.get_recent_logs")

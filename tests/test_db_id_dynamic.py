@@ -8,6 +8,15 @@ from app.core.audio import AudioManager
 from app.config import config
 
 
+@pytest.fixture(autouse=True)
+def protect_config():
+    """本番のconfig.jsonがテストで書き換えられないように保護する"""
+    from unittest.mock import patch
+
+    with patch("app.config.config.save_config"):
+        yield
+
+
 @pytest.fixture
 def temp_output_dir():
     """一時的な出力ディレクトリを作成するフィクスチャ"""
@@ -72,7 +81,7 @@ def test_db_no_fallback_when_empty():
 
     path = db_manager._get_db_path()
     assert path is None
-    
+
     conn = db_manager._get_connection()
     assert conn is None
 
