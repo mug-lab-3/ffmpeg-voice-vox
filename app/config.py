@@ -1,7 +1,7 @@
 import json
 import os
 from typing import Dict, Any
-from .schemas import ConfigSchema
+from .schemas import ConfigSchema, BaseModel
 from pydantic import ValidationError
 
 
@@ -105,38 +105,55 @@ class ConfigManager:
             return default_obj
 
         for section_name in default_obj.__class__.model_fields:
-            if section_name in data and isinstance(data[section_name], dict):
-                section_data = data[section_name]
-                # Get the Pydantic model class for this section
-                current_section_instance = getattr(default_obj, section_name)
-                section_model_class = current_section_instance.__class__
+            if section_name not in data:
+                continue
 
-                # Start with defaults
-                valid_section_data = current_section_instance.model_dump()
+            section_data = data[section_name]
+            current_section_instance = getattr(default_obj, section_name)
 
-                # Process each field in the section
-                for field_name, field_value in section_data.items():
-                    if field_name not in section_model_class.model_fields:
-                        continue
+            # Case 1: Simple field (not a nested BaseModel)
+            if not isinstance(current_section_instance, BaseModel):
+                try:
+                    # Validate by creating a temporary schema with this field
+                    # Note: ConfigSchema itself can be used for simple top-level fields
+                    temp_data = default_obj.model_dump()
+                    temp_data[section_name] = section_data
+                    ConfigSchema(**temp_data)
+                    setattr(default_obj, section_name, section_data)
+                except ValidationError:
+                    print(
+                        f"[Config] Field '{section_name}' has invalid value. Using default."
+                    )
+                continue
 
-                    # Field-level validation attempt
-                    test_data = valid_section_data.copy()
-                    test_data[field_name] = field_value
-
-                    try:
-                        # Validate by instantiating
-                        section_model_class(**test_data)
-                        # It passed, update our valid set
-                        valid_section_data[field_name] = field_value
-                    except ValidationError:
-                        print(
-                            f"[Config] Field '{section_name}.{field_name}' has invalid value '{field_value}'. Using default."
-                        )
-
-                # Finally set the section on the main config object
-                setattr(
-                    default_obj, section_name, section_model_class(**valid_section_data)
+            # Case 2: Nested BaseModel (the usual case like 'synthesis', 'ffmpeg')
+            if not isinstance(section_data, dict):
+                print(
+                    f"[Config] Section '{section_name}' expects a dictionary. Using default."
                 )
+                continue
+
+            section_model_class = current_section_instance.__class__
+            valid_section_data = current_section_instance.model_dump()
+
+            for field_name, field_value in section_data.items():
+                if field_name not in section_model_class.model_fields:
+                    continue
+
+                test_data = valid_section_data.copy()
+                test_data[field_name] = field_value
+
+                try:
+                    section_model_class(**test_data)
+                    valid_section_data[field_name] = field_value
+                except ValidationError:
+                    print(
+                        f"[Config] Field '{section_name}.{field_name}' has invalid value. Using default."
+                    )
+
+            setattr(
+                default_obj, section_name, section_model_class(**valid_section_data)
+            )
 
         return default_obj
 

@@ -19,6 +19,9 @@ class SynthesisUpdate(BaseModel):
     pitch_scale: Optional[float] = Field(None, ge=-0.15, le=0.15)
     intonation_scale: Optional[float] = Field(None, ge=0.0, le=2.0)
     volume_scale: Optional[float] = Field(None, ge=0.0, le=2.0)
+    pre_phoneme_length: Optional[float] = Field(None, ge=0.0, le=1.5)
+    post_phoneme_length: Optional[float] = Field(None, ge=0.0, le=1.5)
+    pause_length_scale: Optional[float] = Field(None, ge=0.0, le=2.0)
     timing: Optional[str] = None
 
 
@@ -51,6 +54,9 @@ class APIConfigSchema(BaseModel):
     pitch_scale: float
     intonation_scale: float
     volume_scale: float
+    pre_phoneme_length: float
+    post_phoneme_length: float
+    pause_length_scale: float
     timing: str
     ffmpeg: FfmpegConfig
     resolve: ResolveConfig

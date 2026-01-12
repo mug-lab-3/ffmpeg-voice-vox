@@ -73,6 +73,15 @@ class VoiceVoxClient:
         query_data["pitchScale"] = config.get("synthesis.pitch_scale", 0.0)
         query_data["intonationScale"] = config.get("synthesis.intonation_scale", 1.0)
         query_data["volumeScale"] = config.get("synthesis.volume_scale", 1.0)
+        query_data["prePhonemeLength"] = config.get("synthesis.pre_phoneme_length", 0.1)
+        query_data["postPhonemeLength"] = config.get(
+            "synthesis.post_phoneme_length", 0.1
+        )
+        query_data["pauseLengthScale"] = config.get("synthesis.pause_length_scale", 1.0)
+
+        # Quality settings fixed
+        query_data["outputSamplingRate"] = 48000
+        query_data["outputStereo"] = True
 
         url = f"{self.base_url}/synthesis?speaker={speaker_id}"
         json_data = json.dumps(query_data).encode("utf-8")

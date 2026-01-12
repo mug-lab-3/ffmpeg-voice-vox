@@ -53,6 +53,9 @@
 | `pitch_scale` | float | `0.0` | 浮動小数点数チェック, **-0.15 〜 0.15** |
 | `intonation_scale` | float | `1.0` | 浮動小数点数チェック, **0.0 〜 2.0** |
 | `volume_scale` | float | `1.0` | 浮動小数点数チェック, **0.0 〜 2.0** |
+| `pre_phoneme_length` | float | `0.1` | 浮動小数点数チェック, **0.0 〜 1.5** |
+| `post_phoneme_length` | float | `0.1` | 浮動小数点数チェック, **0.0 〜 1.5** |
+| `pause_length_scale` | float | `1.0` | 浮動小数点数チェック, **0.0 〜 2.0** |
 | `timing` | string | `on_demand` | **"immediate"** (即時) または **"on_demand"** (オンデマンド) |
 
 ### 4. `system` (システム設定)

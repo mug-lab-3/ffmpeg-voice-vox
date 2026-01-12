@@ -14,6 +14,9 @@ const elements = {
     pitchScale: document.getElementById('pitchScale'),
     intonationScale: document.getElementById('intonationScale'),
     volumeScale: document.getElementById('volumeScale'),
+    prePhonemeLength: document.getElementById('prePhonemeLength'),
+    postPhonemeLength: document.getElementById('postPhonemeLength'),
+    pauseLengthScale: document.getElementById('pauseLengthScale'),
     synthesisTiming: document.getElementById('synthesis-timing'),
 
     logTableBody: document.getElementById('log-table-body'),
@@ -45,6 +48,9 @@ const valueDisplays = {
     pitchScale: document.getElementById('val-pitchScale'),
     intonationScale: document.getElementById('val-intonationScale'),
     volumeScale: document.getElementById('val-volumeScale'),
+    prePhonemeLength: document.getElementById('val-prePhonemeLength'),
+    postPhonemeLength: document.getElementById('val-postPhonemeLength'),
+    pauseLengthScale: document.getElementById('val-pauseLengthScale'),
     queueLength: document.getElementById('val-cfg-queue-length'),
     audioTrackIndex: document.getElementById('val-cfg-audio-track-index'),
     videoTrackIndex: document.getElementById('val-cfg-video-track-index')
@@ -108,7 +114,7 @@ function setupStoreListeners() {
 
 function setupUIListeners() {
     // Voicevox Config Inputs
-    const vvKeys = ['speaker', 'speedScale', 'pitchScale', 'intonationScale', 'volumeScale', 'synthesisTiming'];
+    const vvKeys = ['speaker', 'speedScale', 'pitchScale', 'intonationScale', 'volumeScale', 'prePhonemeLength', 'postPhonemeLength', 'pauseLengthScale', 'synthesisTiming'];
     vvKeys.forEach(key => {
         elements[key].addEventListener('input', (e) => {
             if (valueDisplays[key]) {
@@ -131,6 +137,9 @@ function setupUIListeners() {
                 'pitchScale': 'pitch_scale',
                 'intonationScale': 'intonation_scale',
                 'volumeScale': 'volume_scale',
+                'prePhonemeLength': 'pre_phoneme_length',
+                'postPhonemeLength': 'post_phoneme_length',
+                'pauseLengthScale': 'pause_length_scale',
                 'synthesisTiming': 'timing'
             };
             const res = await api.updateSynthesisConfig({ [mapping[key]]: val });
@@ -754,6 +763,9 @@ function renderConfig() {
     setIfExists(elements.pitchScale, config.pitch_scale);
     setIfExists(elements.intonationScale, config.intonation_scale);
     setIfExists(elements.volumeScale, config.volume_scale);
+    setIfExists(elements.prePhonemeLength, config.pre_phoneme_length);
+    setIfExists(elements.postPhonemeLength, config.post_phoneme_length);
+    setIfExists(elements.pauseLengthScale, config.pause_length_scale);
     setIfExists(elements.synthesisTiming, config.timing);
 
     // Update value displays
@@ -761,6 +773,9 @@ function renderConfig() {
     if (config.pitch_scale !== undefined) valueDisplays.pitchScale.textContent = config.pitch_scale.toFixed(2);
     if (config.intonation_scale !== undefined) valueDisplays.intonationScale.textContent = config.intonation_scale.toFixed(2);
     if (config.volume_scale !== undefined) valueDisplays.volumeScale.textContent = config.volume_scale.toFixed(2);
+    if (config.pre_phoneme_length !== undefined) valueDisplays.prePhonemeLength.textContent = config.pre_phoneme_length.toFixed(2);
+    if (config.post_phoneme_length !== undefined) valueDisplays.postPhonemeLength.textContent = config.post_phoneme_length.toFixed(2);
+    if (config.pause_length_scale !== undefined) valueDisplays.pauseLengthScale.textContent = config.pause_length_scale.toFixed(2);
 
     // Output Directory
     elements.outputDir.value = outputDir || "";
