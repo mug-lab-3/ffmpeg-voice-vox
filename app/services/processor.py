@@ -33,10 +33,11 @@ class StreamProcessor:
                     if not os.path.exists(full_path):
                         # File missing on disk, but DB says it exists -> Delete from DB and skip
                         print(
-                            f"  -> File MISSING on disk: {filename}. Deleting record ID {entry['id']} from DB."
+                            f"  -> File MISSING on disk: {filename}. Resetting status for record ID {entry['id']}."
                         )
-                        db_manager.delete_log(entry["id"])
-                        continue
+                        db_manager.update_audio_info(entry["id"], None, -1.0)
+                        filename = None
+                        duration = -1.0
                     else:
                         print(f"  -> File OK: {filename}")
 

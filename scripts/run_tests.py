@@ -17,7 +17,6 @@ def main():
         "tests/",
         "--ignore=tests/test_voicevox_integration.py",
         "--ignore=tests/test_command_logic.py",
-        "--ignore=tests/test_history_loading.py",
         "--ignore=tests/test_log_consistency.py",
         "--ignore=tests/test_logs.py",
         "--ignore=tests/test_srt_generation.py",
