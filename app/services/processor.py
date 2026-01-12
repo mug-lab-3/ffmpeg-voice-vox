@@ -28,7 +28,7 @@ class StreamProcessor:
                 duration = entry["audio_duration"]
 
                 # Verify file existence if it was already generated
-                if filename and duration > 0:
+                if filename and duration >= 0:
                     full_path = os.path.normpath(os.path.join(output_dir, filename))
                     if not os.path.exists(full_path):
                         # File missing on disk, but DB says it exists -> Delete from DB and skip
@@ -65,9 +65,10 @@ class StreamProcessor:
                     ),
                     "filename": (
                         filename
-                        if (filename and duration > 0)
+                        if (filename and duration >= 0)
                         else f"pending_{entry['id']}.wav"
                     ),
+                    "is_generated": (duration >= 0),
                 }
                 self.received_logs.append(log_entry)
 
@@ -124,7 +125,7 @@ class StreamProcessor:
             speaker_id=speaker_id,
             config_dict=current_config,
             output_path=None,
-            audio_duration=0.0,
+            audio_duration=-1.0,
             speaker_name=speaker_name,
             speaker_style=speaker_style,
         )
@@ -232,6 +233,7 @@ class StreamProcessor:
             if log.get("id") == db_id:
                 log["filename"] = generated_file
                 log["duration"] = f"{actual_duration:.2f}s"
+                log["is_generated"] = True
                 break
 
         from app.core.events import event_manager
@@ -290,11 +292,10 @@ class StreamProcessor:
             "duration": f"{duration:.2f}s",
             "config": log_config.copy(),
             "filename": (
-                filename
-                if (filename and filename != "Pending" and duration > 0)
-                else f"pending_{db_id}.wav"
+                filename if (filename and duration >= 0) else f"pending_{db_id}.wav"
             ),
             "speaker_info": self._format_speaker_info(speaker_id),
+            "is_generated": (duration >= 0),
         }
 
         if len(self.received_logs) >= 50:
@@ -360,8 +361,9 @@ class StreamProcessor:
         for log in self.received_logs:
             if log.get("id") == db_id:
                 log["text"] = new_text
-                log["duration"] = "0.00s"  # Reset duration
+                log["duration"] = "-1.00s"  # Reset duration
                 log["filename"] = f"pending_{db_id}.wav"  # Reset filename
+                log["is_generated"] = False
                 found = True
                 break
 
@@ -370,6 +372,8 @@ class StreamProcessor:
             pass
 
         from app.core.events import event_manager
+
+        event_manager.publish("log_update", {})
 
     def _format_speaker_info(
         self, speaker_id: int, name: str = None, style: str = None
@@ -384,5 +388,3 @@ class StreamProcessor:
             return f"{info['speaker_name']}({info['style_name']})"
 
         return f"ID:{speaker_id}"
-
-        event_manager.publish("log_update", {})

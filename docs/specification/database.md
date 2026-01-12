@@ -24,7 +24,7 @@
 | `pre_phoneme_length` | REAL | 開始無音時間（0.0 〜 1.5） |
 | `post_phoneme_length` | REAL | 終了無音時間（0.0 〜 1.5） |
 | `output_path` | TEXT | 生成された音声ファイルの相対パス（未生成時は NULL） |
-| `audio_duration` | REAL | 音声の長さ（秒、デフォルト 0.0） |
+| `audio_duration` | REAL | 音声の長さ（秒、デフォルト -1.0。負の値は音声未生成/保留中を示す） |
 
 ## 永続化とマイグレーション
 

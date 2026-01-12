@@ -1089,7 +1089,7 @@ function createLogRow(entry) {
         <td class="col-play text-center"></td>
         <td class="text-center text-muted fs-small" title="Created at: ${new Date(entry.timestamp).toLocaleString()}">${entry.id}</td>
         <td class="col-text fw-bold"></td>
-        <td class="col-duration text-muted">${entry.filename.startsWith("pending_") ? "--" : entry.duration}</td>
+        <td class="col-duration text-muted">${entry.is_generated ? entry.duration : "--"}</td>
         <td class="col-config"></td>
         <td class="col-resolve text-center"></td>
         <td class="col-delete text-center"></td>
@@ -1168,7 +1168,8 @@ function updateLogRow(row, entry) {
 
     // Button States
     const isThisPlaying = store.playbackState.is_playing && store.playbackState.filename === entry.filename;
-    const isPending = entry.filename && entry.filename.startsWith("pending_");
+    // [FIX] Use explicit status flag from backend
+    const isGenerated = entry.is_generated;
 
     // Play Button
     const playCell = row.querySelector('.col-play');
@@ -1193,7 +1194,7 @@ function updateLogRow(row, entry) {
         playBtn.onclick = isLocked ? null : () => doPlay(entry.id, playBtn);
 
         // On-demand (pending) items get red Play button
-        if (isPending) {
+        if (!isGenerated) {
             playBtn.classList.add('btn-on-demand');
         } else {
             playBtn.classList.remove('btn-on-demand');
@@ -1225,7 +1226,8 @@ function updateLogRow(row, entry) {
         delBtn.disabled = isLocked;
         delBtn.title = isLocked ? "Wait for current task" : "Delete file";
         if (!isLocked) {
-            delBtn.onclick = () => doDelete(entry.id, entry.filename);
+            // [FIX] Pass isGenerated to doDelete
+            delBtn.onclick = () => doDelete(entry.id, entry.filename, isGenerated);
         }
         delCell.appendChild(delBtn);
     }
@@ -1272,8 +1274,8 @@ async function doPlay(id, btn) {
     }
 }
 
-async function doDelete(id, filename) {
-    if (await showConfirmDialog(filename)) {
+async function doDelete(id, filename, isGenerated) {
+    if (await showConfirmDialog(filename, isGenerated)) {
         try {
             const res = await api.deleteFile(id);
             if (res.ok && res.data.status === 'ok') {
@@ -1401,14 +1403,19 @@ function createOverlay() {
     document.body.appendChild(overlay);
 }
 
-function showConfirmDialog(filename) {
+function showConfirmDialog(filename, isGenerated = true) {
     return new Promise((resolve) => {
         const modal = document.getElementById('confirm-modal');
         const msg = document.getElementById('modal-msg');
         const btnYes = document.getElementById('modal-confirm');
         const btnNo = document.getElementById('modal-cancel');
 
-        msg.textContent = `Are you sure you want to delete:\n${filename}?`;
+        if (!isGenerated) {
+            msg.textContent = "Are you sure you want to delete this item?";
+        } else {
+            msg.textContent = `Are you sure you want to delete:\n${filename}?`;
+        }
+
         modal.classList.add('active');
 
         const cleanup = () => {

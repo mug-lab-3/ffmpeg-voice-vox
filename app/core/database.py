@@ -67,7 +67,7 @@ class DatabaseManager:
                 pre_phoneme_length REAL,
                 post_phoneme_length REAL,
                 output_path TEXT,
-                audio_duration REAL DEFAULT 0.0
+                audio_duration REAL DEFAULT -1.0
             )
         """
         )
@@ -91,7 +91,7 @@ class DatabaseManager:
         speaker_id,
         config_dict,
         output_path=None,
-        audio_duration=0.0,
+        audio_duration=-1.0,
         speaker_name=None,
         speaker_style=None,
     ):
@@ -202,7 +202,7 @@ class DatabaseManager:
             conn.execute(
                 """
                 UPDATE transcriptions
-                SET text = ?, output_path = NULL, audio_duration = 0.0
+                SET text = ?, output_path = NULL, audio_duration = -1.0
                 WHERE id = ?
             """,
                 (new_text, db_id),
