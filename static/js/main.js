@@ -43,7 +43,10 @@ const valueDisplays = {
     speedScale: document.getElementById('val-speedScale'),
     pitchScale: document.getElementById('val-pitchScale'),
     intonationScale: document.getElementById('val-intonationScale'),
-    volumeScale: document.getElementById('val-volumeScale')
+    volumeScale: document.getElementById('val-volumeScale'),
+    queueLength: document.getElementById('val-cfg-queue-length'),
+    audioTrackIndex: document.getElementById('val-cfg-audio-track-index'),
+    subtitleTrackIndex: document.getElementById('val-cfg-subtitle-track-index')
 };
 
 // --- Optimization Cache ---
@@ -200,6 +203,16 @@ function setupUIListeners() {
 
     ffmpegKeys.forEach(key => {
         const input = elements.cfgInputs[key];
+
+        // Track display updates for range inputs
+        if (input.type === 'range') {
+            input.addEventListener('input', (e) => {
+                if (valueDisplays[key]) {
+                    valueDisplays[key].textContent = e.target.value;
+                }
+            });
+        }
+
         input.addEventListener('change', () => {
             const domain = ['audioTrackIndex', 'subtitleTrackIndex', 'targetBin', 'templateName'].includes(key) ? 'resolve' : 'ffmpeg';
             saveDomainConfig(domain);
@@ -707,13 +720,16 @@ function renderConfig() {
         setIfExists(elements.cfgInputs.modelPath, config.ffmpeg.model_path);
         setIfExists(elements.cfgInputs.vadPath, config.ffmpeg.vad_model_path);
         setIfExists(elements.cfgInputs.queueLength, config.ffmpeg.queue_length);
+        if (config.ffmpeg.queue_length !== undefined) valueDisplays.queueLength.textContent = config.ffmpeg.queue_length;
         setIfExists(elements.cfgInputs.host, config.ffmpeg.host);
     }
 
     // Render Resolve Settings
     if (config.resolve) {
         setIfExists(elements.cfgInputs.audioTrackIndex, config.resolve.audio_track_index);
+        if (config.resolve.audio_track_index !== undefined) valueDisplays.audioTrackIndex.textContent = config.resolve.audio_track_index;
         setIfExists(elements.cfgInputs.subtitleTrackIndex, config.resolve.subtitle_track_index);
+        if (config.resolve.subtitle_track_index !== undefined) valueDisplays.subtitleTrackIndex.textContent = config.resolve.subtitle_track_index;
 
         // Target Bin Selection
         const binSel = elements.cfgInputs.targetBin;
