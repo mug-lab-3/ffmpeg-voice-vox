@@ -67,6 +67,32 @@ class TestSSEEvents(unittest.TestCase):
 
         self.assertTrue(found, "server_restart event not found in stream")
 
+    def test_config_update_event_on_synthesis_change(self):
+        """音声合成設定の変更時に config_update イベントが発行されるか検証"""
+        q = event_manager.subscribe()
+        try:
+            res = self.client.post("/api/config/synthesis", json={"speed_scale": 1.1})
+            self.assertEqual(res.status_code, 200)
+
+            msg = q.get(timeout=2)
+            payload = json.loads(msg.replace("data: ", "").strip())
+            self.assertEqual(payload["type"], "config_update")
+        finally:
+            event_manager.unsubscribe(q)
+
+    def test_config_update_event_on_ffmpeg_change(self):
+        """FFmpeg設定の変更時に config_update イベントが発行されるか検証"""
+        q = event_manager.subscribe()
+        try:
+            res = self.client.post("/api/config/ffmpeg", json={"ffmpeg_path": "dummy/path"})
+            self.assertEqual(res.status_code, 200)
+
+            msg = q.get(timeout=2)
+            payload = json.loads(msg.replace("data: ", "").strip())
+            self.assertEqual(payload["type"], "config_update")
+        finally:
+            event_manager.unsubscribe(q)
+
 
 if __name__ == "__main__":
     unittest.main()

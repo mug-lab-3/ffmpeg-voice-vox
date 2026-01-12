@@ -15,9 +15,16 @@
 - **`app/services/`**: サービスレイヤー。ビジネスロジックの実体。
 - **`app/core/`**: コアレイヤー。FFmpeg、VoiceVox、DaVinci Resolve等の外部クライアント。
 
+## 同期設計（Hybrid Synchronization）
+
+本アプリケーションは、操作の性質に応じて2つの同期方式を使い分けます。いずれの場合も `config_update` SSEイベントは発行され、マルチタブ間での整合性が保たれます。
+
+- **L-Sync (Lightweight Sync)**: 音声パラメータやResolve設定など、軽量な操作。APIレスポンスに最新の設定データを含め、操作したタブでは即座にUIを更新します。
+- **H-Sync (Heavyweight/SSE-first Sync)**: 出力ディレクトリ選択やFFmpeg設定など、時間がかかり得る操作。APIレスポンスは `{"status": "ok"}` のみを返し、SSEの受信をトリガーに全タブ（操作したタブ含む）でデータを再取得・更新します。
+
 ## 共通レスポンス形式
 
-すべてのAPIレスポンスは以下の `BaseResponse` 形式を採用しています。
+すべてのAPIレスポンスは、原則として以下の `BaseResponse` をベースとした形式を採用しています。
 
 ```json
 {
@@ -26,6 +33,8 @@
   "message": null
 }
 ```
+
+L-Sync対象のAPIでは、成功時にこれに加えて `config` オブジェクト等が同梱されます。
 
 - `status`: `"ok"` または `"error"`
 - `error_code`: エラーの種類を示す定数文字列（任意）

@@ -146,7 +146,10 @@ function setupUIListeners() {
                 'synthesisTiming': 'timing'
             };
             const res = await api.updateSynthesisConfig({ [mapping[key]]: val });
-            if (!res.ok && res.status === 422) {
+            if (res.ok) {
+                // L-Sync: Immediately update store with returned data
+                store.setConfig(res.data.config, res.data.outputDir, res.data.resolve_available, res.data.voicevox_available);
+            } else if (res.status === 422) {
                 await showAlert("Validation Error", res.data.message || "Invalid value");
                 // Restore previous valid value using data from error response
                 if (res.data.config) {
@@ -198,7 +201,13 @@ function setupUIListeners() {
                 res = await api.updateResolveConfig(updates);
             }
 
-            if (res && !res.ok) {
+            if (res && res.ok) {
+                if (domain === 'resolve') {
+                    // L-Sync: Immediately update store with returned data
+                    store.setConfig(res.data.config, res.data.outputDir, res.data.resolve_available, res.data.voicevox_available);
+                }
+                // FFmpeg is H-Sync, we wait for SSE
+            } else if (res && !res.ok) {
                 const title = res.status === 422 ? "Validation Error" : "Save Error (Check Console)";
                 const msg = res.data?.message || "Unknown error occurred";
                 await showAlert(title, msg);
@@ -354,13 +363,11 @@ function setupUIListeners() {
                 elements.outputDir.value = path;
                 // Server reloads logs automatically on config change
                 const updateRes = await api.updateSystemConfig({ output_dir: path });
-                if (!updateRes.ok && updateRes.status === 422) {
-                    await showAlert("Validation Error", updateRes.data.message);
-                    if (updateRes.data.config) {
-                        store.setConfig(updateRes.data.config, updateRes.data.outputDir, updateRes.data.resolve_available, updateRes.data.voicevox_available);
-                    } else {
-                        renderConfig();
+                if (!updateRes.ok) {
+                    if (updateRes.status === 422) {
+                        await showAlert("Validation Error", updateRes.data.message);
                     }
+                    renderConfig(); // Refresh from current store to reset UI if failed
                     return;
                 }
 

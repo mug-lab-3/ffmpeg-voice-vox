@@ -58,7 +58,7 @@ def update_synthesis():
                 )
         from app.core.events import event_manager
         event_manager.publish("config_update", {})
-        return jsonify({"status": "ok"})
+        return jsonify(get_config_handler().model_dump())
     except ValidationError as e:
         return handle_validation_error(e)
 
@@ -77,7 +77,7 @@ def update_resolve():
                 )
         from app.core.events import event_manager
         event_manager.publish("config_update", {})
-        return jsonify({"status": "ok"})
+        return jsonify(get_config_handler().model_dump())
     except ValidationError as e:
         return handle_validation_error(e)
 
