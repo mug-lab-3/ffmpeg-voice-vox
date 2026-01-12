@@ -34,7 +34,7 @@ graph TD
 
 ## WebUI 管理画面
 
-![WebUI Capture](doc/webui_capture.png)
+![WebUI Capture](doc/images/webui.png)
 
 ## 主な機能
 
