@@ -2,15 +2,37 @@ import unittest
 import json
 import time
 import threading
+import os
 from app import create_app
 from app.core.events import event_manager
 
 
 class TestSSEEvents(unittest.TestCase):
     def setUp(self):
+        # Isolate config
+        from app.config import config
+        self.config = config
+        self.original_config_path = config.config_path
+        self.test_config_path = os.path.join(config.data_dir, "test_sse_config.json")
+        
+        # Switch to test config path
+        config.config_path = self.test_config_path
+        if os.path.exists(self.test_config_path):
+            os.remove(self.test_config_path)
+        config.load_config() # Initialize with defaults
+
         self.app = create_app()
         self.app.testing = True
         self.client = self.app.test_client()
+
+    def tearDown(self):
+        # Restore config
+        self.config.config_path = self.original_config_path
+        self.config.load_config()
+        
+        # Cleanup
+        if os.path.exists(self.test_config_path):
+            os.remove(self.test_config_path)
 
     def test_server_restart_event_broadcast(self):
         """EventManager.publish_server_restart() が正しい形式でイベントを送信するか検証"""

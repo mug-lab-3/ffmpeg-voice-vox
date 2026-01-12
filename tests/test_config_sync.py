@@ -2,12 +2,34 @@ import unittest
 import json
 from app import create_app
 
+import os
 
 class TestConfigSync(unittest.TestCase):
     def setUp(self):
+        # Isolate config
+        from app.config import config
+        self.config = config
+        self.original_config_path = config.config_path
+        self.test_config_path = os.path.join(config.data_dir, "test_sync_config.json")
+        
+        # Switch to test config path
+        config.config_path = self.test_config_path
+        if os.path.exists(self.test_config_path):
+            os.remove(self.test_config_path)
+        config.load_config() # Initialize with defaults
+
         self.app = create_app()
         self.app.testing = True
         self.client = self.app.test_client()
+
+    def tearDown(self):
+        # Restore config
+        self.config.config_path = self.original_config_path
+        self.config.load_config()
+        
+        # Cleanup
+        if os.path.exists(self.test_config_path):
+            os.remove(self.test_config_path)
 
     def test_synthesis_update_returns_full_config_lsync(self):
         """L-Sync: 音声合成設定の更新が最新の全設定データを返すか検証"""
