@@ -17,10 +17,43 @@
 ## 開発環境構築
 
 ### 必須要件
+
+#### 基本環境
 *   **OS**: Windows / macOS
 *   **Python**: 3.x
-*   **VOICEVOX**: 音声合成エンジン（エディタまたはエンジン）が起動していること。
-*   **DaVinci Resolve**: 連携機能を使用する場合、DaVinci Resolveが起動しており、スクリプトAPIが有効であること。
+
+#### 外部ツール・モジュール
+
+##### FFmpeg
+*   **用途**: 音声ファイルの変換・処理
+*   **公式サイト**: [https://ffmpeg.org/](https://ffmpeg.org/)
+*   **ダウンロード**: [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
+*   **インストール**: 任意のディレクトリに展開し、そのディレクトリを`config.json`の`ffmpeg_path`で指定してください。
+
+##### VAD (Voice Activity Detection) モデル
+*   **用途**: 音声区間検出(Sileroモデルを使用、Whisper C++で使用)
+*   **GitHubリポジトリ**: [https://github.com/snakers4/silero-vad](https://github.com/snakers4/silero-vad)
+*   **モデルファイル**: 
+    *   推奨モデル: `ggml-silero-v6.2.0.bin` (GGML形式、Whisper C++用)
+    *   **直接ダウンロード**: 
+        *   [ggml-silero-v6.2.0.bin (Hugging Face)](https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v6.2.0.bin)
+        *   リポジトリ: [ggml-org/whisper-vad](https://huggingface.co/ggml-org/whisper-vad)
+*   **設定**: ダウンロードしたGGMLファイルのパスを`config.json`の`vad_model_path`で指定してください。
+
+##### VOICEVOX
+*   **用途**: 音声合成エンジン
+*   **公式サイト**: [https://voicevox.hiroshiba.jp/](https://voicevox.hiroshiba.jp/)
+*   **GitHubリポジトリ**: [https://github.com/VOICEVOX/voicevox](https://github.com/VOICEVOX/voicevox)
+*   **ダウンロード**: 
+    *   エディタ版: [VOICEVOX公式サイト](https://voicevox.hiroshiba.jp/)
+    *   エンジン版: [VOICEVOX ENGINE Releases](https://github.com/VOICEVOX/voicevox_engine/releases)
+*   **起動**: アプリケーション実行前にVOICEVOXを起動してください（デフォルト: `http://127.0.0.1:50021`）。
+*   **設定**: `config.json`で接続先URLやスピーカーIDなどを変更可能です。
+
+##### DaVinci Resolve (オプション)
+*   **用途**: 動画編集ソフトとの連携（音声・字幕の自動挿入）
+*   **公式サイト**: [https://www.blackmagicdesign.com/products/davinciresolve](https://www.blackmagicdesign.com/products/davinciresolve)
+*   **要件**: 連携機能を使用する場合、DaVinci Resolveが起動しており、スクリプトAPIが有効であること。
 
 ### セットアップ手順
 
