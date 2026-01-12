@@ -288,54 +288,86 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .tab-nav {
     display: flex;
-    gap: 4px;
+    gap: 16px;
     margin-bottom: 0;
-    border-bottom: 1px solid var(--border);
-    padding: 0 10px;
+    border-bottom: none;
+    /* Removed border */
+    padding: 0 4px;
 }
 
 .tab-btn {
-    padding: 10px 24px;
-    background-color: var(--surface-light);
+    padding: 12px 16px;
+    background-color: transparent;
+    /* No background */
     color: var(--text-muted);
-    border: 1px solid var(--border);
+    border: none;
+    /* No border */
     border-bottom: none;
-    border-radius: 8px 8px 0 0;
+    border-radius: 6px;
+    /* Slight rounded for hover effect */
     cursor: pointer;
     font-weight: 600;
-    transition: var(--transition);
+    transition: all 0.2s ease;
     font-size: 0.95rem;
+    position: relative;
+    /* For pseudo-element absolute positioning */
 }
 
 .tab-btn:hover {
-    background-color: #3d3d3d;
+    background-color: rgba(255, 255, 255, 0.05);
+    /* Subtle hover */
     color: var(--text);
 }
 
 .tab-btn.active {
-    background-color: var(--surface);
+    background-color: transparent;
     color: var(--primary);
-    border-bottom: 1px solid var(--surface);
-    /* Merge with pane */
-    margin-bottom: -1px;
-    /* Overlap border */
+    border-bottom: none;
+    margin-bottom: 0;
     z-index: 2;
     padding-top: 12px;
-    /* Slight lift effect */
+}
+
+/* Animated Underline */
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--primary);
+    border-radius: 3px 3px 0 0;
+    animation: slideUp 0.3s ease forwards;
+}
+
+@keyframes slideUp {
+    from {
+        transform: scaleX(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scaleX(1);
+        opacity: 1;
+    }
 }
 
 .tab-content {
     background-color: var(--surface);
     border: 1px solid var(--border);
-    border-top: none;
-    /* Merged with nav */
-    border-radius: 0 4px 8px 8px;
-    /* Slightly different to account for top connection */
+    border-top: 1px solid var(--border);
+    /* Full border */
+    border-radius: 12px;
+    /* All corners rounded */
     padding: 24px;
     position: relative;
     z-index: 1;
     min-height: 300px;
-    /* Prevent jumpiness */
+    margin-top: 12px;
+    /* Spacing between nav and content */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    /* Subtle shadow lift */
 }
 
 .tab-pane {
