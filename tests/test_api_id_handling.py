@@ -1,14 +1,55 @@
 import pytest
 import json
+import os
+import shutil
 from app import create_app
+from app.config import config
 
 
 @pytest.fixture
 def client():
+    # Isolate config
+    test_data_dir = os.path.join(os.getcwd(), "tests", "data_api")
+    if not os.path.exists(test_data_dir):
+        os.makedirs(test_data_dir)
+
+    test_config_path = os.path.join(test_data_dir, "test_api_config.json")
+
+    # Save original paths
+    original_data_dir = config.data_dir
+    original_config_path = config.config_path
+
+    # Switch to test paths
+    config.data_dir = test_data_dir
+    config.config_path = test_config_path
+
+    # Initialize default config in test dir
+    config._ensure_data_dir()
+    config._config_obj = config.load_config()
+
     app = create_app()
     app.config["TESTING"] = True
+
     with app.test_client() as client:
         yield client
+
+    # Restore original config
+    config.data_dir = original_data_dir
+    config.config_path = original_config_path
+    config.load_config()
+
+    # Cleanup
+    if os.path.exists(test_data_dir):
+        shutil.rmtree(test_data_dir)
+
+    # Restore original config
+    config.data_dir = original_data_dir
+    config.config_path = original_config_path
+    config.load_config()
+
+    # Cleanup
+    if os.path.exists(test_data_dir):
+        shutil.rmtree(test_data_dir)
 
 
 def test_play_non_existent_id(client):
