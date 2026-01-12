@@ -131,7 +131,7 @@ class StreamProcessor:
         )
 
         generated_file = None
-        actual_duration = 0.0
+        actual_duration = -1.0
 
         timing = config.get("synthesis.timing", "immediate")
 
