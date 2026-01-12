@@ -12,12 +12,25 @@
     --text-dark: #222222;
     --border: #444444;
     --border-light: #555555;
+
     --error: #ff6b6b;
     --error-bg: rgba(255, 107, 107, 0.15);
     --success: #a8df65;
     --success-bg: rgba(168, 223, 101, 0.15);
+
     --shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     --transition: all 0.2s ease;
+
+    /* Spacing */
+    --spacing-xs: 5px;
+    --spacing-sm: 8px;
+    --spacing-md: 10px;
+    --spacing-lg: 1rem;
+    /* 16px */
+    --spacing-xl: 1.5rem;
+    /* 24px */
+    --spacing-xxl: 2rem;
+    /* 32px */
 }
 
 /* Global Styles */
@@ -28,23 +41,20 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    /* Changed from center to prevent jumping */
     min-height: 100vh;
     margin: 0;
     padding-top: 5vh;
-    /* Add breathing room at the top */
     box-sizing: border-box;
 }
 
 .container {
     background-color: var(--surface);
-    padding: 2rem;
+    padding: var(--spacing-xxl);
     border-radius: 16px;
     box-shadow: var(--shadow);
     width: 100%;
     max-width: 900px;
     margin-bottom: 5vh;
-    /* Add bottom spacing for scrolling */
 }
 
 /* Header & Status */
@@ -52,7 +62,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xl);
 }
 
 h1.app-title {
@@ -63,15 +73,15 @@ h1.app-title {
 }
 
 .status-bar {
-    margin-top: 8px;
+    margin-top: var(--spacing-sm);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--spacing-sm);
 }
 
 .badge {
     font-size: 0.75rem;
-    padding: 3px 8px;
+    padding: 3px var(--spacing-sm);
     border-radius: 12px;
     background-color: var(--surface-light);
     color: var(--text-muted);
@@ -88,7 +98,8 @@ h1.app-title {
     background-color: #555;
 }
 
-.badge.online .badge-dot {
+.badge.online .badge-dot,
+.badge-server.online .badge-dot {
     background-color: var(--success);
     box-shadow: 0 0 5px var(--success);
 }
@@ -98,15 +109,14 @@ h1.app-title {
     box-shadow: 0 0 5px var(--error);
 }
 
-.badge-server.online .badge-dot {
-    background-color: var(--success);
-    box-shadow: 0 0 5px var(--success);
-}
-
 /* Control Elements */
 .control-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xl);
 }
+
+/* Reduce bottom margin when inside a grid or flex container if needed, 
+   but specific spacing logic in HTML is cleaner. 
+   Keeping generic margin for stack layouts. */
 
 label {
     display: block;
@@ -118,7 +128,7 @@ label {
 
 .form-control {
     width: 100%;
-    padding: 10px;
+    padding: var(--spacing-md);
     border-radius: 8px;
     border: 1px solid var(--border);
     background-color: var(--surface-light);
@@ -141,12 +151,12 @@ label {
 
 .input-with-button {
     display: flex;
-    gap: 10px;
+    gap: var(--spacing-md);
 }
 
 /* Buttons */
 .btn {
-    padding: 10px 20px;
+    padding: var(--spacing-md) 20px;
     border-radius: 8px;
     font-weight: bold;
     cursor: pointer;
@@ -155,7 +165,7 @@ label {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--spacing-sm);
 }
 
 .btn-primary {
@@ -180,7 +190,12 @@ label {
     opacity: 0.6 !important;
     transform: none !important;
     pointer-events: auto !important;
-    /* Allow tooltips */
+}
+
+/* Special button state defined in JS but missing in original CSS */
+.disabled-temp {
+    opacity: 0.7;
+    cursor: wait;
 }
 
 .btn-stop {
@@ -210,9 +225,9 @@ label {
 
 /* Tables */
 .log-container {
-    margin-top: 2rem;
+    margin-top: var(--spacing-xxl);
     border-top: 1px solid var(--border);
-    padding-top: 1rem;
+    padding-top: var(--spacing-lg);
 }
 
 .table-wrapper {
@@ -237,14 +252,14 @@ thead {
 }
 
 th {
-    padding: 10px 8px;
+    padding: var(--spacing-md) var(--spacing-sm);
     color: var(--text-muted);
     font-weight: 600;
     border-bottom: 1px solid var(--border);
 }
 
 td {
-    padding: 8px;
+    padding: var(--spacing-sm);
     border-bottom: 1px solid var(--border);
 }
 
@@ -283,47 +298,37 @@ input[type=range]::-webkit-slider-runnable-track {
 /* Tabs */
 .tabs-container {
     width: 100%;
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-xxl);
 }
 
 .tab-nav {
     display: flex;
     gap: 16px;
     margin-bottom: 0;
-    border-bottom: none;
-    /* Removed border */
     padding: 0 4px;
 }
 
 .tab-btn {
     padding: 12px 16px;
     background-color: transparent;
-    /* No background */
     color: var(--text-muted);
     border: none;
-    /* No border */
-    border-bottom: none;
     border-radius: 6px;
-    /* Slight rounded for hover effect */
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s ease;
     font-size: 0.95rem;
     position: relative;
-    /* For pseudo-element absolute positioning */
 }
 
 .tab-btn:hover {
     background-color: rgba(255, 255, 255, 0.05);
-    /* Subtle hover */
     color: var(--text);
 }
 
 .tab-btn.active {
     background-color: transparent;
     color: var(--primary);
-    border-bottom: none;
-    margin-bottom: 0;
     z-index: 2;
     padding-top: 12px;
 }
@@ -356,18 +361,13 @@ input[type=range]::-webkit-slider-runnable-track {
 .tab-content {
     background-color: var(--surface);
     border: 1px solid var(--border);
-    border-top: 1px solid var(--border);
-    /* Full border */
     border-radius: 12px;
-    /* All corners rounded */
-    padding: 24px;
+    padding: var(--spacing-xl);
     position: relative;
     z-index: 1;
-    min-height: 315px;
+    min-height: 340px;
     margin-top: 12px;
-    /* Spacing between nav and content */
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    /* Subtle shadow lift */
 }
 
 .tab-pane {
@@ -421,7 +421,7 @@ input[type=range]::-webkit-slider-runnable-track {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 24px;
+    padding: var(--spacing-xl);
     width: 360px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     text-align: center;
@@ -518,9 +518,6 @@ input[type=range]::-webkit-slider-runnable-track {
     border-radius: 50%;
     width: 32px;
     height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     padding: 0;
 }
 
@@ -564,9 +561,6 @@ input[type=range]::-webkit-slider-runnable-track {
     border-radius: 4px;
     width: 32px;
     height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     padding: 0;
     opacity: 0.7;
 }
@@ -652,7 +646,7 @@ input[type=range]::-webkit-slider-runnable-track {
     background: var(--primary);
 }
 
-/* Utilities */
+/* Utility & Layout Classes */
 .text-locked {
     color: var(--text-muted);
     cursor: not-allowed;
@@ -661,23 +655,6 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .online {
     color: var(--success) !important;
-}
-
-.online .badge-dot {
-    background-color: var(--success);
-    box-shadow: 0 0 5px var(--success);
-}
-
-.log-row {
-    border-bottom: 1px solid var(--border);
-}
-
-.editing {
-    background-color: var(--surface-light) !important;
-}
-
-.disabled-opacity {
-    opacity: 0.5;
 }
 
 .text-primary {
@@ -704,76 +681,62 @@ input[type=range]::-webkit-slider-runnable-track {
     margin-left: 8px;
 }
 
-.grid-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
+.mt-5 {
+    margin-top: 5px;
 }
 
-.grid-3 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 30px;
-}
-
-.grid-4 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 30px;
-}
-
+/* Flexbox Layouts */
 .flex {
     display: flex;
 }
 
-.gap-5 {
-    gap: 5px;
+.flex-col {
+    flex-direction: column;
 }
 
-.gap-8 {
-    gap: 8px;
+.items-center {
+    align-items: center;
 }
 
-.gap-10 {
-    gap: 10px;
-}
-
-.flex-grow-1 {
-    flex-grow: 1;
+.justify-between {
+    justify-content: space-between;
 }
 
 .flex-1 {
     flex: 1;
 }
 
-.mt-5 {
-    margin-top: 5px;
+.gap-xs {
+    gap: var(--spacing-xs);
 }
 
-.mt-1 {
-    margin-top: 1rem;
+.gap-sm {
+    gap: var(--spacing-sm);
 }
 
-.mt-2 {
-    margin-top: 2rem;
+.gap-md {
+    gap: var(--spacing-md);
 }
 
-.mb-0 {
-    margin-bottom: 0;
+/* Grid Layouts - consolidated */
+.grid {
+    display: grid;
+    gap: 30px;
 }
 
-.mb-2 {
-    margin-bottom: 2px;
+.grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
 }
 
-.mb-15 {
-    margin-bottom: 15px;
+.grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
 }
 
-.mb-30 {
-    margin-bottom: 5px;
+.grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
 }
 
+/* Typography */
 .fs-small {
     font-size: 0.8rem;
 }
@@ -781,3 +744,13 @@ input[type=range]::-webkit-slider-runnable-track {
 .fs-tiny {
     font-size: 0.75rem;
 }
+
+.mb-1 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+/* Standardized to roughly same as label margin */

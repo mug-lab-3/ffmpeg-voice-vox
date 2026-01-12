@@ -67,7 +67,7 @@
 
                 <!-- Voicevox Tab -->
                 <div id="tab-voicevox" class="tab-pane">
-                    <div class="grid-3">
+                    <div class="grid grid-cols-3">
                         <div class="control-group">
                             <label for="speaker">Speaker</label>
                             <select id="speaker" class="form-control">
@@ -89,7 +89,7 @@
                         </div>
                     </div>
 
-                    <div class="grid-2">
+                    <div class="grid grid-cols-2">
                         <div class="control-group">
                             <label for="speedScale">Speed <span id="val-speedScale"
                                     class="value-display">1.00</span></label>
@@ -102,7 +102,7 @@
                         </div>
                     </div>
 
-                    <div class="grid-2">
+                    <div class="grid grid-cols-2">
                         <div class="control-group">
                             <label for="pitchScale">Pitch <span id="val-pitchScale"
                                     class="value-display">0.00</span></label>
@@ -115,7 +115,7 @@
                         </div>
                     </div>
 
-                    <div class="grid-3">
+                    <div class="grid grid-cols-3">
                         <div class="control-group">
                             <label for="prePhonemeLength">Pre-Phoneme Sil. <span id="val-prePhonemeLength"
                                     class="value-display">0.10</span></label>
@@ -136,10 +136,10 @@
 
                 <!-- FFmpeg Tab -->
                 <div id="tab-ffmpeg" class="tab-pane">
-                    <div class="flex gap-10">
+                    <div class="flex gap-md">
                         <div class="control-group flex-1">
                             <label class="fs-small mb-2">Path to ffmpeg.exe</label>
-                            <div class="flex gap-5">
+                            <div class="flex gap-xs">
                                 <input type="text" id="cfg-ffmpeg-path" class="form-control" placeholder="ffmpeg.exe">
                                 <button id="browse-ffmpeg-path" class="btn btn-secondary fs-small"
                                     title="Browse File">...</button>
@@ -147,7 +147,7 @@
                         </div>
                         <div class="control-group flex-1">
                             <label class="fs-small mb-2">Input Device Name</label>
-                            <div class="flex gap-5">
+                            <div class="flex gap-xs">
                                 <select id="cfg-input-device" class="form-control">
                                     <option value="" disabled selected>Select Device after setting FFmpeg</option>
                                 </select>
@@ -156,10 +156,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex gap-10">
+                    <div class="flex gap-md">
                         <div class="control-group flex-1">
                             <label class="fs-small mb-2">Whisper Model Path</label>
-                            <div class="flex gap-5">
+                            <div class="flex gap-xs">
                                 <input type="text" id="cfg-model-path" class="form-control"
                                     placeholder="ggml-large-v3.bin">
                                 <button id="browse-model-path" class="btn btn-secondary fs-small"
@@ -168,7 +168,7 @@
                         </div>
                         <div class="control-group flex-1">
                             <label class="fs-small mb-2">VAD Model Path</label>
-                            <div class="flex gap-5">
+                            <div class="flex gap-xs">
                                 <input type="text" id="cfg-vad-path" class="form-control"
                                     placeholder="ggml-silero-v6.2.0.bin">
                                 <button id="browse-vad-path" class="btn btn-secondary fs-small"
@@ -176,13 +176,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="grid-2">
+                    <div class="grid grid-cols-2">
                         <div class="control-group">
                             <label class="fs-small mb-2">Host</label>
                             <input type="text" id="cfg-host" class="form-control" value="localhost">
                         </div>
                     </div>
-                    <div class="grid-2">
+                    <div class="grid grid-cols-2">
                         <div class="control-group">
                             <label class="fs-small mb-2">Queue Length <span id="val-cfg-queue-length"
                                     class="value-display">10</span></label>
@@ -193,10 +193,10 @@
 
                 <!-- Resolve Tab -->
                 <div id="tab-resolve" class="tab-pane">
-                    <div class="grid-2">
+                    <div class="grid grid-cols-2">
                         <div class="control-group">
                             <label class="fs-small mb-2">Target Bin</label>
-                            <div class="flex gap-5">
+                            <div class="flex gap-xs">
                                 <select id="cfg-target-bin" class="form-control">
                                     <option value="VoiceVox Captions">VoiceVox Captions</option>
                                 </select>
@@ -206,7 +206,7 @@
                         </div>
                         <div class="control-group">
                             <label class="fs-small mb-2">Template Clip Name</label>
-                            <div class="flex gap-5">
+                            <div class="flex gap-xs">
                                 <select id="cfg-template-name" class="form-control">
                                     <option value="Auto">Auto</option>
                                 </select>
@@ -215,14 +215,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="grid-2">
+                    <div class="grid grid-cols-2">
                         <div class="control-group">
                             <label class="fs-small mb-2">Video Track Index <span id="val-cfg-video-track-index"
                                     class="value-display">2</span></label>
                             <input type="range" id="cfg-video-track-index" min="1" max="20" step="1" value="2">
                         </div>
                     </div>
-                    <div class="grid-2">
+                    <div class="grid grid-cols-2">
                         <div class="control-group">
                             <label class="fs-small mb-2">Audio Track Index <span id="val-cfg-audio-track-index"
                                     class="value-display">1</span></label>
