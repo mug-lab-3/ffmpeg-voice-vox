@@ -6,7 +6,8 @@ trigger: always_on
 
 ## 1. Communication & Language
 - **All interactions with the USER MUST be conducted in Japanese.** This includes explanations, planning, and status updates.
-- Internal thought processes and the content of `rules_temp.md` (this document) are in English.
+    - **Exception**: All source code (variable names, comments, etc.) and Web UI display labels MUST be in English.
+- Internal thought processes and the content of basic.md are in English.
 - Use UTF-8 encoding for all files.
 
 ## 2. Core Objectives
