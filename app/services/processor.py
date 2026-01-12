@@ -58,6 +58,7 @@ class StreamProcessor:
                         "pre_phoneme_length": entry["pre_phoneme_length"],
                         "post_phoneme_length": entry["post_phoneme_length"],
                     },
+                    "speaker_info": self._format_speaker_info(entry["speaker_id"]),
                     "filename": (
                         filename
                         if (filename and duration > 0)
@@ -282,6 +283,7 @@ class StreamProcessor:
                 if (filename and filename != "Pending" and duration > 0)
                 else f"pending_{db_id}.wav"
             ),
+            "speaker_info": self._format_speaker_info(speaker_id),
         }
 
         if len(self.received_logs) >= 50:
@@ -357,5 +359,12 @@ class StreamProcessor:
             pass
 
         from app.core.events import event_manager
+
+    def _format_speaker_info(self, speaker_id: int) -> str:
+        """Helper to format speaker info string from vv_client data."""
+        info = self.vv_client.get_style_info(speaker_id)
+        if info:
+            return f"{info['speaker_name']}({info['style_name']})"
+        return f"ID:{speaker_id}"
 
         event_manager.publish("log_update", {})

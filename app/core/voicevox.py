@@ -6,7 +6,7 @@ from app.config import config
 
 class VoiceVoxClient:
     def __init__(self):
-        pass
+        self._speakers_cache = None
 
     @property
     def base_url(self):
@@ -23,14 +23,43 @@ class VoiceVoxClient:
         except:
             return False
 
-    def get_speakers(self):
-        # NOTE: In a real app we might want to fetch this from the API dynamically,
-        # but for now we keep the existing hardcoded mapping or fetch it if needed.
-        # The original code had a hardcoded map. Let's start with that map but maybe expose an API to fetch it later.
-        # For now, we return the static list from the original requirements to avoid breaking changes if the API is offline during init.
-        # Actually, let's keep the static map in a better place or just return it here.
-        # Original map:
-        return {1: "ずんだもん", 2: "四国めたん", 8: "春日部つむぎ", 9: "波音リツ"}
+    def get_speakers(self, force_refresh: bool = False):
+        """
+        Fetch speakers from VOICEVOX API.
+        Returns the raw list from API or empty list if unavailable.
+        """
+        if self._speakers_cache is not None and not force_refresh:
+            return self._speakers_cache
+
+        # Check availability first to avoid timeout wait if offline
+        if not self.is_available():
+            return []
+
+        try:
+            url = f"{self.base_url}/speakers"
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=1) as res:
+                if res.getcode() == 200:
+                    self._speakers_cache = json.load(res)
+                    return self._speakers_cache
+        except Exception as e:
+            print(f"[VoiceVoxClient] Error fetching speakers: {e}")
+
+        return []
+
+    def get_style_info(self, style_id: int) -> dict:
+        """
+        Returns style information (speaker name and style name) using CACHE ONLY.
+        Returns None if cache is empty or ID not found.
+        """
+        if self._speakers_cache is None:
+            return None
+
+        for s in self._speakers_cache:
+            for style in s.get("styles", []):
+                if style.get("id") == style_id:
+                    return {"speaker_name": s["name"], "style_name": style["name"]}
+        return None
 
     def audio_query(self, text: str, speaker_id: int) -> dict:
         url = f"{self.base_url}/audio_query?text={urllib.parse.quote(text)}&speaker={speaker_id}"

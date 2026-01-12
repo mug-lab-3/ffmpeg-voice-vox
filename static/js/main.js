@@ -9,6 +9,7 @@ const store = new AppStore();
 
 const elements = {
     speaker: document.getElementById('speaker'),
+    style: document.getElementById('style'),
     speedScale: document.getElementById('speedScale'),
     pitchScale: document.getElementById('pitchScale'),
     intonationScale: document.getElementById('intonationScale'),
@@ -625,6 +626,11 @@ async function handleServerEvent(msg) {
             break;
         case "voicevox_status":
             store.updateVoicevoxStatus(msg.data.available);
+            if (msg.data.available && Object.keys(store.speakers).length === 0) {
+                api.getSpeakers().then(res => {
+                    if (res.ok) store.setSpeakers(res.data);
+                });
+            }
             break;
         case "server_restart":
             console.log('[SSE] Server restart detected. Reloading...');
@@ -637,16 +643,80 @@ async function handleServerEvent(msg) {
 
 function renderSpeakers() {
     const speakers = store.speakers;
-    elements.speaker.innerHTML = '';
-    for (const [id, name] of Object.entries(speakers)) {
-        const option = document.createElement('option');
-        option.value = id;
-        option.textContent = name;
-        elements.speaker.appendChild(option);
+    const speakerEl = elements.speaker;
+    const styleEl = elements.style;
+
+    // If no speakers, disable UI and show warning
+    if (!speakers || Object.keys(speakers).length === 0) {
+        speakerEl.innerHTML = '<option value="" disabled selected>Please Start VOICEVOX</option>';
+        speakerEl.disabled = true;
+        styleEl.innerHTML = '<option value="" disabled selected>-</option>';
+        styleEl.disabled = true;
+        return;
     }
-    // Restore selected value if exists in config
-    if (store.config.speaker_id) {
-        elements.speaker.value = store.config.speaker_id;
+
+    speakerEl.disabled = false;
+    styleEl.disabled = false;
+
+    // 1. Populate Speakers
+    const currentSpeakerUuid = speakerEl.value;
+    speakerEl.innerHTML = '';
+
+    // Convert to array if it's an object from store (in case of old format)
+    const speakerList = Array.isArray(speakers) ? speakers : Object.values(speakers);
+
+    speakerList.forEach(s => {
+        const option = document.createElement('option');
+        option.value = s.speaker_uuid;
+        option.textContent = s.name;
+        speakerEl.appendChild(option);
+    });
+
+    // 2. Event listener for speaker change to update styles
+    const updateStyles = () => {
+        const selectedUuid = speakerEl.value;
+        const speaker = speakerList.find(s => s.speaker_uuid === selectedUuid);
+        styleEl.innerHTML = '';
+        if (speaker && speaker.styles) {
+            speaker.styles.forEach(style => {
+                const option = document.createElement('option');
+                option.value = style.id;
+                option.textContent = style.name;
+                styleEl.appendChild(option);
+            });
+        }
+    };
+
+    // Remove old listener if any to avoid duplicates
+    speakerEl.onchange = async () => {
+        updateStyles();
+        const styleId = parseInt(styleEl.value);
+        if (!isNaN(styleId)) {
+            await api.updateSynthesisConfig({ speaker_id: styleId });
+        }
+    };
+
+    styleEl.onchange = async () => {
+        const styleId = parseInt(styleEl.value);
+        if (!isNaN(styleId)) {
+            await api.updateSynthesisConfig({ speaker_id: styleId });
+        }
+    };
+
+    // 3. Initial Style Population
+    if (!currentSpeakerUuid) {
+        updateStyles();
+    }
+
+    // 4. Restore selection from config
+    const targetStyleId = store.config.speaker_id;
+    if (targetStyleId !== undefined) {
+        const speaker = speakerList.find(s => s.styles.some(st => st.id === targetStyleId));
+        if (speaker) {
+            speakerEl.value = speaker.speaker_uuid;
+            updateStyles();
+            styleEl.value = targetStyleId;
+        }
     }
 }
 
@@ -663,7 +733,23 @@ function renderConfig() {
         if (el && val !== undefined) el.value = val;
     };
 
-    setIfExists(elements.speaker, config.speaker_id);
+    // Special handling for speaker/style restoration
+    if (config.speaker_id !== undefined && store.speakers && store.speakers.length > 0) {
+        const speaker = store.speakers.find(s => s.styles.some(st => st.id === config.speaker_id));
+        if (speaker) {
+            elements.speaker.value = speaker.speaker_uuid;
+            // Update style dropdown
+            elements.style.innerHTML = '';
+            speaker.styles.forEach(style => {
+                const opt = document.createElement('option');
+                opt.value = style.id;
+                opt.textContent = style.name;
+                elements.style.appendChild(opt);
+            });
+            elements.style.value = config.speaker_id;
+        }
+    }
+
     setIfExists(elements.speedScale, config.speed_scale);
     setIfExists(elements.pitchScale, config.pitch_scale);
     setIfExists(elements.intonationScale, config.intonation_scale);
@@ -952,7 +1038,7 @@ function createLogRow(entry) {
 function updateLogRow(row, entry) {
     // Re-bind Speaker Name in config cell (might have changed if speakers reloaded?)
     const configCell = row.querySelector('.col-config');
-    const spName = store.speakers[entry.config.speaker_id] || `ID:${entry.config.speaker_id}`;
+    const spName = entry.speaker_info || store.speakers[entry.config.speaker_id] || `ID:${entry.config.speaker_id}`;
     configCell.innerHTML = `<span class="text-primary">${spName}</span> <span class="text-muted fs-small">(x${entry.config.speed_scale.toFixed(2)})</span>`;
 
     // Tooltip with all config details
