@@ -66,7 +66,7 @@ def find_free_port(start_port):
 
 # Activity Monitoring
 last_activity_time = time.time()
-SHUTDOWN_TIMEOUT = 300  # 5 minutes
+SHUTDOWN_TIMEOUT = 900  # 15 minutes
 
 
 def update_activity():

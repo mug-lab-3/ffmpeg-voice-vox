@@ -88,6 +88,16 @@ h1.app-title {
     box-shadow: 0 0 5px var(--success);
 }
 
+.badge-server .badge-dot {
+    background-color: var(--error);
+    box-shadow: 0 0 5px var(--error);
+}
+
+.badge-server.online .badge-dot {
+    background-color: var(--success);
+    box-shadow: 0 0 5px var(--success);
+}
+
 /* Control Elements */
 .control-group {
     margin-bottom: 1.5rem;

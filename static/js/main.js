@@ -22,6 +22,7 @@ const elements = {
     dirStatus: document.getElementById('dir-status'),
     resolveStatus: document.getElementById('resolve-status'),
     voicevoxStatus: document.getElementById('voicevox-status'),
+    serverStatus: document.getElementById('server-status'),
 
     // Settings (Direct Inputs)
     cfgInputs: {
@@ -54,6 +55,12 @@ let lastRenderedStateKey = "";
 // --- App Entry Point ---
 
 async function init() {
+    // Set server status to connected initially (will be updated by SSE events)
+    const serverStatusEl = document.getElementById('server-status');
+    if (serverStatusEl) {
+        serverStatusEl.classList.add('online');
+    }
+
     setupStoreListeners();
     setupUIListeners();
     setupSSE();
@@ -459,12 +466,29 @@ function populateResolveClips(clips) {
 
 function setupSSE() {
     const evtSource = new EventSource(api.getStreamUrl());
+    const serverStatusEl = document.getElementById('server-status');
+
+    // Connection established
+    evtSource.onopen = () => {
+        console.log('[SSE] Connection established');
+        if (serverStatusEl) {
+            serverStatusEl.classList.add('online');
+        }
+    };
 
     evtSource.onmessage = (e) => {
         try {
             handleServerEvent(JSON.parse(e.data));
         } catch (err) {
             console.error("SSE Parse Error", err);
+        }
+    };
+
+    // Connection error/closed
+    evtSource.onerror = (err) => {
+        console.error('[SSE] Connection error', err);
+        if (serverStatusEl) {
+            serverStatusEl.classList.remove('online');
         }
     };
 }
