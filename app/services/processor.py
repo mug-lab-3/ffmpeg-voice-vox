@@ -130,10 +130,12 @@ class StreamProcessor:
                 # 4. Synthesis
                 audio_data = self.vv_client.synthesis(query_data, speaker_id)
 
-                # 5. Save with DB ID
-                generated_file, actual_duration = self.audio_manager.save_audio(
-                    audio_data, text, db_id
+                # 5. Generate Filename & Save
+                wav_filename = self._generate_filename(db_id, text, current_config)
+                actual_duration = self.audio_manager.save_audio(
+                    audio_data, wav_filename
                 )
+                generated_file = wav_filename
 
                 # 6. Update DB with file info
                 db_manager.update_audio_info(db_id, generated_file, actual_duration)
@@ -194,10 +196,21 @@ class StreamProcessor:
             traceback.print_exc()
             raise
 
-        # 4. Save
-        generated_file, actual_duration = self.audio_manager.save_audio(
-            audio_data, text, db_id
-        )
+        # 3b. Reconstruct Config for Hash
+        reconstructed_config = {
+            "speaker_id": speaker_id,
+            "speed_scale": float(record["speed_scale"] or 1.0),
+            "pitch_scale": float(record["pitch_scale"] or 0.0),
+            "intonation_scale": float(record["intonation_scale"] or 1.0),
+            "volume_scale": float(record["volume_scale"] or 1.0),
+            "pre_phoneme_length": float(record["pre_phoneme_length"] or 0.1),
+            "post_phoneme_length": float(record["post_phoneme_length"] or 0.1),
+        }
+
+        # 4. Generate Filename & Save
+        wav_filename = self._generate_filename(db_id, text, reconstructed_config)
+        actual_duration = self.audio_manager.save_audio(audio_data, wav_filename)
+        generated_file = wav_filename
 
         # 5. Update DB
         db_manager.update_audio_info(db_id, generated_file, actual_duration)
@@ -214,6 +227,39 @@ class StreamProcessor:
         event_manager.publish("log_update", {})
 
         return generated_file, actual_duration
+
+    def _generate_filename(self, db_id: int, text: str, config_dict: dict) -> str:
+        """Generates filename: {id}_{hash}_{prefix}.wav"""
+        import re
+        import hashlib
+        import json
+
+        # Sanitize text for filename
+        safe_text = re.sub(r'[\\/:*?"<>|]+', "", text)
+        safe_text = safe_text.replace("\n", "").replace("\r", "")
+        prefix_text = safe_text[:8]
+
+        # Prepare hash source
+        hash_source = {"text": text}
+        if config_dict:
+            relevant_keys = [
+                "speaker_id",
+                "speed_scale",
+                "pitch_scale",
+                "intonation_scale",
+                "volume_scale",
+                "pre_phoneme_length",
+                "post_phoneme_length",
+            ]
+            for key in relevant_keys:
+                if key in config_dict:
+                    hash_source[key] = config_dict[key]
+
+        # Calculate Hash
+        hash_str = json.dumps(hash_source, sort_keys=True, ensure_ascii=False)
+        sha1_hash = hashlib.sha1(hash_str.encode("utf-8")).hexdigest()[:8]
+
+        return f"{db_id:03d}_{sha1_hash}_{prefix_text}.wav"
 
     def _add_log_from_db(
         self,

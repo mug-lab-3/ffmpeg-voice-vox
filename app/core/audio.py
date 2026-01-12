@@ -77,20 +77,13 @@ class AudioManager:
         seconds = seconds % 60
         return f"{hours:02}:{minutes:02}:{seconds:02},{millis:03}"
 
-    def save_audio(self, audio_data: bytes, text: str, db_id: int) -> tuple:
-        """Saves audio data to a WAV file."""
+    def save_audio(self, audio_data: bytes, filename: str) -> float:
+        """Saves audio data to a WAV file with the specified filename."""
         output_dir = self.get_output_dir()
         if not self.validate_output_dir(output_dir):
             raise ValueError(f"Invalid output directory: {output_dir}")
 
-        # Sanitize text for filename (safely truncated)
-        safe_text = re.sub(r'[\\/:*?"<>|]+', "", text)
-        safe_text = safe_text.replace("\n", "").replace("\r", "")
-        prefix_text = safe_text[:8]
-
-        filename_base = f"{db_id:03d}_{prefix_text}"
-        wav_filename = f"{filename_base}.wav"
-        wav_path = os.path.join(output_dir, wav_filename)
+        wav_path = os.path.join(output_dir, filename)
 
         # Write WAV
         try:
@@ -101,7 +94,7 @@ class AudioManager:
             actual_duration = self.get_wav_duration(wav_path)
             duration = max(0.0, actual_duration)
 
-            return wav_filename, duration
+            return duration
         except Exception as e:
             print(f"[AudioManager] Critical Error in save_audio: {e}")
             import traceback

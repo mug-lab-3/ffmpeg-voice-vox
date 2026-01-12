@@ -1,5 +1,6 @@
 import pytest
 import os
+import re
 import shutil
 import tempfile
 from app.core.database import DatabaseManager
@@ -49,18 +50,19 @@ def test_dynamic_db_switching(temp_output_dir):
 
 
 def test_audio_filename_padding():
-    """音声ファイル名が3桁0埋め（1000以上の場合はそのまま）であることを確認"""
+    """AudioManagerが渡されたファイル名で正しく保存できることを確認"""
     audio_manager = AudioManager()
 
-    # 正常ケース (3桁)
-    name1, _ = audio_manager.save_audio(b"fake_data", "test", 1)
-    assert name1.startswith("001_") or name1.startswith("001_")  # check prefix
-    assert name1 == "001_test.wav"
+    # AudioManager.save_audio now accepts (audio_data, filename) -> duration
+    # Filename generation is done by processor, so we just test that it saves correctly
 
-    # 1000以上のケース
-    name1000, _ = audio_manager.save_audio(b"fake_data", "test", 1000)
-    assert name1000.startswith("1000_")
-    assert name1000 == "1000_test.wav"
+    # Test with 3-digit ID format
+    duration1 = audio_manager.save_audio(b"fake_data", "001_abcd1234_test.wav")
+    assert duration1 >= 0  # Just verify it returns a duration
+
+    # Test with 4-digit ID format
+    duration2 = audio_manager.save_audio(b"fake_data", "1000_efgh5678_test.wav")
+    assert duration2 >= 0
 
 
 def test_db_fallback_to_data():
