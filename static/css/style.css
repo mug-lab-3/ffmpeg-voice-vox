@@ -363,7 +363,7 @@ input[type=range]::-webkit-slider-runnable-track {
     padding: 24px;
     position: relative;
     z-index: 1;
-    min-height: 300px;
+    min-height: 315px;
     margin-top: 12px;
     /* Spacing between nav and content */
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -707,7 +707,19 @@ input[type=range]::-webkit-slider-runnable-track {
 .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: 30px;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 30px;
+}
+
+.grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 30px;
 }
 
 .flex {
@@ -756,6 +768,10 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .mb-15 {
     margin-bottom: 15px;
+}
+
+.mb-30 {
+    margin-bottom: 5px;
 }
 
 .fs-small {

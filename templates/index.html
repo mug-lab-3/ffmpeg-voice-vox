@@ -67,7 +67,7 @@
 
                 <!-- Voicevox Tab -->
                 <div id="tab-voicevox" class="tab-pane">
-                    <div class="grid-2">
+                    <div class="grid-3">
                         <div class="control-group">
                             <label for="speaker">Speaker</label>
                             <select id="speaker" class="form-control">
@@ -80,9 +80,6 @@
                                 <option value="" disabled selected>-</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="grid-2">
                         <div class="control-group">
                             <label for="synthesis-timing">Synthesis Timing</label>
                             <select id="synthesis-timing" class="form-control">
@@ -99,6 +96,14 @@
                             <input type="range" id="speedScale" min="0.5" max="1.5" step="0.05" value="1.0">
                         </div>
                         <div class="control-group">
+                            <label for="volumeScale">Volume <span id="val-volumeScale"
+                                    class="value-display">1.00</span></label>
+                            <input type="range" id="volumeScale" min="0.0" max="2.0" step="0.05" value="1.0">
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="control-group">
                             <label for="pitchScale">Pitch <span id="val-pitchScale"
                                     class="value-display">0.00</span></label>
                             <input type="range" id="pitchScale" min="-0.15" max="0.15" step="0.01" value="0.0">
@@ -108,14 +113,9 @@
                                     class="value-display">1.00</span></label>
                             <input type="range" id="intonationScale" min="0.0" max="2.0" step="0.05" value="1.0">
                         </div>
-                        <div class="control-group">
-                            <label for="volumeScale">Volume <span id="val-volumeScale"
-                                    class="value-display">1.00</span></label>
-                            <input type="range" id="volumeScale" min="0.0" max="2.0" step="0.05" value="1.0">
-                        </div>
                     </div>
 
-                    <div class="grid-2">
+                    <div class="grid-3">
                         <div class="control-group">
                             <label for="prePhonemeLength">Pre-Phoneme Sil. <span id="val-prePhonemeLength"
                                     class="value-display">0.10</span></label>
@@ -126,9 +126,6 @@
                                     class="value-display">0.10</span></label>
                             <input type="range" id="postPhonemeLength" min="0.0" max="1.5" step="0.01" value="0.1">
                         </div>
-                    </div>
-
-                    <div class="grid-2">
                         <div class="control-group">
                             <label for="pauseLengthScale">Pause Scale <span id="val-pauseLengthScale"
                                     class="value-display">1.00</span></label>
@@ -139,8 +136,8 @@
 
                 <!-- FFmpeg Tab -->
                 <div id="tab-ffmpeg" class="tab-pane">
-                    <div class="flex gap-10 mb-15">
-                        <div class="control-group flex-1 mb-0">
+                    <div class="flex gap-10">
+                        <div class="control-group flex-1">
                             <label class="fs-small mb-2">Path to ffmpeg.exe</label>
                             <div class="flex gap-5">
                                 <input type="text" id="cfg-ffmpeg-path" class="form-control" placeholder="ffmpeg.exe">
@@ -148,7 +145,7 @@
                                     title="Browse File">...</button>
                             </div>
                         </div>
-                        <div class="control-group flex-1 mb-0">
+                        <div class="control-group flex-1">
                             <label class="fs-small mb-2">Input Device Name</label>
                             <div class="flex gap-5">
                                 <select id="cfg-input-device" class="form-control">
@@ -159,8 +156,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex gap-10 mb-15">
-                        <div class="control-group flex-1 mb-0">
+                    <div class="flex gap-10">
+                        <div class="control-group flex-1">
                             <label class="fs-small mb-2">Whisper Model Path</label>
                             <div class="flex gap-5">
                                 <input type="text" id="cfg-model-path" class="form-control"
@@ -169,7 +166,7 @@
                                     title="Browse File">...</button>
                             </div>
                         </div>
-                        <div class="control-group flex-1 mb-0">
+                        <div class="control-group flex-1">
                             <label class="fs-small mb-2">VAD Model Path</label>
                             <div class="flex gap-5">
                                 <input type="text" id="cfg-vad-path" class="form-control"
@@ -181,33 +178,23 @@
                     </div>
                     <div class="grid-2">
                         <div class="control-group">
+                            <label class="fs-small mb-2">Host</label>
+                            <input type="text" id="cfg-host" class="form-control" value="localhost">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="control-group">
                             <label class="fs-small mb-2">Queue Length <span id="val-cfg-queue-length"
                                     class="value-display">10</span></label>
                             <input type="range" id="cfg-queue-length" min="1" max="30" step="1" value="10">
-                        </div>
-                        <div class="control-group">
-                            <label class="fs-small mb-2">Host</label>
-                            <input type="text" id="cfg-host" class="form-control" value="localhost">
                         </div>
                     </div>
                 </div>
 
                 <!-- Resolve Tab -->
                 <div id="tab-resolve" class="tab-pane">
-                    <div class="grid-2 mb-15">
-                        <div class="control-group mb-0">
-                            <label class="fs-small mb-2">Audio Track Index <span id="val-cfg-audio-track-index"
-                                    class="value-display">1</span></label>
-                            <input type="range" id="cfg-audio-track-index" min="1" max="20" step="1" value="1">
-                        </div>
-                        <div class="control-group mb-0">
-                            <label class="fs-small mb-2">Video Track Index <span id="val-cfg-video-track-index"
-                                    class="value-display">2</span></label>
-                            <input type="range" id="cfg-video-track-index" min="1" max="20" step="1" value="2">
-                        </div>
-                    </div>
                     <div class="grid-2">
-                        <div class="control-group mb-0">
+                        <div class="control-group">
                             <label class="fs-small mb-2">Target Bin</label>
                             <div class="flex gap-5">
                                 <select id="cfg-target-bin" class="form-control">
@@ -217,7 +204,7 @@
                                     title="Refresh Bin List">↻</button>
                             </div>
                         </div>
-                        <div class="control-group mb-0">
+                        <div class="control-group">
                             <label class="fs-small mb-2">Template Clip Name</label>
                             <div class="flex gap-5">
                                 <select id="cfg-template-name" class="form-control">
@@ -226,6 +213,20 @@
                                 <button id="refresh-resolve-clips" class="btn btn-secondary"
                                     title="Refresh Clip List">↻</button>
                             </div>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="control-group">
+                            <label class="fs-small mb-2">Video Track Index <span id="val-cfg-video-track-index"
+                                    class="value-display">2</span></label>
+                            <input type="range" id="cfg-video-track-index" min="1" max="20" step="1" value="2">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="control-group">
+                            <label class="fs-small mb-2">Audio Track Index <span id="val-cfg-audio-track-index"
+                                    class="value-display">1</span></label>
+                            <input type="range" id="cfg-audio-track-index" min="1" max="20" step="1" value="1">
                         </div>
                     </div>
                 </div>
