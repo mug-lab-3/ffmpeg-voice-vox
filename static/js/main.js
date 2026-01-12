@@ -782,12 +782,7 @@ function renderConfig() {
 
     // Output Directory
     elements.outputDir.value = outputDir || "";
-    if (outputDir) {
-        elements.dirStatus.textContent = "";
-    } else {
-        elements.dirStatus.textContent = "Please set an output directory to start.";
-        elements.dirStatus.style.color = "#ff6b6b";
-    }
+    elements.dirStatus.textContent = "";
 
     // Resolve Status
     renderResolveStatus();
