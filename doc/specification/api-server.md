@@ -5,19 +5,19 @@
 ## アーキテクチャ概要
 
 本サーバーは、関心の分離（Separation of Concerns）を重視したドメイン駆動な構造を採用しています。
-各APIは「薄いルートハンドラ」と「専用のサービスメソッド」の組み合わせで構成されており、高い凝集度と低結合性を実現しています。
+各APIは「薄いルートハンドラ」と「専用のサービスメソッド」の組み合わせで構成されています。
 
 ### ディレクトリ構造
 
 - **`app/api/`**: APIレイヤー。HTTPプロトコルに関連する処理を担当。
   - **`routes/`**: FlaskのBlueprintを使用したルーティング定義。
   - **`schemas/`**: Pydanticを使用したリクエスト/レスポンスの型定義。
-- **`app/services/`**: サービスレイヤー。ビジネスロジックの実体（ハンドラメソッド）を定義。
-- **`app/core/`**: コアレイヤー。FFmpeg、VoiceVox、DaVinci Resolve等の外部クライアントやユーティリティ。
+- **`app/services/`**: サービスレイヤー。ビジネスロジックの実体。
+- **`app/core/`**: コアレイヤー。FFmpeg、VoiceVox、DaVinci Resolve等の外部クライアント。
 
 ## 共通レスポンス形式
 
-すべてのAPIレスポンスは以下の `BaseResponse` を定義しており、一貫した形式で返却します。
+すべてのAPIレスポンスは以下の `BaseResponse` 形式を採用しています。
 
 ```json
 {
@@ -29,86 +29,66 @@
 
 - `status`: `"ok"` または `"error"`
 - `error_code`: エラーの種類を示す定数文字列（任意）
-  - 例: `"INVALID_ARGUMENT"` (Pydanticバリデーションエラー時)
 - `message`: ユーザー向けのエラーメッセージ（任意）
-- **バリデーションエラー時の追加データ**:
-  - `422 Unprocessable Entity` 返却時には、UI側の状態を即座に復元できるよう、**現在の最新かつ有効な設定内容**（後述の `ConfigResponse` と同等のデータ）が同封されます。
-
-### 主なHTTPステータスコード
-- **200 OK**: リクエスト成功
-- **400 Bad Request**: リクエストの構文エラー
-- **422 Unprocessable Entity**: バリデーションエラー（値の範囲外など）
-- **500 Internal Server Error**: サーバー内部エラー
 
 ## APIエンドポイント詳細
-
-各設定（Config）はカテゴリごとに独立したエンドポイントを持ちます。
 
 ### 1. Config (設定関連)
 
 #### `GET /api/config`
-現在設定されている合成パラメータやディレクトリ情報を取得します。
-
-- **レスポンス**: `ConfigResponse` (status, config, outputDir, etc.)
+現在設定されている構成情報を取得。
 
 #### `POST /api/config/synthesis` (音声パラメータ更新)
 - **ボディ**: `{"speaker_id": int, "speed_scale": float, ...}`
-- **制約**: `speed_scale` (0.5-1.5), `pitch_scale` (-0.15-0.15), `intonation_scale` (0-2.0), `volume_scale` (0-2.0)
+- **制約**: `speed_scale` (0.5-1.5), `pitch_scale` (-0.15-0.15), etc.
 
 #### `POST /api/config/resolve` (Resolve設定更新)
-- **ボディ**: `{"enabled": bool, "audio_track_index": int, ...}`
+- **ボディ**: `{"enabled": bool, "audio_track_index": int, "video_track_index": int, ...}`
 
-#### `POST /api/config/system` (システム設定等)
+#### `POST /api/config/system`
 - **ボディ**: `{"output_dir": string}`
 
-#### `POST /api/config/ffmpeg` (FFmpeg詳細設定)
+#### `POST /api/config/ffmpeg`
 - **ボディ**: `{"ffmpeg_path": string, "queue_length": int, ...}`
-
-(※ 従来の `POST /api/config` への一括送信も後方互換性のために維持されていますが、上記ドメイン別APIの使用が推奨されます)
 
 ---
 
 ### 2. Control (制御・操作関連)
 
 #### `GET /api/control/state`
-システム全体の稼働状態を取得します。
-
-- **レスポンス**: `ControlStateResponse` (enabled, playback, connection statuses)
+システム全体の稼働状態を取得。
 
 #### `POST /api/control/state`
-自動合成機能の有効/無効を切り替えます。
+自動合成機能の有効/無効を切り替え。
 - **ボディ**: `{"enabled": boolean}`
 
 #### `POST /api/control/resolve_insert`
-生成済みの音声ファイルをDaVinci Resolveのタイムラインへ挿入します。
+生成済みの音声ファイルをResolveタイムラインへ挿入。
 - **ボディ**: `{"id": integer}`
 
 #### `POST /api/control/play`
-生成済みの音声ファイルを再生します。
-- **ボディ**: `{"id": integer, "request_id": string (optional)}`
-- **挙動**:
-    - リクエストはサーバー側でキューイングされ、受信順に処理されます。
-    - 既に再生中の場合は、現在の再生が終了するのを待機してから次の再生を開始します。
-    - `request_id` が指定された場合、そのIDは再生状態管理に使用され、クライアント側での同期に役立ちます。
+生成済みの音声ファイルを再生。
+- **ボディ**: `{"id": integer}`
+
+#### `POST /api/control/delete`
+ログエントリと関連ファイルを削除。
+- **ボディ**: `{"id": integer}`
 
 #### `POST /api/control/update_text`
-既存のログエントリのテキスト内容を更新します。
+既存のログエントリのテキスト内容を更新。
 - **ボディ**: `{"id": integer, "text": string}`
-- **挙動**:
-    - `id` からDBレコードを特定し、`text` 内容を更新します。
-    - 既に生成済みの音声ファイルがある場合は物理的に削除され、エントリのステータスは「未生成 (pending)」状態に戻ります。
-    - この操作はシステムが「停止中」かつ「非再生中」の場合にのみ許可されます（UIレイヤーで制御）。
+- **挙動**: 音声ファイルが存在する場合は物理削除され、ステータスは「pending」に戻ります。
+
+#### `POST /api/control/synthesize`
+特定のログエントリをオンデマンドで音声合成。
+- **ボディ**: `{"id": integer}`
 
 ---
 
 ### 3. その他
+
 - `GET /api/speakers`: 話者一覧取得
 - `GET /api/logs`: 処理履歴取得
 - `GET /api/stream`: SSE (リアルタイム通知)
-- `GET /api/resolve/clips`: Resolve内のText+クリップ一覧取得
-    - **レスポンス**: `{"status": "ok", "clips": ["Clip1", "Clip2", ...]}`
-    - **エラー**: Resolve未接続時は 503 Service Unavailable を返却
-- `GET /api/resolve/bins`: Resolveメディアプールのルート直下のビン一覧を取得
-    - **レスポンス**: `{"status": "ok", "bins": ["Bin1", "Bin2", ...]}`
-    - **備考**: 文字列 `"root"` がトップレベル（ルートフォルダ）を指します。
-    - **エラー**: Resolve未接続時は 503 Service Unavailable を返却
+- `GET /api/resolve/clips`: Resolve内のText+クリップ一覧
+- `GET /api/resolve/bins`: Resolve内のビン一覧

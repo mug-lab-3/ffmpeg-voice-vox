@@ -6,9 +6,8 @@
 
 ```text
 ffmpeg-voice-vox/
-├── voicevox_controller.py  # エントリーポイント (起動スクリプト)
+├── run.py                 # エントリーポイント (Flaskサーバー起動)
 ├── config.json            # ユーザー設定ファイル
-├── default_config.json    # システム標準値 (マスター)
 ├── doc/                   # ドキュメント
 │   └── specification/     # 詳細仕様書
 │       ├── structure.md   # 本ファイル
@@ -21,7 +20,8 @@ ffmpeg-voice-vox/
 │   ├── services/          # サービスレイヤー (ビジネスロジック)
 │   ├── core/              # コアレイヤー (デバイス/外部Client)
 │   ├── config.py          # 設定管理ロジック
-│   └── schemas.py         # 設定Pydanticスキーマ
+│   ├── schemas.py         # 設定Pydanticスキーマ
+│   └── web/               # WebUI用静的ファイル配信ルート
 ├── static/                # フロントエンド静的ファイル
 └── templates/             # HTMLテンプレート
 ```
