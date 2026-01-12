@@ -12,13 +12,25 @@ class TestConfigSync(unittest.TestCase):
 
         self.config = config
         self.original_config_path = config.config_path
-        self.test_config_path = os.path.join(config.data_dir, "test_sync_config.json")
+
+        self.test_data_dir = os.path.join(os.getcwd(), "tests", "data_sync")
+        if not os.path.exists(self.test_data_dir):
+            os.makedirs(self.test_data_dir)
+
+        self.test_config_path = os.path.join(
+            self.test_data_dir, "test_sync_config.json"
+        )
 
         # Switch to test config path
+        self.original_data_dir = config.data_dir
+        config.data_dir = self.test_data_dir
         config.config_path = self.test_config_path
+
         if os.path.exists(self.test_config_path):
             os.remove(self.test_config_path)
-        config.load_config()  # Initialize with defaults
+
+        config._ensure_data_dir()
+        config._config_obj = config.load_config()  # Initialize with defaults
 
         self.app = create_app()
         self.app.testing = True
@@ -26,6 +38,7 @@ class TestConfigSync(unittest.TestCase):
 
     def tearDown(self):
         # Restore config
+        self.config.data_dir = self.original_data_dir
         self.config.config_path = self.original_config_path
         self.config.load_config()
 

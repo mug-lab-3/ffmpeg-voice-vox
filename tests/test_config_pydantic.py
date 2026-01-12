@@ -6,13 +6,17 @@ from app.schemas import ConfigSchema
 
 
 def test_config_validation():
+    test_data_dir = os.path.join("tests", "data_pydantic")
+    if not os.path.exists(test_data_dir):
+        os.makedirs(test_data_dir)
+
     config_filename = "test_config.json"
-    test_config_path = os.path.join("data", config_filename)
+    test_config_path = os.path.join(test_data_dir, config_filename)
     if os.path.exists(test_config_path):
         os.remove(test_config_path)
 
     print("--- Test 1: New config (defaults) ---")
-    cm = ConfigManager(config_filename)
+    cm = ConfigManager(config_filename, data_dir=test_data_dir)
     config = cm.config
     assert config["server"]["host"] == "127.0.0.1"
     assert config["system"]["is_synthesis_enabled"] is False
@@ -26,7 +30,7 @@ def test_config_validation():
     with open(test_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
-    cm2 = ConfigManager(config_filename)
+    cm2 = ConfigManager(config_filename, data_dir=test_data_dir)
     assert "voicevox" in cm2.config
     assert cm2.config["voicevox"]["port"] == 50021
     print("Test 2 passed: Missing section restored from defaults.")
@@ -38,7 +42,7 @@ def test_config_validation():
     with open(test_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
-    cm3 = ConfigManager(config_filename)
+    cm3 = ConfigManager(config_filename, data_dir=test_data_dir)
     assert cm3.config["synthesis"]["speaker_id"] == 1
     print("Test 3 passed: Invalid type corrected to default.")
 
@@ -50,7 +54,7 @@ def test_config_validation():
     with open(test_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
-    cm3a = ConfigManager(config_filename)
+    cm3a = ConfigManager(config_filename, data_dir=test_data_dir)
     assert cm3a.config["synthesis"]["speed_scale"] == 1.0  # Section fallback to default
     assert cm3a.config["ffmpeg"]["queue_length"] == 10  # Section fallback to default
     print("Test 3a passed: Out of range values corrected to defaults.")

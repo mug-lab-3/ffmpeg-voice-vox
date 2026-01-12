@@ -39,9 +39,7 @@ def test_migration_complex_scenarios(test_data_dir):
     with open(config_file, "w", encoding="utf-8") as f:
         json.dump(initial_data, f)
 
-    manager = ConfigManager("config.json")
-    manager.data_dir = str(test_data_dir)
-    manager.config_path = str(config_file)
+    manager = ConfigManager("config.json", data_dir=str(test_data_dir))
 
     config_obj = manager.load_config()
 
@@ -77,9 +75,7 @@ def test_migration_preserves_custom_output_dir_even_on_other_errors(test_data_di
     with open(config_file, "w", encoding="utf-8") as f:
         json.dump(initial_data, f)
 
-    manager = ConfigManager("config.json")
-    manager.data_dir = str(test_data_dir)
-    manager.config_path = str(config_file)
+    manager = ConfigManager("config.json", data_dir=str(test_data_dir))
 
     config_obj = manager.load_config()
 
@@ -96,9 +92,7 @@ def test_migration_empty_config(test_data_dir):
     with open(config_file, "w", encoding="utf-8") as f:
         f.write("{}")
 
-    manager = ConfigManager("config.json")
-    manager.data_dir = str(test_data_dir)
-    manager.config_path = str(config_file)
+    manager = ConfigManager("config.json", data_dir=str(test_data_dir))
 
     config_obj = manager.load_config()
 
@@ -113,9 +107,7 @@ def test_migration_completely_broken_json(test_data_dir):
     with open(config_file, "w", encoding="utf-8") as f:
         f.write("this is not { json ] at all")
 
-    manager = ConfigManager("config.json")
-    manager.data_dir = str(test_data_dir)
-    manager.config_path = str(config_file)
+    manager = ConfigManager("config.json", data_dir=str(test_data_dir))
 
     # 以前のテストと同様、破損時は古いファイルをバックアップしてデフォルトで起動するはず
     config_obj = manager.load_config()

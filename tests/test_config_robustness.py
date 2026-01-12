@@ -30,9 +30,7 @@ def test_fresh_start_and_corruption(clean_env):
     with open(config_file, "w") as f:
         f.write("{ invalid json,, }")
 
-    manager = ConfigManager("config.json")
-    manager.data_dir = str(config_dir)
-    manager.config_path = str(config_file)
+    manager = ConfigManager("config.json", data_dir=str(config_dir))
 
     # Load should succeed with defaults despite corruption
     manager._config_obj = manager.load_config()
@@ -47,9 +45,7 @@ def test_fresh_start_and_corruption(clean_env):
 
 def test_schema_relaxation(clean_env):
     config_dir, config_file = clean_env
-    manager = ConfigManager("config.json")
-    manager.data_dir = str(config_dir)
-    manager.config_path = str(config_file)
+    manager = ConfigManager("config.json", data_dir=str(config_dir))
     manager._config_obj = manager.load_config()  # Create defaults
 
     # 1. Test None for model_path (should fail now as backend is strict)
@@ -64,9 +60,7 @@ def test_schema_relaxation(clean_env):
 
 def test_host_validation(clean_env):
     config_dir, config_file = clean_env
-    manager = ConfigManager("config.json")
-    manager.data_dir = str(config_dir)
-    manager.config_path = str(config_file)
+    manager = ConfigManager("config.json", data_dir=str(config_dir))
     manager._config_obj = manager.load_config()
 
     # 1. Valid Host
@@ -85,9 +79,7 @@ def test_host_validation(clean_env):
 
 def test_robust_update(clean_env):
     config_dir, config_file = clean_env
-    manager = ConfigManager("config.json")
-    manager.data_dir = str(config_dir)
-    manager.config_path = str(config_file)
+    manager = ConfigManager("config.json", data_dir=str(config_dir))
 
     # Create file with one invalid field in ffmpeg section
     initial_data = {

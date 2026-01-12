@@ -7,9 +7,13 @@ from pydantic import ValidationError
 
 class ConfigManager:
 
-    def __init__(self, config_filename: str = "config.json"):
+    def __init__(self, config_filename: str = "config.json", data_dir: str = None):
         # Relocate config to 'data' directory
-        self.data_dir = os.path.join(os.getcwd(), "data")
+        if data_dir:
+            self.data_dir = data_dir
+        else:
+            self.data_dir = os.path.join(os.getcwd(), "data")
+
         self.config_path = os.path.join(self.data_dir, config_filename)
 
         self._ensure_data_dir()

@@ -14,13 +14,25 @@ class TestSSEEvents(unittest.TestCase):
 
         self.config = config
         self.original_config_path = config.config_path
-        self.test_config_path = os.path.join(config.data_dir, "test_sse_config.json")
+        self.test_data_dir = os.path.join(os.getcwd(), "tests", "data_sse")
+        if not os.path.exists(self.test_data_dir):
+            os.makedirs(self.test_data_dir)
 
-        # Switch to test config path
+        self.test_config_path = os.path.join(self.test_data_dir, "test_sse_config.json")
+
+        # Switch to test config path by injecting data_dir
+        # But wait, 'config' is a global instance. We should probably mock it or re-init it safely?
+        # A safer way is to just temporarily point config.data_dir and config.config_path
+        self.original_data_dir = config.data_dir
+        config.data_dir = self.test_data_dir
         config.config_path = self.test_config_path
+
         if os.path.exists(self.test_config_path):
             os.remove(self.test_config_path)
-        config.load_config()  # Initialize with defaults
+
+        # Re-initialize with defaults in new location
+        config._ensure_data_dir()
+        config._config_obj = config.load_config()
 
         self.app = create_app()
         self.app.testing = True
@@ -28,6 +40,7 @@ class TestSSEEvents(unittest.TestCase):
 
     def tearDown(self):
         # Restore config
+        self.config.data_dir = self.original_data_dir
         self.config.config_path = self.original_config_path
         self.config.load_config()
 
