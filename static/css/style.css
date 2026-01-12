@@ -27,9 +27,13 @@ body {
     color: var(--text);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    /* Changed from center to prevent jumping */
     min-height: 100vh;
     margin: 0;
+    padding-top: 5vh;
+    /* Add breathing room at the top */
+    box-sizing: border-box;
 }
 
 .container {
@@ -39,7 +43,8 @@ body {
     box-shadow: var(--shadow);
     width: 100%;
     max-width: 900px;
-    margin: 2rem;
+    margin-bottom: 5vh;
+    /* Add bottom spacing for scrolling */
 }
 
 /* Header & Status */
@@ -174,7 +179,8 @@ label {
     cursor: not-allowed !important;
     opacity: 0.6 !important;
     transform: none !important;
-    pointer-events: auto !important; /* Allow tooltips */
+    pointer-events: auto !important;
+    /* Allow tooltips */
 }
 
 .btn-stop {
@@ -274,69 +280,86 @@ input[type=range]::-webkit-slider-runnable-track {
     font-weight: bold;
 }
 
-/* Collapsible Settings Group */
-.settings-group {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 20px;
-    background-color: var(--surface);
-    overflow: hidden;
-    transition: border-color 0.3s;
+/* Tabs */
+.tabs-container {
+    width: 100%;
+    margin-bottom: 2rem;
 }
 
-.settings-header {
-    padding: 12px 15px;
-    background-color: var(--surface-light);
-    cursor: pointer;
+.tab-nav {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    user-select: none;
-    transition: var(--transition);
+    gap: 4px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 10px;
 }
 
-.settings-header:hover {
-    background-color: #3d3d3d;
-}
-
-.settings-title {
-    font-size: 1rem;
-    font-weight: bold;
-    color: var(--primary);
-}
-
-.collapsible-icon {
-    width: 20px;
-    height: 20px;
-    transition: transform 0.3s ease;
+.tab-btn {
+    padding: 10px 24px;
+    background-color: var(--surface-light);
     color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+    font-size: 0.95rem;
 }
 
-.settings-content {
-    padding: 15px;
-    transition: max-height 0.4s ease-out, opacity 0.3s ease-in, padding 0.4s ease;
-    max-height: 1000px;
-    opacity: 1;
+.tab-btn:hover {
+    background-color: #3d3d3d;
+    color: var(--text);
 }
 
-.settings-group.collapsed {
-    border-color: var(--surface-light);
-}
-
-.settings-group.collapsed .settings-header {
+.tab-btn.active {
     background-color: var(--surface);
+    color: var(--primary);
+    border-bottom: 1px solid var(--surface);
+    /* Merge with pane */
+    margin-bottom: -1px;
+    /* Overlap border */
+    z-index: 2;
+    padding-top: 12px;
+    /* Slight lift effect */
 }
 
-.settings-group.collapsed .collapsible-icon {
-    transform: rotate(-90deg);
+.tab-content {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    /* Merged with nav */
+    border-radius: 0 4px 8px 8px;
+    /* Slightly different to account for top connection */
+    padding: 24px;
+    position: relative;
+    z-index: 1;
+    min-height: 300px;
+    /* Prevent jumpiness */
 }
 
-.settings-group.collapsed .settings-content {
-    max-height: 0;
+.tab-pane {
+    display: none;
     opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.tab-pane.active {
+    display: block;
+    opacity: 1;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Modals */

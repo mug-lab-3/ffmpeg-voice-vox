@@ -34,221 +34,198 @@
             </button>
         </div>
 
-        <div class="settings-group" id="group-system">
-            <div class="settings-header">
-                <span class="settings-title">System Settings</span>
-                <svg class="collapsible-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+        <div class="tabs-container">
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="tab-system">System</button>
+                <button class="tab-btn" data-tab="tab-voicevox">Voicevox</button>
+                <button class="tab-btn" data-tab="tab-ffmpeg">FFmpeg</button>
+                <button class="tab-btn" data-tab="tab-resolve">Resolve</button>
             </div>
-            <div class="settings-content">
-                <div class="control-group">
-                    <label for="outputDir">Output Directory</label>
-                    <div class="input-with-button">
-                        <input type="text" id="outputDir" class="form-control" placeholder="Select a directory..."
-                            readonly>
-                        <button id="browseOutputDir" class="btn btn-secondary">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
-                                </path>
-                            </svg>
-                            Browse
-                        </button>
-                    </div>
-                    <div id="dir-status" class="fs-small mt-5 text-muted"></div>
-                </div>
-            </div>
-        </div>
 
-        <div class="settings-group" id="group-voicevox">
-            <div class="settings-header">
-                <span class="settings-title">Voicevox Settings</span>
-                <svg class="collapsible-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </div>
-            <div class="settings-content">
-                <div class="grid-2">
+            <div class="tab-content">
+                <!-- System Tab -->
+                <div id="tab-system" class="tab-pane active">
                     <div class="control-group">
-                        <label for="speaker">Speaker</label>
-                        <select id="speaker" class="form-control">
-                            <option value="" disabled selected>Please Start VOICEVOX</option>
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <label for="style">Style</label>
-                        <select id="style" class="form-control">
-                            <option value="" disabled selected>-</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="control-group">
-                        <label for="synthesis-timing">Synthesis Timing</label>
-                        <select id="synthesis-timing" class="form-control">
-                            <option value="immediate">Immediate (Auto)</option>
-                            <option value="on_demand">On-Demand (Manual)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="control-group">
-                        <label for="speedScale">Speed <span id="val-speedScale"
-                                class="value-display">1.00</span></label>
-                        <input type="range" id="speedScale" min="0.5" max="1.5" step="0.05" value="1.0">
-                    </div>
-                    <div class="control-group">
-                        <label for="pitchScale">Pitch <span id="val-pitchScale"
-                                class="value-display">0.00</span></label>
-                        <input type="range" id="pitchScale" min="-0.15" max="0.15" step="0.01" value="0.0">
-                    </div>
-                    <div class="control-group">
-                        <label for="intonationScale">Intonation <span id="val-intonationScale"
-                                class="value-display">1.00</span></label>
-                        <input type="range" id="intonationScale" min="0.0" max="2.0" step="0.05" value="1.0">
-                    </div>
-                    <div class="control-group">
-                        <label for="volumeScale">Volume <span id="val-volumeScale"
-                                class="value-display">1.00</span></label>
-                        <input type="range" id="volumeScale" min="0.0" max="2.0" step="0.05" value="1.0">
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="control-group">
-                        <label for="prePhonemeLength">Pre-Phoneme Sil. <span id="val-prePhonemeLength"
-                                class="value-display">0.10</span></label>
-                        <input type="range" id="prePhonemeLength" min="0.0" max="1.5" step="0.01" value="0.1">
-                    </div>
-                    <div class="control-group">
-                        <label for="postPhonemeLength">Post-Phoneme Sil. <span id="val-postPhonemeLength"
-                                class="value-display">0.10</span></label>
-                        <input type="range" id="postPhonemeLength" min="0.0" max="1.5" step="0.01" value="0.1">
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="control-group">
-                        <label for="pauseLengthScale">Pause Scale <span id="val-pauseLengthScale"
-                                class="value-display">1.00</span></label>
-                        <input type="range" id="pauseLengthScale" min="0.0" max="2.0" step="0.05" value="1.0">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="settings-group collapsed" id="group-ffmpeg">
-            <div class="settings-header">
-                <span class="settings-title">FFmpeg Configuration</span>
-                <svg class="collapsible-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </div>
-            <div class="settings-content">
-                <div class="flex gap-10 mb-15">
-                    <div class="control-group flex-1 mb-0">
-                        <label class="fs-small mb-2">Path to ffmpeg.exe</label>
-                        <div class="flex gap-5">
-                            <input type="text" id="cfg-ffmpeg-path" class="form-control" placeholder="ffmpeg.exe">
-                            <button id="browse-ffmpeg-path" class="btn btn-secondary fs-small"
-                                title="Browse File">...</button>
+                        <label for="outputDir">Output Directory</label>
+                        <div class="input-with-button">
+                            <input type="text" id="outputDir" class="form-control" placeholder="Select a directory..."
+                                readonly>
+                            <button id="browseOutputDir" class="btn btn-secondary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path
+                                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                                    </path>
+                                </svg>
+                                Browse
+                            </button>
                         </div>
+                        <div id="dir-status" class="fs-small mt-5 text-muted"></div>
                     </div>
-                    <div class="control-group flex-1 mb-0">
-                        <label class="fs-small mb-2">Input Device Name</label>
-                        <div class="flex gap-5">
-                            <select id="cfg-input-device" class="form-control">
-                                <option value="" disabled selected>Select Device after setting FFmpeg</option>
+                </div>
+
+                <!-- Voicevox Tab -->
+                <div id="tab-voicevox" class="tab-pane">
+                    <div class="grid-2">
+                        <div class="control-group">
+                            <label for="speaker">Speaker</label>
+                            <select id="speaker" class="form-control">
+                                <option value="" disabled selected>Please Start VOICEVOX</option>
                             </select>
-                            <button id="refresh-devices" class="btn btn-secondary"
-                                title="Refresh Device List">↻</button>
+                        </div>
+                        <div class="control-group">
+                            <label for="style">Style</label>
+                            <select id="style" class="form-control">
+                                <option value="" disabled selected>-</option>
+                            </select>
                         </div>
                     </div>
-                </div>
-                <div class="flex gap-10 mb-15">
-                    <div class="control-group flex-1 mb-0">
-                        <label class="fs-small mb-2">Whisper Model Path</label>
-                        <div class="flex gap-5">
-                            <input type="text" id="cfg-model-path" class="form-control" placeholder="ggml-large-v3.bin">
-                            <button id="browse-model-path" class="btn btn-secondary fs-small"
-                                title="Browse File">...</button>
-                        </div>
-                    </div>
-                    <div class="control-group flex-1 mb-0">
-                        <label class="fs-small mb-2">VAD Model Path</label>
-                        <div class="flex gap-5">
-                            <input type="text" id="cfg-vad-path" class="form-control"
-                                placeholder="ggml-silero-v6.2.0.bin">
-                            <button id="browse-vad-path" class="btn btn-secondary fs-small"
-                                title="Browse File">...</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="control-group">
-                        <label class="fs-small mb-2">Queue Length <span id="val-cfg-queue-length"
-                                class="value-display">10</span></label>
-                        <input type="range" id="cfg-queue-length" min="1" max="30" step="1" value="10">
-                    </div>
-                    <div class="control-group">
-                        <label class="fs-small mb-2">Host</label>
-                        <input type="text" id="cfg-host" class="form-control" value="localhost">
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="settings-group collapsed" id="group-resolve">
-            <div class="settings-header">
-                <span class="settings-title">Resolve Configuration</span>
-                <svg class="collapsible-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </div>
-            <div class="settings-content">
-                <div class="grid-2 mb-15">
-                    <div class="control-group mb-0">
-                        <label class="fs-small mb-2">Audio Track Index <span id="val-cfg-audio-track-index"
-                                class="value-display">1</span></label>
-                        <input type="range" id="cfg-audio-track-index" min="1" max="20" step="1" value="1">
-                    </div>
-                    <div class="control-group mb-0">
-                        <label class="fs-small mb-2">Video Track Index <span id="val-cfg-video-track-index"
-                                class="value-display">2</span></label>
-                        <input type="range" id="cfg-video-track-index" min="1" max="20" step="1" value="2">
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="control-group mb-0">
-                        <label class="fs-small mb-2">Target Bin</label>
-                        <div class="flex gap-5">
-                            <select id="cfg-target-bin" class="form-control">
-                                <option value="VoiceVox Captions">VoiceVox Captions</option>
+                    <div class="grid-2">
+                        <div class="control-group">
+                            <label for="synthesis-timing">Synthesis Timing</label>
+                            <select id="synthesis-timing" class="form-control">
+                                <option value="immediate">Immediate (Auto)</option>
+                                <option value="on_demand">On-Demand (Manual)</option>
                             </select>
-                            <button id="refresh-resolve-bins" class="btn btn-secondary"
-                                title="Refresh Bin List">↻</button>
                         </div>
                     </div>
-                    <div class="control-group mb-0">
-                        <label class="fs-small mb-2">Template Clip Name</label>
-                        <div class="flex gap-5">
-                            <select id="cfg-template-name" class="form-control">
-                                <option value="Auto">Auto</option>
-                            </select>
-                            <button id="refresh-resolve-clips" class="btn btn-secondary"
-                                title="Refresh Clip List">↻</button>
+
+                    <div class="grid-2">
+                        <div class="control-group">
+                            <label for="speedScale">Speed <span id="val-speedScale"
+                                    class="value-display">1.00</span></label>
+                            <input type="range" id="speedScale" min="0.5" max="1.5" step="0.05" value="1.0">
+                        </div>
+                        <div class="control-group">
+                            <label for="pitchScale">Pitch <span id="val-pitchScale"
+                                    class="value-display">0.00</span></label>
+                            <input type="range" id="pitchScale" min="-0.15" max="0.15" step="0.01" value="0.0">
+                        </div>
+                        <div class="control-group">
+                            <label for="intonationScale">Intonation <span id="val-intonationScale"
+                                    class="value-display">1.00</span></label>
+                            <input type="range" id="intonationScale" min="0.0" max="2.0" step="0.05" value="1.0">
+                        </div>
+                        <div class="control-group">
+                            <label for="volumeScale">Volume <span id="val-volumeScale"
+                                    class="value-display">1.00</span></label>
+                            <input type="range" id="volumeScale" min="0.0" max="2.0" step="0.05" value="1.0">
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="control-group">
+                            <label for="prePhonemeLength">Pre-Phoneme Sil. <span id="val-prePhonemeLength"
+                                    class="value-display">0.10</span></label>
+                            <input type="range" id="prePhonemeLength" min="0.0" max="1.5" step="0.01" value="0.1">
+                        </div>
+                        <div class="control-group">
+                            <label for="postPhonemeLength">Post-Phoneme Sil. <span id="val-postPhonemeLength"
+                                    class="value-display">0.10</span></label>
+                            <input type="range" id="postPhonemeLength" min="0.0" max="1.5" step="0.01" value="0.1">
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="control-group">
+                            <label for="pauseLengthScale">Pause Scale <span id="val-pauseLengthScale"
+                                    class="value-display">1.00</span></label>
+                            <input type="range" id="pauseLengthScale" min="0.0" max="2.0" step="0.05" value="1.0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FFmpeg Tab -->
+                <div id="tab-ffmpeg" class="tab-pane">
+                    <div class="flex gap-10 mb-15">
+                        <div class="control-group flex-1 mb-0">
+                            <label class="fs-small mb-2">Path to ffmpeg.exe</label>
+                            <div class="flex gap-5">
+                                <input type="text" id="cfg-ffmpeg-path" class="form-control" placeholder="ffmpeg.exe">
+                                <button id="browse-ffmpeg-path" class="btn btn-secondary fs-small"
+                                    title="Browse File">...</button>
+                            </div>
+                        </div>
+                        <div class="control-group flex-1 mb-0">
+                            <label class="fs-small mb-2">Input Device Name</label>
+                            <div class="flex gap-5">
+                                <select id="cfg-input-device" class="form-control">
+                                    <option value="" disabled selected>Select Device after setting FFmpeg</option>
+                                </select>
+                                <button id="refresh-devices" class="btn btn-secondary"
+                                    title="Refresh Device List">↻</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-10 mb-15">
+                        <div class="control-group flex-1 mb-0">
+                            <label class="fs-small mb-2">Whisper Model Path</label>
+                            <div class="flex gap-5">
+                                <input type="text" id="cfg-model-path" class="form-control"
+                                    placeholder="ggml-large-v3.bin">
+                                <button id="browse-model-path" class="btn btn-secondary fs-small"
+                                    title="Browse File">...</button>
+                            </div>
+                        </div>
+                        <div class="control-group flex-1 mb-0">
+                            <label class="fs-small mb-2">VAD Model Path</label>
+                            <div class="flex gap-5">
+                                <input type="text" id="cfg-vad-path" class="form-control"
+                                    placeholder="ggml-silero-v6.2.0.bin">
+                                <button id="browse-vad-path" class="btn btn-secondary fs-small"
+                                    title="Browse File">...</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="control-group">
+                            <label class="fs-small mb-2">Queue Length <span id="val-cfg-queue-length"
+                                    class="value-display">10</span></label>
+                            <input type="range" id="cfg-queue-length" min="1" max="30" step="1" value="10">
+                        </div>
+                        <div class="control-group">
+                            <label class="fs-small mb-2">Host</label>
+                            <input type="text" id="cfg-host" class="form-control" value="localhost">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resolve Tab -->
+                <div id="tab-resolve" class="tab-pane">
+                    <div class="grid-2 mb-15">
+                        <div class="control-group mb-0">
+                            <label class="fs-small mb-2">Audio Track Index <span id="val-cfg-audio-track-index"
+                                    class="value-display">1</span></label>
+                            <input type="range" id="cfg-audio-track-index" min="1" max="20" step="1" value="1">
+                        </div>
+                        <div class="control-group mb-0">
+                            <label class="fs-small mb-2">Video Track Index <span id="val-cfg-video-track-index"
+                                    class="value-display">2</span></label>
+                            <input type="range" id="cfg-video-track-index" min="1" max="20" step="1" value="2">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="control-group mb-0">
+                            <label class="fs-small mb-2">Target Bin</label>
+                            <div class="flex gap-5">
+                                <select id="cfg-target-bin" class="form-control">
+                                    <option value="VoiceVox Captions">VoiceVox Captions</option>
+                                </select>
+                                <button id="refresh-resolve-bins" class="btn btn-secondary"
+                                    title="Refresh Bin List">↻</button>
+                            </div>
+                        </div>
+                        <div class="control-group mb-0">
+                            <label class="fs-small mb-2">Template Clip Name</label>
+                            <div class="flex gap-5">
+                                <select id="cfg-template-name" class="form-control">
+                                    <option value="Auto">Auto</option>
+                                </select>
+                                <button id="refresh-resolve-clips" class="btn btn-secondary"
+                                    title="Refresh Clip List">↻</button>
+                            </div>
                         </div>
                     </div>
                 </div>

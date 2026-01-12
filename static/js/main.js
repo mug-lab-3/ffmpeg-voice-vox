@@ -387,13 +387,22 @@ function setupUIListeners() {
     // Start/Stop
     elements.startStopBtn.addEventListener('click', handleStartStopClick);
 
-    // Collapsible Sections
-    const headers = document.querySelectorAll('.settings-header');
-    headers.forEach(header => {
-        header.addEventListener('click', () => {
-            const group = header.closest('.settings-group');
-            if (group) {
-                group.classList.toggle('collapsed');
+    // Tab Switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabPanes.forEach(p => p.classList.remove('active'));
+
+            // Add active to clicked
+            btn.classList.add('active');
+            const targetId = btn.getAttribute('data-tab');
+            const targetPane = document.getElementById(targetId);
+            if (targetPane) {
+                targetPane.classList.add('active');
             }
         });
     });

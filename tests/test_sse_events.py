@@ -11,15 +11,16 @@ class TestSSEEvents(unittest.TestCase):
     def setUp(self):
         # Isolate config
         from app.config import config
+
         self.config = config
         self.original_config_path = config.config_path
         self.test_config_path = os.path.join(config.data_dir, "test_sse_config.json")
-        
+
         # Switch to test config path
         config.config_path = self.test_config_path
         if os.path.exists(self.test_config_path):
             os.remove(self.test_config_path)
-        config.load_config() # Initialize with defaults
+        config.load_config()  # Initialize with defaults
 
         self.app = create_app()
         self.app.testing = True
@@ -29,7 +30,7 @@ class TestSSEEvents(unittest.TestCase):
         # Restore config
         self.config.config_path = self.original_config_path
         self.config.load_config()
-        
+
         # Cleanup
         if os.path.exists(self.test_config_path):
             os.remove(self.test_config_path)
