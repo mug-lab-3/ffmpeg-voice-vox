@@ -167,6 +167,16 @@ label {
     transform: translateY(0);
 }
 
+.btn.disabled,
+.btn:disabled {
+    background-color: var(--border) !important;
+    color: var(--text-muted) !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+    transform: none !important;
+    pointer-events: auto !important; /* Allow tooltips */
+}
+
 .btn-stop {
     background-color: var(--error);
     color: white;
