@@ -20,6 +20,7 @@ def kill_previous_instances():
         import psutil
 
         current_pid = os.getpid()
+        parent_pid = os.getppid()  # Get parent PID (e.g. uv.exe)
         killed_count = 0
 
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
@@ -30,7 +31,8 @@ def kill_previous_instances():
                     if cmdline:
                         # Check if voicevox_controller.py is in the arguments
                         if any("voicevox_controller.py" in arg for arg in cmdline):
-                            if proc.info["pid"] != current_pid:
+                            proc_pid = proc.info["pid"]
+                            if proc_pid != current_pid and proc_pid != parent_pid:
                                 print(
                                     f"[Startup] Found existing instance (PID: {proc.info['pid']}). Killing..."
                                 )
