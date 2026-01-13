@@ -92,7 +92,7 @@ try {
 
     Write-Host '[5/8] 外部ツールをダウンロード中...' -ForegroundColor Cyan
     
-    # FFmpeg (BtbN master-latest ビルド / Zip形式)
+    # FFmpeg (Gyan.dev git-full .7z ビルド)
     $existingFfmpeg = Get-ChildItem -Path $toolDir -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
     
     $isWhisperSupported = $false
@@ -102,9 +102,9 @@ try {
     }
 
     if (-not $isWhisperSupported) {
-        Write-Host '  -> Whisper 対応版 FFmpeg を取得中 (BtbN master-latest Zip)...'
-        $ffmpegUrl = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
-        $ffmpegZip = Join-Path $toolDir 'ffmpeg.zip'
+        Write-Host '  -> Whisper 対応版 FFmpeg を取得中 (Gyan.dev git-full .7z)...'
+        $ffmpegUrl = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z'
+        $ffmpeg7z = Join-Path $toolDir 'ffmpeg.7z'
         
         if ($existingFfmpeg) {
             Write-Host '  -> 非対応の FFmpeg を入れ替えます...'
@@ -113,10 +113,12 @@ try {
             Remove-Item -Path $oldDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }
 
-        Download-Fast $ffmpegUrl $ffmpegZip
-        Write-Host '  -> 展開中...'
-        Expand-Archive -Path $ffmpegZip -DestinationPath $toolDir -Force
-        Remove-Item -LiteralPath $ffmpegZip -ErrorAction SilentlyContinue
+        Download-Fast $ffmpegUrl $ffmpeg7z
+        Write-Host '  -> 展開中 (Windows 標準の tar を使用)...'
+        # Windows 11/10 (1803以降) 標準の tar.exe を使用
+        # 7z ファイルのサポートは最近の Windows 11 で追加されました
+        & tar.exe -xf $ffmpeg7z -C $toolDir
+        Remove-Item -LiteralPath $ffmpeg7z -ErrorAction SilentlyContinue
         Write-Host '  -> 完了'
         $existingFfmpeg = Get-ChildItem -Path $toolDir -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
     } else {
