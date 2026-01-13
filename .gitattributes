@@ -1,0 +1,3 @@
+# Git でバッチファイルが自動的に LF に変換されるのを防ぐ
+*.bat text eol=crlf
+*.cmd text eol=crlf

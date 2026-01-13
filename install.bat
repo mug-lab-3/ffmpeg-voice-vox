@@ -116,7 +116,7 @@ try {
         Download-Fast $ffmpegUrl $ffmpeg7z
         Write-Host '  -> 展開中 (Windows 標準の tar を使用)...'
         # Windows 11/10 (1803以降) 標準の tar.exe を使用
-        # 7z ファイルのサポートは最近の Windows 11 で追加されました
+        # 7z ファイルのサポートは最近の Windows 11 で追加されました 
         & tar.exe -xf $ffmpeg7z -C $toolDir
         Remove-Item -LiteralPath $ffmpeg7z -ErrorAction SilentlyContinue
         Write-Host '  -> 完了'
