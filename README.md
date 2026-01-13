@@ -115,26 +115,39 @@ graph TD
 *   **公式サイト**: [https://www.blackmagicdesign.com/products/davinciresolve](https://www.blackmagicdesign.com/products/davinciresolve)
 *   **要件**: 連携機能を使用する場合、DaVinci Resolveが起動しており、スクリプトAPIが有効であること。
 
-### セットアップ手順
+## セットアップ手順
+
+### Windows の場合 (推奨)
+
+Windows ユーザーの方は、以下の手順で簡単にセットアップを完了できます。
+
+1.  **Python 3.10+ のインストール**: [Microsoft Store](https://apps.microsoft.com/store/detail/python-310/9PJPW5LD6L98) 等から Python をインストールしてください。
+2.  **`install.bat` の実行**: 本リポジトリから `install.bat` をダウンロード（またはコピー）し、任意の空のフォルダに配置してダブルクリックで実行してください。
+    - **自動で行われること**:
+        - `uv` のインストールと仮想環境の構築
+        - FFmpeg v8.0+ (Whisperフィルター対応) のダウンロード
+        - VOICEVOX Engine のダウンロード
+        - 推奨 Whisper/VAD モデルのダウンロード
+        - `config.json` の自動構成
+3.  **起動**: セットアップ完了後に生成される `run.bat` を実行してください。
+
+### 手動セットアップ (macOS / 他のOS)
 
 1.  **依存ライブラリのインストール**
     ```powershell
     pip install -r requirements.txt
     ```
 
-2.  **VOICEVOXの準備**
-    VOICEVOXを起動してください。デフォルトでは `http://127.0.0.1:50021` を使用します（`config.json` で変更可能）。
+2.  **外部ツールの準備**
+    FFmpeg (v8.0+), VOICEVOX Engine, Whisperモデル等を個別にダウンロードし、`data/config.json` でパスを指定してください。詳細は `docs/specification/user-config.md` を参照してください。
 
 ## 実行方法
 
-1.  **VOICEVOXの起動**: 
-    VOICEVOXを起動してください（エディタ版またはエンジン版のどちらでも構いません）。バックグラウンドで起動しているだけで問題ありません。
+セットアップ完了後、以下のいずれかの方法でアプリを起動します。
 
-2.  **アプリケーションの起動**:
-    以下のコマンドを実行してアプリケーションを起動します。
-```powershell
-python voicevox_controller.py
-```
+- **Windows**: `run.bat` を実行します。
+- **その他**: `python voicevox_controller.py` を実行します。
+
 起動後、ブラウザが自動的に開き、管理画面が表示されます。
 
 ## 使い方
