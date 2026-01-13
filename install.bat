@@ -22,7 +22,7 @@ exit /b %errorlevel%
 ###_POWERSHELL_START_###
 # --- PowerShell Script Section ---
 
-# PowerShell の進捗表示を無効化 (curl を使うので不要)
+# PowerShell の進捗表示を無効化
 $ProgressPreference = 'SilentlyContinue'
 
 # コンソール出力の安定化
@@ -164,30 +164,40 @@ try {
     if (-not (Test-Path -LiteralPath $configFolder)) { New-Item -ItemType Directory -Path $configFolder | Out-Null }
     $configPath = Join-Path $configFolder 'config.json'
 
-    $ffmpegPath = $existingFfmpeg.FullName.Replace('\', '/')
+    # ConvertTo-Json を通すとバックスラッシュは自動的にエスケープ (\ -> \\) されます。
+    # これによりユーザーの要望通りの JSON 形式になります。
+    $ffmpegPath = $existingFfmpeg.FullName
+    $modelPath = $whisperFile
+    $vadPath = $vadFile
+    $outDir = (Join-Path $finalDir 'output')
     
     if (-not (Test-Path -LiteralPath $configPath)) {
         $configObject = @{
             ffmpeg = @{
                 ffmpeg_path = $ffmpegPath
-                model_path = $whisperFile.Replace('\', '/')
-                vad_model_path = $vadFile.Replace('\', '/')
+                model_path = $modelPath
+                vad_model_path = $vadPath
+                host = "127.0.0.1"
+                queue_length = 10
             }
             system = @{
-                output_dir = (Join-Path $finalDir 'output').Replace('\', '/')
+                output_dir = $outDir
             }
         }
         $configJson = $configObject | ConvertTo-Json -Depth 10
         [System.IO.File]::WriteAllText($configPath, $configJson, $Utf8NoBom)
-        Write-Host '  -> config.json を作成しました。'
+        Write-Host '  -> config.json を作成しました (バックスラッシュをエスケープしました)。'
     } else {
+        # 既存の設定があればパスだけ更新
         $currentJson = Get-Content $configPath -Raw | ConvertFrom-Json
         $currentJson.ffmpeg.ffmpeg_path = $ffmpegPath
-        $currentJson.ffmpeg.model_path = $whisperFile.Replace('\', '/')
-        $currentJson.ffmpeg.vad_model_path = $vadFile.Replace('\', '/')
+        $currentJson.ffmpeg.model_path = $modelPath
+        $currentJson.ffmpeg.vad_model_path = $vadPath
+        $currentJson.system.output_dir = $outDir
+        
         $newJson = $currentJson | ConvertTo-Json -Depth 10
         [System.IO.File]::WriteAllText($configPath, $newJson, $Utf8NoBom)
-        Write-Host '  -> config.json のパスを更新しました。'
+        Write-Host '  -> config.json のパスを更新・修正しました。'
     }
     
     if (-not (Test-Path -LiteralPath (Join-Path $finalDir 'output'))) { New-Item -ItemType Directory -Path (Join-Path $finalDir 'output') | Out-Null }
