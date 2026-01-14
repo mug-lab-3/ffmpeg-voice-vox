@@ -153,6 +153,9 @@ ffmpeg-voice-vox/（アプリのルート）
       - `Whisper Model Path` に `models/ggml-large-v3-turbo.bin` を指定します。
       - `VAD Model Path` に `models/ggml-silero-v6.2.0.bin` を指定します。
 
+   ![FFmpeg Configuration](images/setup/ffmpeg-config.png)
+
+
 ---
 
 ## 6. 動作確認
@@ -161,4 +164,6 @@ ffmpeg-voice-vox/（アプリのルート）
 
 1. 画面右上の **[START]** ボタンを押します。
 2. マイクに向かって話し、Web UIに文字起こし結果が表示されれば成功です！
+![文字起こし結果](images/setup/transcription.png)
+
 
