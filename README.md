@@ -53,102 +53,28 @@ graph TD
 *   **SSD寿命の最適化**: SQLiteの処理をメモリ上で完結させる（Journal Mode: MEMORY / Temp Store: MEMORY 等）ことで、ディスクへの書き込みを劇的に削減。大切なPCのストレージ寿命を保護しながら、高速なレスポンスを実現します。
 *   **不整合の徹底排除**: 生成された各音声ファイルにはテキスト内容に基づくハッシュが付与されます。内容を書き換えると古いファイルは自動的に破棄され、常に「最新のテキスト」と「音声」が一致する状態を保ちます。
 
-## 開発環境構築
+## 環境構築・セットアップ
 
-### 必須要件
+本アプリの利用には、FFmpeg (Whisper対応版)、VOICEVOX、および学習済みモデルの準備が必要です。
 
-#### 基本環境
-*   **OS**: Windows / macOS
-*   **Python**: 3.x
+詳細なセットアップ手順（GitHubからの入手方法、OS別の環境構築、各種ツールの配置方法など）については、以下のガイドを参照してください。
 
-#### 外部ツール・モジュール
+> [!IMPORTANT]
+> **[セットアップガイド (docs/setup.md)](docs/setup.md)**
+> 初心者の方でも迷わずに進められるよう、画像プレースホルダー付きで丁寧に解説しています。
 
-##### Python
-*   **用途**: アプリケーション本体の実行
-*   **インストール方法**:
-    *   **Windows**: [Microsoft Store](https://apps.microsoft.com/store/detail/python-310/9PJPW5LD6L98) からインストールすることを強く推奨します。これにより、環境変数（Path）への追加が確実に行われます。
-    *   **macOS / Linux**: 公式サイトまたは各パッケージマネージャー（brew等）からインストールしてください。
+### 必須コンポーネントの概要
 
-##### FFmpeg
-*   **用途**: 音声ファイルの変換・処理
-*   **公式サイト**: [https://ffmpeg.org/](https://ffmpeg.org/)
-*   **ダウンロード**: [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
-*   **インストール**: 任意のディレクトリに展開し、そのディレクトリを`config.json`の`ffmpeg_path`で指定してください。
+セットアップガイドでは以下のツールの導入手順を解説しています：
 
-##### Whisper C++ (GGML) モデル
-*   **用途**: 音声認識(文字起こし)
-*   **GitHubリポジトリ**: [https://github.com/ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp)
-*   **モデルファイル**: 
-    *   推奨モデル (スペック・用途に合わせて選択): 
-        *   `ggml-large-v3-turbo.bin` (**標準推奨**: 精度はv2相当、速度は飛躍的に向上。VRAM 6GB以上推奨)
-        *   `ggml-large-v3.bin` (**最高精度**: 処理時間は長いが最も正確。VRAM 10GB以上推奨)
-        *   `ggml-small.bin` (**低スペック/省メモリ**: VRAM 2GB程度の環境やCPU処理向け)
-    *   **直接ダウンロード**: 
-        *   [ggml-large-v3-turbo.bin (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin)
-        *   [ggml-large-v3.bin (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin)
-        *   [ggml-small.bin (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin)
-        *   リポジトリ: [ggerganov/whisper.cpp (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/tree/main)
-*   **設定**: ダウンロードしたモデルファイルのパスを`config.json`の`model_path`で指定してください。
+*   **Python (uv)**: パッケージ管理ツール `uv` を使用して、安定した実行環境を構築します。
+*   **FFmpeg (Whisper フィルター内蔵)**: 音声認識のコアとなるコンポーネントです。
+*   **VOICEVOX**: 音声合成エンジンです（インストーラー版推奨）。
+*   **Whisper / VAD モデル**: 低スペックから高精度まで、PC環境に合わせたモデル選択が可能です。
 
-##### VAD (Voice Activity Detection) モデル
-*   **用途**: 音声区間検出(Sileroモデルを使用、Whisper C++で使用)
-*   **GitHubリポジトリ**: [https://github.com/snakers4/silero-vad](https://github.com/snakers4/silero-vad)
-*   **モデルファイル**: 
-    *   推奨モデル: `ggml-silero-v6.2.0.bin` (GGML形式、Whisper C++用)
-    *   **直接ダウンロード**: 
-        *   [ggml-silero-v6.2.0.bin (Hugging Face)](https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v6.2.0.bin)
-        *   リポジトリ: [ggml-org/whisper-vad](https://huggingface.co/ggml-org/whisper-vad)
-*   **設定**: ダウンロードしたGGMLファイルのパスを`config.json`の`vad_model_path`で指定してください。
+---
 
-##### VOICEVOX
-*   **用途**: 音声合成エンジン
-*   **公式サイト**: [https://voicevox.hiroshiba.jp/](https://voicevox.hiroshiba.jp/)
-*   **GitHubリポジトリ**: [https://github.com/VOICEVOX/voicevox](https://github.com/VOICEVOX/voicevox)
-*   **ダウンロード**: 
-    *   エディタ版: [VOICEVOX公式サイト](https://voicevox.hiroshiba.jp/)
-    *   エンジン版: [VOICEVOX ENGINE Releases](https://github.com/VOICEVOX/voicevox_engine/releases)
-*   **起動**: アプリケーション実行前にVOICEVOXを起動してください（デフォルト: `http://127.0.0.1:50021`）。
-*   **設定**: `config.json`で接続先URLやスピーカーIDなどを変更可能です。
 
-##### DaVinci Resolve (オプション)
-*   **用途**: 動画編集ソフトとの連携（音声・字幕の自動挿入）
-*   **公式サイト**: [https://www.blackmagicdesign.com/products/davinciresolve](https://www.blackmagicdesign.com/products/davinciresolve)
-*   **要件**: 連携機能を使用する場合、DaVinci Resolveが起動しており、スクリプトAPIが有効であること。
-
-## セットアップ手順
-
-### Windows の場合 (推奨)
-
-Windows ユーザーの方は、以下の手順で簡単にセットアップを完了できます。
-
-1.  **Python 3.10+ のインストール**: [Microsoft Store](https://apps.microsoft.com/store/detail/python-310/9PJPW5LD6L98) 等から Python をインストールしてください。
-2.  **`install.bat` の実行**: 本リポジトリから `install.bat` をダウンロード（またはコピー）し、任意の空のフォルダに配置してダブルクリックで実行してください。
-    - **自動で行われること**:
-        - `uv` のインストールと仮想環境の構築
-        - FFmpeg v8.0+ (Whisperフィルター対応) のダウンロード
-        - VOICEVOX Engine のダウンロード
-        - 推奨 Whisper/VAD モデルのダウンロード
-        - `config.json` の自動構成
-3.  **起動**: セットアップ完了後に生成される `run.bat` を実行してください。
-
-### 手動セットアップ (macOS / 他のOS)
-
-1.  **依存ライブラリのインストール**
-    ```powershell
-    pip install -r requirements.txt
-    ```
-
-2.  **外部ツールの準備**
-    FFmpeg (v8.0+), VOICEVOX Engine, Whisperモデル等を個別にダウンロードし、`data/config.json` でパスを指定してください。詳細は `docs/specification/user-config.md` を参照してください。
-
-## 実行方法
-
-セットアップ完了後、以下のいずれかの方法でアプリを起動します。
-
-- **Windows**: `run.bat` を実行します。
-- **その他**: `python voicevox_controller.py` を実行します。
-
-起動後、ブラウザが自動的に開き、管理画面が表示されます。
 
 ## 使い方
 
