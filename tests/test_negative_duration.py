@@ -36,7 +36,7 @@ class TestNegativeDuration:
         # Test that adding a new transcription sets duration to -1.0
         db_id = self.db_manager.add_transcription("test text", 1, {})
         transcription = self.db_manager.get_transcription(db_id)
-        assert transcription["audio_duration"] == -1.0
+        assert transcription.audio_duration == -1.0
 
     def test_update_text_resets_duration_to_negative_one(self):
         # First add with explicit duration
@@ -44,14 +44,14 @@ class TestNegativeDuration:
             "test text", 1, {}, audio_duration=5.0
         )
         t1 = self.db_manager.get_transcription(db_id)
-        assert t1["audio_duration"] == 5.0
+        assert t1.audio_duration == 5.0
 
         # Update text
         self.db_manager.update_transcription_text(db_id, "updated text")
 
         # Check duration is now -1.0
         t2 = self.db_manager.get_transcription(db_id)
-        assert t2["audio_duration"] == -1.0
+        assert t2.audio_duration == -1.0
 
     def test_processor_cache_update(self):
         # Create a processor and mock its internal state to test log update

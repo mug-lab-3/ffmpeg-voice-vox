@@ -1,8 +1,9 @@
 import json
 import os
 from datetime import datetime, timezone
+from typing import Optional
 from app.config import config
-from app.core.voicevox import VoiceVoxClient
+from app.core.voicevox import VoiceVoxClient, VoiceVoxAudioQuery
 from app.core.audio import AudioManager
 from app.core.database import db_manager, Transcription
 
@@ -112,51 +113,28 @@ class StreamProcessor:
 
     def _prepare_query_data(
         self, text: str, speaker_id: int, config_dict: dict
-    ) -> dict:
+    ) -> Optional[VoiceVoxAudioQuery]:
         """
         Executes audio_query and applies provided config scales.
-        Returns query_data directly from VOICEVOX if successful, or None if failed.
-        Also calculates kana and phonemes.
+        Returns VoiceVoxAudioQuery model if successful, or None if failed.
         """
         if not self.vv_client.is_available():
             print("[Processor] VOICEVOX is not available for query.")
             return None
 
         try:
-            query_data = self.vv_client.audio_query(text, speaker_id)
+            query = self.vv_client.audio_query(text, speaker_id)
 
-            # Apply parameters from config_dict
-            query_data["speedScale"] = float(config_dict.get("speed_scale", 1.0))
-            query_data["pitchScale"] = float(config_dict.get("pitch_scale", 0.0))
-            query_data["intonationScale"] = float(
-                config_dict.get("intonation_scale", 1.0)
-            )
-            query_data["volumeScale"] = float(config_dict.get("volume_scale", 1.0))
-            query_data["prePhonemeLength"] = float(
-                config_dict.get("pre_phoneme_length", 0.1)
-            )
-            query_data["postPhonemeLength"] = float(
-                config_dict.get("post_phoneme_length", 0.1)
-            )
-            query_data["pauseLengthScale"] = float(
-                config_dict.get("pause_length_scale", 1.0)
-            )
+            # Apply parameters from config_dict using Model properties
+            query.speedScale = float(config_dict.get("speed_scale", 1.0))
+            query.pitchScale = float(config_dict.get("pitch_scale", 0.0))
+            query.intonationScale = float(config_dict.get("intonation_scale", 1.0))
+            query.volumeScale = float(config_dict.get("volume_scale", 1.0))
+            query.prePhonemeLength = float(config_dict.get("pre_phoneme_length", 0.1))
+            query.postPhonemeLength = float(config_dict.get("post_phoneme_length", 0.1))
+            query.pauseLengthScale = float(config_dict.get("pause_length_scale", 1.0))
 
-            # Extract derived attributes
-            kana = query_data.get("kana")
-            phonemes = self._extract_phonemes(query_data)
-
-            # Ensure they are serializable (especially in test mocks)
-            query_data["_extra_kana"] = str(kana) if kana is not None else None
-
-            # Strong serializability check for phonemes (to block MagicMock in tests)
-            try:
-                # Store it as JSON string right here to be absolutely sure
-                query_data["_extra_phonemes_json"] = json.dumps(phonemes)
-            except (TypeError, OverflowError):
-                query_data["_extra_phonemes_json"] = "[]"
-
-            return query_data
+            return query
         except Exception as e:
             print(f"[Processor] Error preparing query data: {e}")
             return None
@@ -166,18 +144,30 @@ class StreamProcessor:
         print(f"Processing: {text}")
 
         # 1. Prepare Config (Current global UI state for NEW item)
+        speaker_id = config.get("synthesis.speaker_id", 1)
+        current_config = {
+            "speed_scale": config.get("synthesis.speed_scale", 1.0),
+            "pitch_scale": config.get("synthesis.pitch_scale", 0.0),
+            "intonation_scale": config.get("synthesis.intonation_scale", 1.0),
+            "volume_scale": config.get("synthesis.volume_scale", 1.0),
+            "pre_phoneme_length": config.get("synthesis.pre_phoneme_length", 0.1),
+            "post_phoneme_length": config.get("synthesis.post_phoneme_length", 0.1),
+            "pause_length_scale": config.get("synthesis.pause_length_scale", 1.0),
+        }
+
         # 2. Add to DB first (Pending state) using Model
         style_info = self.vv_client.get_style_info(speaker_id)
 
         t = Transcription(
             text=text,
             speaker_id=speaker_id,
-            speaker_name=style_info["speaker_name"] if style_info else None,
-            speaker_style=style_info["style_name"] if style_info else None,
+            speaker_name=style_info.speaker_name if style_info else None,
+            speaker_style=style_info.style_name if style_info else None,
             **current_config,
         )
 
         db_id = db_manager.add_transcription(t)
+        t.id = db_id
 
         generated_file = None
         actual_duration = -1.0
@@ -185,8 +175,7 @@ class StreamProcessor:
 
         if timing == "immediate":
             try:
-                # 4. Synthesis (Now triggers audio_query inside synthesize_item if we refactor it,
-                # but for immediate we still need to call something. Let's use synthesize_item logic)
+                # 4. Synthesis
                 generated_file, actual_duration = self.synthesize_item(db_id)
                 print(
                     f"  -> Immediate Generated: {generated_file} ({actual_duration:.2f}s)"
@@ -202,28 +191,19 @@ class StreamProcessor:
                 print("  -> Synthesis Skipped (Disabled)")
 
         # 7. Add to UI logs
-        self._add_log_from_db(
-            db_id, text, actual_duration, generated_file, speaker_id, current_config
-        )
+        t.audio_duration = actual_duration
+        t.output_path = generated_file
+        self._add_log_from_db(t)
 
-    def _extract_phonemes(self, query_data: dict) -> list:
+    def _extract_phonemes(self, query: VoiceVoxAudioQuery) -> list:
         """Extract phonemes with cumulative start times (seconds)."""
-        # Type guard for mocks in tests
-        if not hasattr(query_data, "get"):
-            return []
-
         phonemes = []
         try:
-            current_time = float(query_data.get("prePhonemeLength", 0.1))
-            speed_scale = float(query_data.get("speedScale", 1.0))
+            current_time = query.prePhonemeLength
+            speed_scale = query.speedScale
 
-            for phrase in query_data.get("accent_phrases", []):
-                # Another guard for nested mocks
-                if not hasattr(phrase, "get"):
-                    continue
+            for phrase in query.accent_phrases:
                 for mora in phrase.get("moras", []):
-                    if not hasattr(mora, "get"):
-                        continue
                     # Consonant
                     if mora.get("consonant"):
                         phonemes.append(
@@ -242,10 +222,9 @@ class StreamProcessor:
 
                 # Pause after accent phrase
                 pause_mora = phrase.get("pause_mora")
-                if pause_mora and hasattr(pause_mora, "get"):
+                if pause_mora:
                     pause_len = (pause_mora.get("vowel_length") or 0.0) / speed_scale
-                    pause_len *= float(query_data.get("pauseLengthScale", 1.0))
-                    current_time += pause_len
+                    current_time += pause_len * query.pauseLengthScale
         except (AttributeError, TypeError, ValueError):
             return []
 
@@ -280,14 +259,15 @@ class StreamProcessor:
 
         # 3. VoiceVox Query & Synthesis using common logic
         try:
-            query_data = self._prepare_query_data(text, speaker_id, item_config)
-            if not query_data:
+            query = self._prepare_query_data(text, speaker_id, item_config)
+            if not query:
                 raise RuntimeError("Failed to prepare query data (VOICEVOX offline?)")
 
-            new_kana = query_data["_extra_kana"]
-            new_phonemes = query_data["_extra_phonemes_json"]
+            new_kana = str(query.kana) if query.kana else None
+            phonemes = self._extract_phonemes(query)
+            new_phonemes = json.dumps(phonemes)
 
-            audio_data = self.vv_client.synthesis(query_data, speaker_id)
+            audio_data = self.vv_client.synthesis(query, speaker_id)
         except Exception as e:
             print(f"[Processor] Synthesis CRITICAL Error for ID {db_id}: {e}")
             raise
@@ -480,6 +460,6 @@ class StreamProcessor:
         # Fallback to cache if database didn't have it (old records)
         info = self.vv_client.get_style_info(speaker_id)
         if info:
-            return f"{info['speaker_name']}({info['style_name']})"
+            return f"{info.speaker_name}({info.style_name})"
 
         return f"ID:{speaker_id}"

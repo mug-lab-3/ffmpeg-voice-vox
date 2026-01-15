@@ -126,7 +126,7 @@ def whisper_receiver():
 
 @web.route("/api/speakers", methods=["GET"])
 def get_speakers():
-    return jsonify(vv_client.get_speakers())
+    return jsonify([s.model_dump() for s in vv_client.get_speakers()])
 
 
 @web.route("/api/logs", methods=["GET"])

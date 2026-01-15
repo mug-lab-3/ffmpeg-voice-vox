@@ -26,10 +26,6 @@ class Transcription(BaseModel):
     kana: Optional[str] = None
     phonemes: Optional[str] = None
 
-    def __getitem__(self, item):
-        """Allows dict-like access for backward compatibility (especially in tests)."""
-        return getattr(self, item)
-
     @classmethod
     def from_row(cls, row: Any):
         """Creates a Transcription instance from a sqlite3.Row or a dict."""

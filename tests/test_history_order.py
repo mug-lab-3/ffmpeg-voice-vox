@@ -52,9 +52,9 @@ class TestHistoryOrder:
         assert logs[0].id == 3
         assert logs[1].id == 2
         assert logs[2].id == 1
-        assert logs[0]["text"] == "Record 3"
-        assert logs[1]["text"] == "Record 2"
-        assert logs[2]["text"] == "Record 1"
+        assert logs[0].text == "Record 3"
+        assert logs[1].text == "Record 2"
+        assert logs[2].text == "Record 1"
 
     def test_processor_loading_order(self):
         # StreamProcessorが読み込んだ際、UI表示用に古いものから順にリストに入っていることを確認
