@@ -3,7 +3,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch, mock_open
 from app.config import ConfigManager
-from app.schemas import ConfigSchema
+from app.config.schemas import ConfigSchema
 
 
 class TestConfigManager:
@@ -69,7 +69,7 @@ class TestConfigManager:
         cm2 = ConfigManager(test_config_file)
         assert cm2.config["synthesis"]["speed_scale"] == 1.0  # Default
 
-    @patch("app.config.os.fsync")
+    @patch("app.config.manager.os.fsync")
     def test_save_calls_fsync(self, mock_fsync, test_config_file):
         """Test that save_config calls fsync."""
         cm = ConfigManager(test_config_file)

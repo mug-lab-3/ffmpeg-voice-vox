@@ -2,7 +2,7 @@ import os
 import json
 import shutil
 from app.config import ConfigManager
-from app.schemas import ConfigSchema
+from app.config.schemas import ConfigSchema
 
 
 def test_config_validation():

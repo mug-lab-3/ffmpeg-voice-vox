@@ -1,7 +1,16 @@
 import json
 import os
 from typing import Dict, Any
-from .schemas import ConfigSchema, BaseModel
+from .schemas.schema_config import ConfigSchema
+from .schemas import (
+    BaseModel,
+    ServerConfig,
+    VoiceVoxConfig,
+    SynthesisConfig,
+    SystemConfig,
+    FfmpegConfig,
+    ResolveConfig,
+)
 from pydantic import ValidationError
 
 
@@ -46,6 +55,30 @@ class ConfigManager:
             data["system"] = {}
         data["system"]["is_synthesis_enabled"] = self.is_synthesis_enabled
         return data
+
+    @property
+    def server(self) -> ServerConfig:
+        return self._config_obj.server
+
+    @property
+    def voicevox(self) -> VoiceVoxConfig:
+        return self._config_obj.voicevox
+
+    @property
+    def synthesis(self) -> SynthesisConfig:
+        return self._config_obj.synthesis
+
+    @property
+    def system(self) -> SystemConfig:
+        return self._config_obj.system
+
+    @property
+    def ffmpeg(self) -> FfmpegConfig:
+        return self._config_obj.ffmpeg
+
+    @property
+    def resolve(self) -> ResolveConfig:
+        return self._config_obj.resolve
 
     def load_config(self) -> ConfigSchema:
         """Load user config, validate with Pydantic, and correct if needed."""
@@ -161,6 +194,88 @@ class ConfigManager:
 
         return default_obj
 
+    def load_config_ex(self) -> ConfigSchema:
+        """
+        New clean loading logic.
+        Separates file I/O, validation, and repair.
+        Saves to disk only once at the end if repairs or defaults were applied.
+        """
+        # 1. Read raw data
+        raw_data = self._read_raw_json()
+
+        # 2. Try strict validation
+        try:
+            config_obj = ConfigSchema.model_validate(raw_data)
+        except ValidationError:
+            print(
+                f"[Config] Validation failed in {self.config_path}, attempting repair..."
+            )
+            # 3. Best-effort repair
+            config_obj = self._repair_config(raw_data)
+
+        # 4. Success or repaired, check if sync needed (missing default fields or repaired)
+        # Compare current state with raw data to see if we need to write back
+        if raw_data != config_obj.model_dump():
+            print(
+                f"[Config] Synchronizing changes (repairs or defaults) to {self.config_path}"
+            )
+            self.save_config(config_obj)
+
+        print(f"[Config] Configuration loaded (Clean)")
+        return config_obj
+
+    def _read_raw_json(self) -> Dict[str, Any]:
+        """Read and decode JSON file, handling corruption."""
+        if not os.path.exists(self.config_path):
+            return {}
+
+        try:
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, Exception) as e:
+            print(f"[Config] Critical error reading {self.config_path}: {e}")
+            self._backup_corrupt_file()
+            return {}
+
+    def _backup_corrupt_file(self):
+        """Move corrupt file to a backup path."""
+        import shutil
+        import time
+
+        timestamp = int(time.time())
+        backup_path = f"{self.config_path}.corrupt.{timestamp}"
+        print(f"[Config] Backing up corrupt config to {backup_path}")
+        try:
+            shutil.copy(self.config_path, backup_path)
+        except Exception as e:
+            print(f"[Config] Backup failed: {e}")
+
+    def _repair_config(self, data: Dict[str, Any]) -> ConfigSchema:
+        """
+        Repair configuration by delegating to each section's own load_best_effort.
+        """
+        repaired_data = {}
+        defaults = ConfigSchema()
+
+        if not isinstance(data, dict):
+            return defaults
+
+        # Get all top-level sections defined in ConfigSchema
+        for section_name, field_info in ConfigSchema.model_fields.items():
+            section_type = field_info.annotation
+            section_input = data.get(section_name)
+
+            # Delegate repair to the section class if it has load_best_effort
+            if hasattr(section_type, "load_best_effort"):
+                repaired_data[section_name] = section_type.load_best_effort(
+                    section_input
+                )
+            else:
+                # Fallback for non-delegated fields
+                repaired_data[section_name] = getattr(defaults, section_name)
+
+        return ConfigSchema(**repaired_data)
+
     def save_config(self, config_to_save: Any = None):
         """Save current config to file."""
         obj = config_to_save if config_to_save is not None else self._config_obj
@@ -227,6 +342,36 @@ class ConfigManager:
             else:
                 print(f"[Config] Update rejected for '{key}': {e}")
             return False
+
+    def update_server(self, update: ServerConfig) -> bool:
+        self._config_obj.server = update
+        self.save_config()
+        return True
+
+    def update_voicevox(self, update: VoiceVoxConfig) -> bool:
+        self._config_obj.voicevox = update
+        self.save_config()
+        return True
+
+    def update_synthesis(self, update: SynthesisConfig) -> bool:
+        self._config_obj.synthesis = update
+        self.save_config()
+        return True
+
+    def update_system(self, update: SystemConfig) -> bool:
+        self._config_obj.system = update
+        self.save_config()
+        return True
+
+    def update_ffmpeg(self, update: FfmpegConfig) -> bool:
+        self._config_obj.ffmpeg = update
+        self.save_config()
+        return True
+
+    def update_resolve(self, update: ResolveConfig) -> bool:
+        self._config_obj.resolve = update
+        self.save_config()
+        return True
 
 
 # Global instance

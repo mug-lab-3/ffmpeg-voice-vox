@@ -2,7 +2,7 @@ import os
 import json
 import pytest
 from app.config import ConfigManager
-from app.schemas import ConfigSchema
+from app.config.schemas import ConfigSchema
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ Please ensure any changes here are synchronized with the specification.
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 from app.api.schemas.base import BaseResponse
-from app.schemas import FfmpegConfig, ResolveConfig
+from app.config.schemas import FfmpegConfig, ResolveConfig
 
 
 class SynthesisUpdate(BaseModel):
