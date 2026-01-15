@@ -14,18 +14,25 @@ class TestNegativeDuration:
     @pytest.fixture(autouse=True)
     def setup_teardown(self):
         self.test_dir = tempfile.mkdtemp()
-        with (
-            patch("app.core.database.config") as mock_db_config,
-            patch("app.core.audio.config") as mock_audio_config,
-            patch("app.config.config.save_config_ex"),
-        ):
-            mock_db_config.system.output_dir = self.test_dir
-            mock_audio_config.system.output_dir = self.test_dir
-            self.db_manager = DatabaseManager()
-            self.audio_manager = AudioManager()
+        with (patch("app.config.config.save_config_ex"),):
+            # configure db_manager global
+            from app.core.database import db_manager
+
+            mock_sys_config = MagicMock()
+            mock_sys_config.output_dir = self.test_dir
+
+            # Save original
+            self.original_db_config = db_manager.config
+            db_manager.set_config(mock_sys_config)
+            self.db_manager = db_manager
+
+            self.audio_manager = AudioManager(mock_sys_config)
             self.mock_vv = MagicMock(spec=VoiceVoxClient)
 
             yield
+
+            # Restore
+            self.db_manager.set_config(self.original_db_config)
 
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
@@ -52,7 +59,8 @@ class TestNegativeDuration:
 
     def test_processor_cache_update(self):
         # Create a processor and mock its internal state to test log update
-        processor = StreamProcessor(self.mock_vv, self.audio_manager)
+        mock_syn_config = MagicMock()
+        processor = StreamProcessor(self.mock_vv, self.audio_manager, mock_syn_config)
 
         # Inject a fake log entry
         fake_log = {"id": 99, "text": "Old", "duration": "5.00s", "filename": "old.wav"}

@@ -1,7 +1,7 @@
 import json
 import os
 from typing import Dict, Any
-from .schemas.schema_config import ConfigSchema
+from .schemas.config_schema import ConfigSchema
 from .schemas import (
     BaseModel,
     ServerConfig,

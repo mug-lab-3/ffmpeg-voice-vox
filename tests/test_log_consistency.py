@@ -28,6 +28,7 @@ class TestLogConsistency(unittest.TestCase):
 
         # 2. Add a log entry
         from app.core.database import Transcription
+
         t1 = Transcription(
             id=1,
             text="Hello",

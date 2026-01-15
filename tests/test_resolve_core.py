@@ -237,7 +237,7 @@ class TestResolveInsertion:
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
     def test_insert_file_flow(self, mock_is_avail, mock_ensure):
         """Verify the full flow of inserting a file."""
-        client = ResolveClient()
+        client = ResolveClient(self.mock_config.resolve)
         client.resolve = self.mock_resolve
         mock_ensure.return_value = True
 
@@ -294,7 +294,7 @@ class TestResolveInsertion:
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
     def test_insert_with_template_text_update(self, mock_is_avail, mock_ensure):
         """Verify text update and track logic when template IS found."""
-        client = ResolveClient()
+        client = ResolveClient(self.mock_config.resolve)
         client.resolve = self.mock_resolve
         mock_ensure.return_value = True
 
@@ -379,7 +379,7 @@ class TestResolveInsertion:
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
     def test_insert_file_root_bin(self, mock_is_avail, mock_ensure):
         """Test inserting file directly into root folder."""
-        client = ResolveClient()
+        client = ResolveClient(self.mock_config.resolve)
         client.resolve = self.mock_resolve  # Correctly inject mock
         mock_ensure.return_value = True
 
@@ -421,7 +421,7 @@ class TestResolveInsertion:
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
     def test_insert_file_missing_bin_fails(self, mock_is_avail, mock_ensure):
         """Test failure when target bin does not exist (auto-create disabled)."""
-        client = ResolveClient()
+        client = ResolveClient(self.mock_config.resolve)
         client.resolve = self.mock_resolve  # Correctly inject mock
         mock_ensure.return_value = True
 

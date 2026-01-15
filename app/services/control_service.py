@@ -105,9 +105,7 @@ def handle_control_state_logic(
         if ":" in request_host:
             current_port = request_host.split(":")[-1]
 
-        success, msg = ffmpeg_client.start_process(
-            ffmpeg_config, port_override=current_port
-        )
+        success, msg = ffmpeg_client.start_process(ffmpeg_config, port=current_port)
         if not success:
             raise ValueError(f"FFmpeg Start Error: {msg}")
     else:

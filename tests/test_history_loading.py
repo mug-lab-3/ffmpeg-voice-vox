@@ -15,16 +15,27 @@ def setup_env():
     # Setup
     test_dir = tempfile.mkdtemp()
 
-    with (
-        patch("app.core.database.config") as mock_db_config,
-        patch("app.core.audio.config") as mock_audio_config,
-        patch("app.services.processor.config") as mock_proc_config,
-        patch("app.config.config.save_config_ex"),
-    ):
-        mock_db_config.system.output_dir = test_dir
-        mock_audio_config.system.output_dir = test_dir
-        mock_proc_config.system.output_dir = test_dir
+    with (patch("app.config.config.save_config_ex"),):
+        # We don't need to patch app.core.database.config or others as they don't exist.
+        # Instead, we should configure the instances used in tests if possible.
+        # But here we are instantiating them or using globals.
+
+        # db_manager is a global in app.core.database.
+        # We can set its config directly.
+        from app.core.database import db_manager
+
+        mock_sys_config = MagicMock()
+        mock_sys_config.output_dir = test_dir
+
+        # Save original config to restore later
+        original_db_config = db_manager.config
+        db_manager.set_config(mock_sys_config)
+
         yield test_dir
+
+        # Teardown
+        db_manager.set_config(original_db_config)
+
     shutil.rmtree(test_dir)
 
 
@@ -34,8 +45,12 @@ def mock_vv_client():
 
 
 @pytest.fixture
-def audio_manager():
-    return AudioManager()
+def audio_manager(setup_env):
+    # setup_env yields test_dir, which we can use for config
+    test_dir = setup_env
+    mock_sys_config = MagicMock()
+    mock_sys_config.output_dir = test_dir
+    return AudioManager(mock_sys_config)
 
 
 @patch("app.core.database.db_manager.get_recent_logs")
@@ -58,7 +73,8 @@ def test_processor_loading(mock_get_logs, setup_env, mock_vv_client, audio_manag
     with open(wav_path, "wb") as f:
         f.write(b"FAKE_WAV")
 
-    processor = StreamProcessor(mock_vv_client, audio_manager)
+    mock_syn_config = MagicMock()
+    processor = StreamProcessor(mock_vv_client, audio_manager, mock_syn_config)
 
     logs = processor.get_logs()
     assert len(logs) == 1
@@ -90,7 +106,8 @@ def test_missing_file_only_resets_status(
         )
     ]
 
-    processor = StreamProcessor(mock_vv_client, audio_manager)
+    mock_syn_config = MagicMock()
+    processor = StreamProcessor(mock_vv_client, audio_manager, mock_syn_config)
 
     # Should NOT have called delete_log
     mock_delete.assert_not_called()

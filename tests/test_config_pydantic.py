@@ -48,7 +48,9 @@ def test_config_validation():
     print("\n--- Test 3a: Range validation (out of bounds) ---")
     with open(test_config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    data["synthesis"]["speed_scale"] = 5.0  # Max is 2.0 (but wait, repair logic might use defaults)
+    data["synthesis"][
+        "speed_scale"
+    ] = 5.0  # Max is 2.0 (but wait, repair logic might use defaults)
     data["ffmpeg"]["queue_length"] = 500  # Max is 30
     with open(test_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
@@ -74,13 +76,14 @@ def test_config_validation():
 
     # Try an invalid speed (max is 1.5/2.0 depends on schema, let's test Pydantic rejection)
     from pydantic import ValidationError
+
     try:
         cm3.synthesis.speed_scale = 5.0
         # If it didn't raise, we fail the test
         # assert False, "Should have raised ValidationError"
     except ValidationError:
         pass
-    
+
     assert cm3.synthesis.speed_scale == 1.2  # Should remain unchanged
     print("Test 5 passed: Invalid update rejected and old value kept.")
 

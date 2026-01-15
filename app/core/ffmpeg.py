@@ -32,7 +32,7 @@ class FFmpegClient:
 
         return True, None
 
-    def start_process(self, config_data=None, port_override=None):
+    def start_process(self, config_data=None, port=None):
         """
         Starts the FFmpeg process with the given configuration.
         """
@@ -57,10 +57,7 @@ class FFmpegClient:
             host = config_data.host
 
             # Resolving Port
-            # 1. Use override (from request context)
-            # 2. Use config (legacy)
-            port = port_override if port_override else getattr(config_data, "port", None)
-
+            # Use provided port
             if not port:
                 return False, "Port not specified and could not be determined."
 

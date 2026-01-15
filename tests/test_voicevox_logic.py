@@ -6,7 +6,10 @@ from app.core.voicevox import VoiceVoxClient, VoiceVoxSpeaker, VoiceVoxStyle
 
 @pytest.fixture
 def vv_client():
-    return VoiceVoxClient()
+    mock_config = MagicMock()
+    mock_config.host = "127.0.0.1"
+    mock_config.port = 50021
+    return VoiceVoxClient(mock_config)
 
 
 @patch("urllib.request.urlopen")
@@ -44,8 +47,8 @@ def test_get_style_info(vv_client):
             name="ずんだもん",
             speaker_uuid="uuid-zunda",
             styles=[
-                VoiceVoxStyle(name="ノーマル", id=1),
-                VoiceVoxStyle(name="あまあま", id=3),
+                VoiceVoxStyle(name="ノーマル", id=1, type="style"),
+                VoiceVoxStyle(name="あまあま", id=3, type="style"),
             ],
         )
     ]

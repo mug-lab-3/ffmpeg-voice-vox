@@ -13,8 +13,38 @@ def protect_config():
     """本番のconfig.jsonがテストで書き換えられないように保護する"""
     from unittest.mock import patch
 
-    with patch("app.config.config.save_config_ex"):
-        yield
+    with (patch("app.config.config.save_config_ex"),):
+        # Patch globals in modules if needed, or better, leverage the fact that
+        # the tests interact with DatabaseManager() and AudioManager() instances that can be configured.
+
+        # However, DatabaseManager() constructor takes config.
+        # But in this test file, it's instantiated inside tests or as global.
+        # Actually line 36 instantiates DatabaseManager().
+        # We need to make sure config global is not used or is mocked.
+
+        # Let's patch imports in app.core.database and app.core.audio
+        # But wait, test_db_id_dynamic.py uses `from app.config import config` on line 8.
+        # And line 41 sets config.system.output_dir = dir_a.
+        # This implies it expects `config` to be the real or a mocked object that propagates.
+        # The issue is likely that AudioManager internal instantiation needs config.
+
+        # We will mock the config attribute in AudioManager's module
+        # OR we will instantiate AudioManager with the config object we are manipulating.
+        # The test at line 67: `audio_manager = AudioManager()`
+        # We should pass `config.system` or similar if AudioManager expects it.
+        # But `config` is imported from app.config.
+
+        # If we look at `test_dynamic_db_switching`:
+        # It sets `config.system.output_dir`.
+        # `db_manager = DatabaseManager()` -> uses `self.config` which defaults to None.
+        # Wait, DatabaseManager.__init__ signature: (config: SystemConfig = None).
+        # And it has `set_config`.
+        # If we rely on global `db_manager` it might be different.
+        # But here valid instances are created.
+
+        # We should pass the manually configured config to these instances.
+        pass
+    yield
 
 
 @pytest.fixture
@@ -33,12 +63,20 @@ def temp_output_dir():
 
 def test_dynamic_db_switching(temp_output_dir):
     """output_dirを変更した際に、異なるDBファイルが作成され、IDがリセットされることを確認"""
-    db_manager = DatabaseManager()
+    # Pass config to DB Manager so it sees the updates
+    # Or rely on set_config if we change it dynamically
+    db_manager = DatabaseManager(config.system)
 
     # テスト用ディレクトリA
     dir_a = os.path.join(temp_output_dir, "dir_a")
-    os.makedirs(dir_a)
+    # ...
     config.system.output_dir = dir_a
+    # Since we passed config.system object, modification should reflect if it's the same object reference.
+    # But ConfigSchema fields might be value types? Pydantic models are mutable.
+    # SystemConfig instance should be mutable.
+
+    # However, DatabaseManager might copy it? No, `self.config = config`.
+    pass
 
     # Aで1件追加
     id_a1 = db_manager.add_transcription("test a1", 1, {})
@@ -64,7 +102,8 @@ def test_dynamic_db_switching(temp_output_dir):
 def test_audio_filename_padding(temp_output_dir):
     """AudioManagerが渡されたファイル名で正しく保存できることを確認"""
     config.system.output_dir = temp_output_dir
-    audio_manager = AudioManager()
+    # AudioManager needs config
+    audio_manager = AudioManager(config.system)
 
     # AudioManager.save_audio now accepts (audio_data, filename) -> duration
     # Filename generation is done by processor, so we just test that it saves correctly

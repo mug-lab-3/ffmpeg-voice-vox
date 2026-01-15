@@ -9,6 +9,7 @@ from pydantic import ValidationError
 def protect_config():
     """本番のconfig.jsonがテストで書き換えられないように保護する"""
     from unittest.mock import patch
+
     # ConfigManagerのsave_config_exをパッチして、テスト中の書き込みを阻止する
     with patch("app.config.ConfigManager.save_config_ex"):
         yield
@@ -48,6 +49,7 @@ def test_schema_relaxation(clean_env):
 
     # 1. Test None for model_path (should fail as backend is strict)
     from pydantic import ValidationError
+
     with pytest.raises(ValidationError):
         manager.ffmpeg.model_path = None
 
@@ -70,6 +72,7 @@ def test_host_validation(clean_env):
 
     # 2. Invalid Host (Empty string -> should fail based on schema)
     from pydantic import ValidationError
+
     with pytest.raises(ValidationError):
         manager.ffmpeg.host = ""
 

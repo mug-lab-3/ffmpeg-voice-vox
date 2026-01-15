@@ -85,11 +85,12 @@ class TestConfigManager:
     def test_update_validation_failure(self, test_config_file):
         """Test validation failure on update (Pydantic level)."""
         cm = ConfigManager(test_config_file)
-        
+
         # In the new property-based access, setting invalid value might raise ValidationError
         # or we might want to test the repair logic upon save/reload if we bypass it.
         # Here we test the direct assignment validation if applicable.
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             cm.synthesis.speed_scale = 5.0
 

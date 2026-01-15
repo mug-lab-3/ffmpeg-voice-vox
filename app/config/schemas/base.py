@@ -9,6 +9,7 @@ class BaseConfigModel(BaseModel):
     Base class for all configuration schemas.
     Provides a best-effort loading mechanism.
     """
+
     model_config = ConfigDict(validate_assignment=True, extra="ignore")
 
     @classmethod

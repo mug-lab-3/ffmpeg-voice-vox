@@ -155,5 +155,3 @@ def get_resolve_clips():
     bin_name = config.resolve.target_bin
     clips = client.get_text_plus_clips(bin_name)
     return jsonify({"status": "ok", "clips": clips})
-
-

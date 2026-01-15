@@ -16,15 +16,19 @@ class TestHistoryOrder:
         self.test_dir = tempfile.mkdtemp()
         # Patch system.output_dir property directly or via manager attribute
         # Patch at the source where it's used
-        with (
-            patch("app.core.database.config") as mock_db_config,
-            patch("app.core.audio.config") as mock_audio_config,
-            patch("app.config.config.save_config_ex"),
-        ):
-            mock_db_config.system.output_dir = self.test_dir
-            mock_audio_config.system.output_dir = self.test_dir
-            self.db_manager = DatabaseManager()
-            self.audio_manager = AudioManager()
+        with (patch("app.config.config.save_config_ex"),):
+            # configure db_manager global
+            from app.core.database import db_manager
+
+            mock_sys_config = MagicMock()
+            mock_sys_config.output_dir = self.test_dir
+
+            # Save original
+            self.original_db_config = db_manager.config
+            db_manager.set_config(mock_sys_config)
+            self.db_manager = db_manager
+
+            self.audio_manager = AudioManager(mock_sys_config)
             self.mock_vv = MagicMock(spec=VoiceVoxClient)
 
             # Setup initial DB
@@ -42,6 +46,9 @@ class TestHistoryOrder:
 
             yield
 
+            # Restore
+            self.db_manager.set_config(self.original_db_config)
+
         shutil.rmtree(self.test_dir)
 
     def test_database_order(self):
@@ -58,7 +65,8 @@ class TestHistoryOrder:
     def test_processor_loading_order(self):
         # StreamProcessorが読み込んだ際、UI表示用に古いものから順にリストに入っていることを確認
         # (Processorは get_recent_logs の結果を reversed() して append する)
-        processor = StreamProcessor(self.mock_vv, self.audio_manager)
+        mock_syn_config = MagicMock()
+        processor = StreamProcessor(self.mock_vv, self.audio_manager, mock_syn_config)
         logs = processor.get_logs()
 
         assert len(logs) == 3
