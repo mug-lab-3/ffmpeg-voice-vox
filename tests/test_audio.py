@@ -11,11 +11,12 @@ import sys
 
 @pytest.fixture
 def mock_audio_manager_deps():
-    with patch("app.core.audio.sd") as mock_sd, patch(
-        "app.core.audio.sf"
-    ) as mock_sf, patch("app.core.audio.config") as mock_config, patch(
-        "app.core.events.event_manager"
-    ) as mock_event_manager:
+    with (
+        patch("app.core.audio.sd") as mock_sd,
+        patch("app.core.audio.sf") as mock_sf,
+        patch("app.core.audio.config") as mock_config,
+        patch("app.core.events.event_manager") as mock_event_manager,
+    ):
 
         mock_sf.read.return_value = (b"mock_audio_data", 44100)
         # Mock sf.info().duration
@@ -25,9 +26,10 @@ def mock_audio_manager_deps():
         mock_config.get.return_value = "dummy_output_dir"
 
         # Mock os.path
-        with patch("app.core.audio.os.path.exists") as mock_exists, patch(
-            "app.core.audio.os.path.join"
-        ) as mock_join:
+        with (
+            patch("app.core.audio.os.path.exists") as mock_exists,
+            patch("app.core.audio.os.path.join") as mock_join,
+        ):
 
             mock_exists.return_value = True
             mock_join.side_effect = lambda d, f: f"{d}/{f}"

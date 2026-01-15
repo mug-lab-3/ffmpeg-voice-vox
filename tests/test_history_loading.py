@@ -5,6 +5,7 @@ import tempfile
 from unittest.mock import MagicMock, patch
 from app.core.audio import AudioManager
 from app.services.processor import StreamProcessor
+from app.core.database import Transcription
 from app.core.voicevox import VoiceVoxClient
 from app.config import config
 
@@ -47,22 +48,16 @@ def audio_manager():
 @patch("app.core.database.db_manager.get_recent_logs")
 def test_processor_loading(mock_get_logs, setup_env, mock_vv_client, audio_manager):
     test_dir = setup_env
-    # Setup DB mock return
+    # Setup DB mock return with Models
     mock_get_logs.return_value = [
-        {
-            "id": 1,
-            "timestamp": "2026-01-12 12:00:00",
-            "text": "Hello World",
-            "speaker_id": 1,
-            "speed_scale": 1.0,
-            "pitch_scale": 0.0,
-            "intonation_scale": 1.0,
-            "volume_scale": 1.0,
-            "pre_phoneme_length": 0.1,
-            "post_phoneme_length": 0.1,
-            "output_path": "001_Hello.wav",
-            "audio_duration": 1.5,
-        }
+        Transcription(
+            id=1,
+            timestamp="2026-01-12 12:00:00",
+            text="Hello World",
+            speaker_id=1,
+            output_path="001_Hello.wav",
+            audio_duration=1.5,
+        )
     ]
 
     # Create the file on disk to satisfy physical check in _load_history
@@ -92,20 +87,14 @@ def test_missing_file_only_resets_status(
 ):
     # DB says file exists, but it's missing on disk
     mock_get_logs.return_value = [
-        {
-            "id": 99,
-            "timestamp": "2026-01-12 12:00:00",
-            "text": "Missing",
-            "speaker_id": 1,
-            "speed_scale": 1.0,
-            "pitch_scale": 0.0,
-            "intonation_scale": 1.0,
-            "volume_scale": 1.0,
-            "pre_phoneme_length": 0.1,
-            "post_phoneme_length": 0.1,
-            "output_path": "missing.wav",
-            "audio_duration": 1.5,
-        }
+        Transcription(
+            id=99,
+            timestamp="2026-01-12 12:00:00",
+            text="Missing",
+            speaker_id=1,
+            output_path="missing.wav",
+            audio_duration=1.5,
+        )
     ]
 
     processor = StreamProcessor(mock_vv_client, audio_manager)

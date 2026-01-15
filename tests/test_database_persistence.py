@@ -51,6 +51,9 @@ def test_database_migration_and_persistence(db_mgr, db_path):
     columns = [row["name"] for row in cursor.fetchall()]
     assert "speaker_name" in columns
     assert "speaker_style" in columns
+    assert "kana" in columns
+    assert "phonemes" in columns
+    assert "pause_length_scale" in columns
     conn.close()
 
     # 4. データの保存と読み出しをテスト
@@ -61,6 +64,7 @@ def test_database_migration_and_persistence(db_mgr, db_path):
         "volume_scale": 1.0,
         "pre_phoneme_length": 0.1,
         "post_phoneme_length": 0.1,
+        "pause_length_scale": 1.5,
     }
 
     db_id = db_mgr.add_transcription(
@@ -69,14 +73,19 @@ def test_database_migration_and_persistence(db_mgr, db_path):
         config_dict=config_dict,
         speaker_name="ずんだもん",
         speaker_style="あまあま",
+        kana="テストメッセージのカナ",
+        phonemes='[{"t": 0.0, "p": "a"}]',
     )
 
     logs = db_mgr.get_recent_logs(limit=1)
     assert len(logs) == 1
     log = logs[0]
-    assert log["text"] == "テストメッセージ"
-    assert log["speaker_name"] == "ずんだもん"
-    assert log["speaker_style"] == "あまあま"
+    assert log.text == "テストメッセージ"
+    assert log.speaker_name == "ずんだもん"
+    assert log.speaker_style == "あまあま"
+    assert log.kana == "テストメッセージのカナ"
+    assert log.phonemes == '[{"t": 0.0, "p": "a"}]'
+    assert log.pause_length_scale == 1.5
 
 
 if __name__ == "__main__":

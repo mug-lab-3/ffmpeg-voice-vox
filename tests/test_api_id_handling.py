@@ -79,13 +79,13 @@ def test_delete_non_existent_id(client):
 
 
 def test_update_text_non_existent_id(client):
-    """存在しないIDに対してテキスト更新リクエストを送った場合、現状の実装では200が返る"""
+    """存在しないIDに対してテキスト更新リクエストを送った場合、400が返ることを確認"""
     response = client.post(
         "/api/control/update_text",
         data=json.dumps({"id": 999999, "text": "new text"}),
         content_type="application/json",
     )
-    assert response.status_code == 200
+    assert response.status_code == 400
 
 
 def test_resolve_insert_non_existent_id(client):

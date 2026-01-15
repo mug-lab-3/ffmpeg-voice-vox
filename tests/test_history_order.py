@@ -15,12 +15,15 @@ class TestHistoryOrder:
     def setup_teardown(self):
         self.test_dir = tempfile.mkdtemp()
         # Patch BOTH get (to return test_dir) AND save_config (to prevent disk write)
-        with patch(
-            "app.config.config.get",
-            side_effect=lambda key, default=None: (
-                self.test_dir if key == "system.output_dir" else default
+        with (
+            patch(
+                "app.config.config.get",
+                side_effect=lambda key, default=None: (
+                    self.test_dir if key == "system.output_dir" else default
+                ),
             ),
-        ), patch("app.config.config.save_config"):
+            patch("app.config.config.save_config"),
+        ):
             self.db_manager = DatabaseManager()
             self.audio_manager = AudioManager()
             self.mock_vv = MagicMock(spec=VoiceVoxClient)
@@ -46,9 +49,9 @@ class TestHistoryOrder:
         # DBから取得した際、IDの降順（最新＝大きいIDが先）であることを確認
         logs = self.db_manager.get_recent_logs()
         assert len(logs) == 3
-        assert logs[0]["id"] == 3
-        assert logs[1]["id"] == 2
-        assert logs[2]["id"] == 1
+        assert logs[0].id == 3
+        assert logs[1].id == 2
+        assert logs[2].id == 1
         assert logs[0]["text"] == "Record 3"
         assert logs[1]["text"] == "Record 2"
         assert logs[2]["text"] == "Record 1"

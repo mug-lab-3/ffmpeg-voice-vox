@@ -68,16 +68,10 @@ class VoiceVoxClient:
             return json.load(res)
 
     def synthesis(self, query_data: dict, speaker_id: int) -> bytes:
-        # Apply config overrides
-        query_data["speedScale"] = config.get("synthesis.speed_scale", 1.0)
-        query_data["pitchScale"] = config.get("synthesis.pitch_scale", 0.0)
-        query_data["intonationScale"] = config.get("synthesis.intonation_scale", 1.0)
-        query_data["volumeScale"] = config.get("synthesis.volume_scale", 1.0)
-        query_data["prePhonemeLength"] = config.get("synthesis.pre_phoneme_length", 0.1)
-        query_data["postPhonemeLength"] = config.get(
-            "synthesis.post_phoneme_length", 0.1
-        )
-        query_data["pauseLengthScale"] = config.get("synthesis.pause_length_scale", 1.0)
+        """
+        Synthesize audio from query data.
+        The query_data should already have all scales and lengths applied.
+        """
 
         # Quality settings fixed
         query_data["outputSamplingRate"] = 48000

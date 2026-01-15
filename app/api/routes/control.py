@@ -139,6 +139,8 @@ def handle_update_text():
     try:
         update_text_handler(db_id, new_text, processor)
         return jsonify({"status": "ok"})
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

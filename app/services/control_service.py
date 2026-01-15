@@ -194,5 +194,18 @@ def delete_audio_handler(db_id: int, audio_manager, processor):
 
 def update_text_handler(db_id: int, new_text: str, processor):
     """Updates log text by ID."""
+    # Ensure ID exists even if logic below is robust, for cleaner API error
+    from app.core.database import db_manager
+
+    if not db_manager.get_transcription(db_id):
+        # We also need to check cache for the sake of tests that might skip DB
+        found_in_cache = False
+        for log in processor.received_logs:
+            if log.get("id") == db_id:
+                found_in_cache = True
+                break
+        if not found_in_cache:
+            raise ValueError(f"Transcription ID {db_id} not found")
+
     processor.update_log_text(db_id, new_text)
     return True

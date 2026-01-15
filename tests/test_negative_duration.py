@@ -14,20 +14,23 @@ class TestNegativeDuration:
     @pytest.fixture(autouse=True)
     def setup_teardown(self):
         self.test_dir = tempfile.mkdtemp()
-        with patch.object(
-            config,
-            "get",
-            side_effect=lambda k, d=None: (
-                self.test_dir if k == "system.output_dir" else d
+        with (
+            patch.object(
+                config,
+                "get",
+                side_effect=lambda k, d=None: (
+                    self.test_dir if k == "system.output_dir" else d
+                ),
             ),
-        ), patch("app.config.config.save_config"):
+            patch("app.config.config.save_config"),
+        ):
             self.db_manager = DatabaseManager()
             self.audio_manager = AudioManager()
             self.mock_vv = MagicMock(spec=VoiceVoxClient)
 
             yield
 
-        shutil.rmtree(self.test_dir)
+        shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_default_duration_is_negative_one(self):
         # Test that adding a new transcription sets duration to -1.0
@@ -59,11 +62,12 @@ class TestNegativeDuration:
         processor.received_logs = [fake_log]
 
         # Mock DB update since we test that separately
-        with patch(
-            "app.services.processor.db_manager.update_transcription_text"
-        ) as mock_db_update, patch(
-            "app.core.events.event_manager.publish"
-        ) as mock_publish:
+        with (
+            patch(
+                "app.services.processor.db_manager.update_transcription_text"
+            ) as mock_db_update,
+            patch("app.core.events.event_manager.publish") as mock_publish,
+        ):
 
             processor.update_log_text(99, "New")
 
