@@ -12,7 +12,7 @@ import tkinter as tk
 from tkinter import filedialog
 import winsound
 import ctypes
-from app.config import config
+from typing import Any
 
 
 def browse_directory_handler() -> str:
@@ -84,15 +84,21 @@ def browse_file_handler() -> str:
 
 
 def handle_control_state_logic(
-    enabled: bool, vv_client, audio_manager, ffmpeg_client, request_host: str
+    enabled: bool,
+    vv_client,
+    audio_manager,
+    ffmpeg_client,
+    request_host: str,
+    output_dir: str,
+    ffmpeg_config: Any,
+    config_manager: Any,
 ):
     """Handles the logic of starting/stopping synthesis."""
     if enabled:
         if not vv_client.is_available():
             raise ValueError("VOICEVOX is disconnected. Please start VOICEVOX.")
 
-        current_output = config.system.output_dir
-        if not audio_manager.validate_output_dir(current_output):
+        if not audio_manager.validate_output_dir(output_dir):
             raise ValueError("Invalid or non-writable output directory")
 
         current_port = None
@@ -100,21 +106,21 @@ def handle_control_state_logic(
             current_port = request_host.split(":")[-1]
 
         success, msg = ffmpeg_client.start_process(
-            config.ffmpeg, port_override=current_port
+            ffmpeg_config, port_override=current_port
         )
         if not success:
             raise ValueError(f"FFmpeg Start Error: {msg}")
     else:
         ffmpeg_client.stop_process()
 
-    config.is_synthesis_enabled = enabled
-    config.save_config_ex()
+    config_manager.is_synthesis_enabled = enabled
+    config_manager.save_config_ex()
 
     from app.core.events import event_manager
 
     event_manager.publish("state_update", {"is_enabled": enabled})
 
-    return config.is_synthesis_enabled
+    return config_manager.is_synthesis_enabled
 
 
 def ensure_audio_file(db_id: int, audio_manager, processor) -> str:

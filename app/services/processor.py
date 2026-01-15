@@ -2,16 +2,22 @@ import json
 import os
 from datetime import datetime, timezone
 from typing import Optional
-from app.config import config
+from app.config.schemas import SynthesisConfig
 from app.core.voicevox import VoiceVoxClient, VoiceVoxAudioQuery
 from app.core.audio import AudioManager
 from app.core.database import db_manager, Transcription
 
 
 class StreamProcessor:
-    def __init__(self, voicevox_client: VoiceVoxClient, audio_manager: AudioManager):
+    def __init__(
+        self,
+        voicevox_client: VoiceVoxClient,
+        audio_manager: AudioManager,
+        synthesis_config: SynthesisConfig,
+    ):
         self.vv_client = voicevox_client
         self.audio_manager = audio_manager
+        self.synthesis_config = synthesis_config
         self.received_logs = []
 
         # Load history from Database
@@ -143,16 +149,16 @@ class StreamProcessor:
         text = data["text"]
         print(f"Processing: {text}")
 
-        # 1. Prepare Config (Current global UI state for NEW item)
-        speaker_id = config.synthesis.speaker_id
+        # 1. Prepare Config (Current state for NEW item)
+        speaker_id = self.synthesis_config.speaker_id
         current_config = {
-            "speed_scale": config.synthesis.speed_scale,
-            "pitch_scale": config.synthesis.pitch_scale,
-            "intonation_scale": config.synthesis.intonation_scale,
-            "volume_scale": config.synthesis.volume_scale,
-            "pre_phoneme_length": config.synthesis.pre_phoneme_length,
-            "post_phoneme_length": config.synthesis.post_phoneme_length,
-            "pause_length_scale": config.synthesis.pause_length_scale,
+            "speed_scale": self.synthesis_config.speed_scale,
+            "pitch_scale": self.synthesis_config.pitch_scale,
+            "intonation_scale": self.synthesis_config.intonation_scale,
+            "volume_scale": self.synthesis_config.volume_scale,
+            "pre_phoneme_length": self.synthesis_config.pre_phoneme_length,
+            "post_phoneme_length": self.synthesis_config.post_phoneme_length,
+            "pause_length_scale": self.synthesis_config.pause_length_scale,
         }
 
         # 2. Add to DB first (Pending state) using Model
@@ -171,7 +177,7 @@ class StreamProcessor:
 
         generated_file = None
         actual_duration = -1.0
-        timing = config.synthesis.timing
+        timing = self.synthesis_config.timing
 
         if timing == "immediate":
             try:
@@ -410,7 +416,7 @@ class StreamProcessor:
         else:
             # If not in DB, try to find in cache just to get current state (useful for tests)
             print(f"[Processor] Record {db_id} not found in DB for text update.")
-            speaker_id = config.synthesis.speaker_id
+            speaker_id = self.synthesis_config.speaker_id
             for log in self.received_logs:
                 if log.get("id") == db_id:
                     old_filename = log.get("filename")

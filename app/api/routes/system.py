@@ -8,6 +8,8 @@ Please ensure any changes here are synchronized with the specification.
 """
 
 from flask import Blueprint, jsonify
+from app.config import config
+from app.web.routes import ffmpeg_client
 from app.services.system_service import get_audio_devices_handler, heartbeat_handler
 
 system_bp = Blueprint("system_api", __name__)
@@ -16,7 +18,7 @@ system_bp = Blueprint("system_api", __name__)
 @system_bp.route("/api/ffmpeg/devices", methods=["GET"])
 def get_audio_devices():
     try:
-        result = get_audio_devices_handler()
+        result = get_audio_devices_handler(ffmpeg_client, config.ffmpeg.ffmpeg_path)
         return jsonify(result.model_dump())
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e)}), 400

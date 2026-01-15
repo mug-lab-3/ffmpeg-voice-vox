@@ -1,31 +1,13 @@
-"""
-Service Handlers for Config Domain.
-
-IMPORTANT:
-The implementation in this file must strictly follow the specifications
-documented in `docs/specification/api-server.md`.
-Please ensure any changes here are synchronized with the specification.
-"""
-
-from app.config import config
+from typing import Any
 from app.api.schemas.config import ConfigResponse, APIConfigSchema
 from app.core.voicevox import VoiceVoxClient
 from app.core.resolve import ResolveClient
 
-vv_client = VoiceVoxClient()
-_resolve_client = None
-
-
-def get_resolve_client():
-    global _resolve_client
-    if _resolve_client is None:
-        _resolve_client = ResolveClient()
-    return _resolve_client
-
-
-def get_config_handler() -> ConfigResponse:
+def get_config_handler(
+    config: Any, vv_client: VoiceVoxClient, resolve_client: ResolveClient
+) -> ConfigResponse:
     """Gets the current configuration in the format expected by the frontend."""
-    resolve_available = get_resolve_client().is_available()
+    resolve_available = resolve_client.is_available()
     voicevox_available = vv_client.is_available()
 
     full_cfg = APIConfigSchema(
@@ -42,7 +24,7 @@ def get_config_handler() -> ConfigResponse:
     )
 
 
-def update_config_handler(new_config: dict) -> ConfigResponse:
+def update_config_handler(config: Any, new_config: dict, vv_client: VoiceVoxClient, resolve_client: ResolveClient) -> ConfigResponse:
     """Updates configuration and returns the updated state."""
     # Synthesis updates
     synthesis_fields = {
@@ -89,10 +71,4 @@ def update_config_handler(new_config: dict) -> ConfigResponse:
 
     event_manager.publish("config_update", {})
 
-    return get_config_handler()
-
-    from app.core.events import event_manager
-
-    event_manager.publish("config_update", {})
-
-    return get_config_handler()
+    return get_config_handler(config, vv_client, resolve_client)

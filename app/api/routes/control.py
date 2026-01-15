@@ -31,6 +31,7 @@ from app.web.routes import (
     processor,
     get_resolve_client,
 )
+from app.config import config
 
 control_bp = Blueprint("control_api", __name__)
 
@@ -44,7 +45,14 @@ def handle_control_state():
 
         try:
             enabled = handle_control_state_logic(
-                data["enabled"], vv_client, audio_manager, ffmpeg_client, request.host
+                data["enabled"],
+                vv_client,
+                audio_manager,
+                ffmpeg_client,
+                request.host,
+                config.system.output_dir,
+                config.ffmpeg,
+                config,
             )
             return jsonify({"status": "ok", "enabled": enabled})
         except ValueError as e:
@@ -53,8 +61,6 @@ def handle_control_state():
         status = audio_manager.get_playback_status()
         resolve_available = get_resolve_client().is_available()
         voicevox_available = vv_client.is_available()
-        from app.config import config
-
         return jsonify(
             ControlStateResponse(
                 enabled=config.is_synthesis_enabled,

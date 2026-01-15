@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
-from app.config import config
+from app.config.schemas import SystemConfig
 
 
 class Transcription(BaseModel):
@@ -39,12 +39,17 @@ class Transcription(BaseModel):
 
 
 class DatabaseManager:
-    def __init__(self):
-        pass
+    def __init__(self, config: Optional[SystemConfig] = None):
+        self.config = config
+
+    def set_config(self, config: SystemConfig):
+        self.config = config
 
     def _get_db_path(self):
         """Get the database path based on the current output directory."""
-        output_dir = config.system.output_dir
+        if not self.config:
+            return None
+        output_dir = self.config.output_dir
         if not output_dir:
             return None
         return os.path.join(output_dir, "transcriptions.db")

@@ -7,7 +7,8 @@ import shlex
 
 
 class FFmpegClient:
-    def __init__(self):
+    def __init__(self, config=None):
+        self.config = config
         self._process = None
         self._lock = threading.Lock()
 
@@ -31,10 +32,16 @@ class FFmpegClient:
 
         return True, None
 
-    def start_process(self, config_data, port_override=None):
+    def start_process(self, config_data=None, port_override=None):
         """
         Starts the FFmpeg process with the given configuration.
         """
+        if config_data is None:
+            config_data = self.config
+
+        if config_data is None:
+            return False, "No configuration provided for FFmpegClient"
+
         with self._lock:
             if self._process and self._process.poll() is None:
                 return False, "FFmpeg is already running"

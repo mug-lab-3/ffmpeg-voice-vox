@@ -3,7 +3,7 @@ import urllib.request
 import urllib.parse
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
-from app.config import config
+from app.config.schemas import VoiceVoxConfig
 
 
 class VoiceVoxStyle(BaseModel):
@@ -43,13 +43,14 @@ class VoiceVoxAudioQuery(BaseModel):
 
 
 class VoiceVoxClient:
-    def __init__(self):
+    def __init__(self, config: VoiceVoxConfig):
+        self.config = config
         self._speakers_cache: Optional[List[VoiceVoxSpeaker]] = None
 
     @property
     def base_url(self) -> str:
-        host = config.voicevox.host
-        port = config.voicevox.port
+        host = self.config.host
+        port = self.config.port
         return f"http://{host}:{port}"
 
     def is_available(self) -> bool:

@@ -181,7 +181,8 @@ def monitor_resolve_process(shared_status, running_event):
 
 
 class ResolveClient:
-    def __init__(self):
+    def __init__(self, config: "ResolveConfig" = None):
+        self.config = config
         self.resolve = None
         self._lock = threading.Lock()
 
@@ -319,11 +320,13 @@ class ResolveClient:
                 media_pool = project.GetMediaPool()
 
                 # --- 0. Template Management ---
-                from app.config import config
+                if not self.config:
+                    self._log("ResolveClient not initialized with config")
+                    return False
 
                 # Use 'target_bin' from config (renamed from template_bin)
-                target_bin_name = config.resolve.target_bin
-                target_clip_name = config.resolve.template_name
+                target_bin_name = self.config.target_bin
+                target_clip_name = self.config.template_name
 
                 root_folder = media_pool.GetRootFolder()
                 target_bin = None
@@ -443,8 +446,8 @@ class ResolveClient:
                     duration_frames = self._timecode_to_frames(duration_tc, fps_str)
 
                 # --- Track Management ---
-                target_track_video = config.resolve.video_track_index
-                target_track_audio = config.resolve.audio_track_index
+                target_track_video = self.config.video_track_index
+                target_track_audio = self.config.audio_track_index
 
                 # Ensure Video Tracks exist
                 video_track_count = timeline.GetTrackCount("video")

@@ -13,10 +13,13 @@ from multiprocessing import current_process
 web = Blueprint("web", __name__)
 
 # Initialize services
-vv_client = VoiceVoxClient()
-audio_manager = AudioManager()
-processor = StreamProcessor(vv_client, audio_manager)
-ffmpeg_client = FFmpegClient()
+vv_client = VoiceVoxClient(config.voicevox)
+audio_manager = AudioManager(config.system)
+from app.core.database import db_manager
+
+db_manager.set_config(config.system)
+processor = StreamProcessor(vv_client, audio_manager, config.synthesis)
+ffmpeg_client = FFmpegClient(config.ffmpeg)
 
 _resolve_client = None
 
@@ -24,7 +27,7 @@ _resolve_client = None
 def get_resolve_client():
     global _resolve_client
     if _resolve_client is None:
-        _resolve_client = ResolveClient()
+        _resolve_client = ResolveClient(config.resolve)
     return _resolve_client
 
 

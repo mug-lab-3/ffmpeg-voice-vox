@@ -8,11 +8,12 @@ import sounddevice as sd
 import soundfile as sf
 from datetime import datetime
 
-from app.config import config
+from app.config.schemas import SystemConfig
 
 
 class AudioManager:
-    def __init__(self):
+    def __init__(self, config: SystemConfig):
+        self.config = config
         # We no longer set a fixed output_dir here.
         # It is retrieved dynamically from config.
 
@@ -40,7 +41,7 @@ class AudioManager:
 
     def get_output_dir(self):
         """Get current output directory from config."""
-        return config.system.output_dir
+        return self.config.output_dir
 
     def validate_output_dir(self, path: str) -> bool:
         """

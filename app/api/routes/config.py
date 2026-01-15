@@ -10,6 +10,7 @@ Please ensure any changes here are synchronized with the specification.
 from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 from app.services.config_service import get_config_handler, update_config_handler
+from app.web.routes import vv_client, get_resolve_client, processor
 from app.api.schemas.config import (
     SynthesisUpdate,
     ResolveUpdate,
@@ -24,7 +25,7 @@ config_bp = Blueprint("config_api", __name__)
 
 def handle_validation_error(e: ValidationError):
     """Standardized validation error response including current config state."""
-    response_data = get_config_handler().model_dump()
+    response_data = get_config_handler(config, vv_client, get_resolve_client()).model_dump()
     response_data.update(
         {
             "status": "error",
@@ -37,7 +38,7 @@ def handle_validation_error(e: ValidationError):
 
 @config_bp.route("/api/config", methods=["GET"])
 def get_config():
-    result = get_config_handler()
+    result = get_config_handler(config, vv_client, get_resolve_client())
     return jsonify(result.model_dump())
 
 
@@ -53,7 +54,7 @@ def update_synthesis():
         from app.core.events import event_manager
 
         event_manager.publish("config_update", {})
-        return jsonify(get_config_handler().model_dump())
+        return jsonify(get_config_handler(config, vv_client, get_resolve_client()).model_dump())
     except ValidationError as e:
         return handle_validation_error(e)
 
@@ -70,7 +71,7 @@ def update_resolve():
         from app.core.events import event_manager
 
         event_manager.publish("config_update", {})
-        return jsonify(get_config_handler().model_dump())
+        return jsonify(get_config_handler(config, vv_client, get_resolve_client()).model_dump())
     except ValidationError as e:
         return handle_validation_error(e)
 
@@ -150,9 +151,7 @@ def get_resolve_clips():
 def update_config_legacy():
     # This remains for backward compatibility but is no longer the preferred way
     data = request.json
-    result = update_config_handler(data)
+    result = update_config_handler(config, data, vv_client, get_resolve_client())
     if "outputDir" in data:
-        from app.web.routes import processor
-
         processor.reload_history()
     return jsonify(result.model_dump())
