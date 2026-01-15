@@ -2,7 +2,7 @@ import pytest
 import os
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 from app.core.audio import AudioManager
 from app.services.processor import StreamProcessor
 from app.core.database import Transcription
@@ -15,23 +15,16 @@ def setup_env():
     # Setup
     test_dir = tempfile.mkdtemp()
 
-    # Patch config.get to return test_dir for output_dir
-    config_get_patcher = patch(
-        "app.config.config.get",
-        side_effect=lambda key, default=None: (
-            test_dir if key == "system.output_dir" else config.config.get(key, default)
-        ),
-    )
-    save_patcher = patch("app.config.config.save_config")
-
-    mock_get = config_get_patcher.start()
-    save_patcher.start()
-
-    yield test_dir
-
-    # Teardown
-    config_get_patcher.stop()
-    save_patcher.stop()
+    with (
+        patch("app.core.database.config") as mock_db_config,
+        patch("app.core.audio.config") as mock_audio_config,
+        patch("app.services.processor.config") as mock_proc_config,
+        patch("app.config.config.save_config_ex"),
+    ):
+        mock_db_config.system.output_dir = test_dir
+        mock_audio_config.system.output_dir = test_dir
+        mock_proc_config.system.output_dir = test_dir
+        yield test_dir
     shutil.rmtree(test_dir)
 
 

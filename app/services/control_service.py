@@ -91,7 +91,7 @@ def handle_control_state_logic(
         if not vv_client.is_available():
             raise ValueError("VOICEVOX is disconnected. Please start VOICEVOX.")
 
-        current_output = config.get("system.output_dir")
+        current_output = config.system.output_dir
         if not audio_manager.validate_output_dir(current_output):
             raise ValueError("Invalid or non-writable output directory")
 
@@ -100,20 +100,21 @@ def handle_control_state_logic(
             current_port = request_host.split(":")[-1]
 
         success, msg = ffmpeg_client.start_process(
-            config.get("ffmpeg"), port_override=current_port
+            config.ffmpeg, port_override=current_port
         )
         if not success:
             raise ValueError(f"FFmpeg Start Error: {msg}")
     else:
         ffmpeg_client.stop_process()
 
-    config.update("system.is_synthesis_enabled", enabled)
+    config.is_synthesis_enabled = enabled
+    config.save_config_ex()
 
     from app.core.events import event_manager
 
     event_manager.publish("state_update", {"is_enabled": enabled})
 
-    return config.get("system.is_synthesis_enabled")
+    return config.is_synthesis_enabled
 
 
 def ensure_audio_file(db_id: int, audio_manager, processor) -> str:

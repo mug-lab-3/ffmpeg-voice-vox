@@ -48,8 +48,8 @@ class VoiceVoxClient:
 
     @property
     def base_url(self) -> str:
-        host = config.get("voicevox.host", "127.0.0.1")
-        port = config.get("voicevox.port", 50021)
+        host = config.voicevox.host
+        port = config.voicevox.port
         return f"http://{host}:{port}"
 
     def is_available(self) -> bool:

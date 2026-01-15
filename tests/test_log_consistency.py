@@ -8,7 +8,7 @@ class TestLogConsistency(unittest.TestCase):
     def setUp(self):
         from unittest.mock import patch
 
-        self.config_patcher = patch("app.config.config.save_config")
+        self.config_patcher = patch("app.config.config.save_config_ex")
         self.config_patcher.start()
 
         self.vv_client = MagicMock()
@@ -24,17 +24,18 @@ class TestLogConsistency(unittest.TestCase):
 
     def test_log_config_is_copy(self):
         # 1. Set initial speaker
-        config.update("synthesis.speaker_id", 1)
+        config.synthesis.speaker_id = 1
 
         # 2. Add a log entry
-        self.processor._add_log_from_db(
-            db_id=1,
+        from app.core.database import Transcription
+        t1 = Transcription(
+            id=1,
             text="Hello",
-            duration=1.0,
-            filename="hello.wav",
+            audio_duration=1.0,
+            output_path="hello.wav",
             speaker_id=1,
-            log_config={"speaker_id": 1},
         )
+        self.processor._add_log_from_db(t1)
 
         # 3. Verify first log has speaker 1
         logs = self.processor.get_logs()
@@ -42,7 +43,7 @@ class TestLogConsistency(unittest.TestCase):
         self.assertEqual(logs[0]["config"]["speaker_id"], 1)
 
         # 4. Change speaker in global config
-        config.update("synthesis.speaker_id", 2)
+        config.synthesis.speaker_id = 2
 
         # 5. Verify first log STILL has speaker 1 (not changed to 2)
         self.assertEqual(
@@ -52,14 +53,14 @@ class TestLogConsistency(unittest.TestCase):
         )
 
         # 6. Add another log entry
-        self.processor._add_log_from_db(
-            db_id=2,
+        t2 = Transcription(
+            id=2,
             text="World",
-            duration=1.0,
-            filename="world.wav",
+            audio_duration=1.0,
+            output_path="world.wav",
             speaker_id=2,
-            log_config={"speaker_id": 2},
         )
+        self.processor._add_log_from_db(t2)
 
         # 7. Verify second log has speaker 2
         self.assertEqual(len(logs), 2)

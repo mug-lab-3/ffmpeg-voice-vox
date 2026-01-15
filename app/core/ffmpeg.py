@@ -16,19 +16,17 @@ class FFmpegClient:
         Validates the FFmpeg configuration.
         Returns (True, None) if valid, (False, error_message) otherwise.
         """
-        required_keys = [
-            "ffmpeg_path",
-            "input_device",
-            "model_path",
-            "vad_model_path",
-            "queue_length",
-        ]
-        for key in required_keys:
-            if not config_data.get(key):
-                return False, f"Missing required setting: {key}"
-
-        # Basic formatting checks could go here
-        if not config_data.get("host"):
+        if not config_data.ffmpeg_path:
+            return False, "Missing required setting: ffmpeg_path"
+        if not config_data.input_device:
+            return False, "Missing required setting: input_device"
+        if not config_data.model_path:
+            return False, "Missing required setting: model_path"
+        if not config_data.vad_model_path:
+            return False, "Missing required setting: vad_model_path"
+        if not config_data.queue_length:
+            return False, "Missing required setting: queue_length"
+        if not config_data.host:
             return False, "Missing required setting: host"
 
         return True, None
@@ -45,21 +43,21 @@ class FFmpegClient:
             if not valid:
                 return False, error
 
-            ffmpeg_path = config_data["ffmpeg_path"]
-            input_device = config_data["input_device"]
-            model_path = config_data["model_path"]
-            vad_model_path = config_data["vad_model_path"]
-            host = config_data["host"]
+            ffmpeg_path = config_data.ffmpeg_path
+            input_device = config_data.input_device
+            model_path = config_data.model_path
+            vad_model_path = config_data.vad_model_path
+            host = config_data.host
 
             # Resolving Port
             # 1. Use override (from request context)
             # 2. Use config (legacy)
-            port = port_override if port_override else config_data.get("port")
+            port = port_override if port_override else getattr(config_data, "port", None)
 
             if not port:
                 return False, "Port not specified and could not be determined."
 
-            queue_length = config_data["queue_length"]
+            queue_length = config_data.queue_length
 
             # Construct command
 

@@ -47,27 +47,26 @@ class TestConfigManager:
         new_path = "C:\\TestPath"
 
         # Update
-        success = cm.update("system.output_dir", new_path)
-        assert success is True
-        assert cm.config["system"]["output_dir"] == new_path
+        cm.system.output_dir = new_path
+        cm.save_config_ex()
+        assert cm.system.output_dir == new_path
 
         # Reload new instance
         cm2 = ConfigManager(test_config_file)
-        assert cm2.config["system"]["output_dir"] == new_path
+        assert cm2.system.output_dir == new_path
 
     def test_load_corrupted_json(self, test_config_file):
         """Test recovery from corrupted JSON."""
         cm = ConfigManager(test_config_file)
         path = cm.config_path
 
-        # Write only a valid JSON part but effectively corrupted structure (empty)
-        # Or invalid types to trigger Pydantic validation error
+        # Write corrupted structure to trigger repair
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"synthesis": {"speed_scale": "invalid_string"}}, f)
 
         # Should load with defaults for affected section
         cm2 = ConfigManager(test_config_file)
-        assert cm2.config["synthesis"]["speed_scale"] == 1.0  # Default
+        assert cm2.synthesis.speed_scale == 1.0  # Default
 
     @patch("app.config.manager.os.fsync")
     def test_save_calls_fsync(self, mock_fsync, test_config_file):
@@ -75,29 +74,30 @@ class TestConfigManager:
         cm = ConfigManager(test_config_file)
 
         # Trigger save
-        cm.update("server.host", "127.0.0.2")
+        cm.server.host = "127.0.0.2"
+        cm.save_config_ex()
 
         # Check if fsync was called
-        # fsync is called with a file descriptor (int)
         assert mock_fsync.called
-        # Verify it was called with an integer
         args, _ = mock_fsync.call_args
         assert isinstance(args[0], int)
 
     def test_update_validation_failure(self, test_config_file):
-        """Test validation failure on update."""
+        """Test validation failure on update (Pydantic level)."""
         cm = ConfigManager(test_config_file)
-        original_speed = cm.config["synthesis"]["speed_scale"]
-
-        # Try invalid value (max is 1.5)
-        success = cm.update("synthesis.speed_scale", 5.0)
-        assert success is False
-        assert cm.config["synthesis"]["speed_scale"] == original_speed
+        
+        # In the new property-based access, setting invalid value might raise ValidationError
+        # or we might want to test the repair logic upon save/reload if we bypass it.
+        # Here we test the direct assignment validation if applicable.
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            cm.synthesis.speed_scale = 5.0
 
     def test_nested_update(self, test_config_file):
         """Test updating nested dictionary fields."""
         cm = ConfigManager(test_config_file)
-        cm.update("voicevox.port", 55555)
+        cm.voicevox.port = 55555
+        cm.save_config_ex()
 
         cm2 = ConfigManager(test_config_file)
-        assert cm2.config["voicevox"]["port"] == 55555
+        assert cm2.voicevox.port == 55555

@@ -46,16 +46,10 @@ def update_synthesis():
     try:
         data = SynthesisUpdate(**request.json)
         for k, v in data.model_dump(exclude_unset=True).items():
-            if not config.update(f"synthesis.{k}", v):
-                return (
-                    jsonify(
-                        {
-                            "status": "error",
-                            "message": f"Failed to update synthesis.{k}",
-                        }
-                    ),
-                    500,
-                )
+            if hasattr(config.synthesis, k):
+                setattr(config.synthesis, k, v)
+
+        config.save_config_ex()
         from app.core.events import event_manager
 
         event_manager.publish("config_update", {})
@@ -69,13 +63,10 @@ def update_resolve():
     try:
         data = ResolveUpdate(**request.json)
         for k, v in data.model_dump(exclude_unset=True).items():
-            if not config.update(f"resolve.{k}", v):
-                return (
-                    jsonify(
-                        {"status": "error", "message": f"Failed to update resolve.{k}"}
-                    ),
-                    500,
-                )
+            if hasattr(config.resolve, k):
+                setattr(config.resolve, k, v)
+
+        config.save_config_ex()
         from app.core.events import event_manager
 
         event_manager.publish("config_update", {})
@@ -89,13 +80,8 @@ def update_system():
     try:
         data = SystemUpdate(**request.json)
         if data.output_dir is not None:
-            if not config.update("system.output_dir", data.output_dir):
-                return (
-                    jsonify(
-                        {"status": "error", "message": "Failed to update output_dir"}
-                    ),
-                    500,
-                )
+            config.system.output_dir = data.output_dir
+            config.save_config_ex()
 
             from app.core.events import event_manager
 
@@ -114,13 +100,10 @@ def update_ffmpeg():
     try:
         data = FfmpegUpdate(**request.json)
         for k, v in data.model_dump(exclude_unset=True).items():
-            if not config.update(f"ffmpeg.{k}", v):
-                return (
-                    jsonify(
-                        {"status": "error", "message": f"Failed to update ffmpeg.{k}"}
-                    ),
-                    500,
-                )
+            if hasattr(config.ffmpeg, k):
+                setattr(config.ffmpeg, k, v)
+
+        config.save_config_ex()
         from app.core.events import event_manager
 
         event_manager.publish("config_update", {})
@@ -157,7 +140,7 @@ def get_resolve_clips():
             503,
         )
 
-    bin_name = config.get("resolve.target_bin", "VoiceVox Captions")
+    bin_name = config.resolve.target_bin
     clips = client.get_text_plus_clips(bin_name)
     return jsonify({"status": "ok", "clips": clips})
 

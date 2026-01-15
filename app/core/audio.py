@@ -40,8 +40,7 @@ class AudioManager:
 
     def get_output_dir(self):
         """Get current output directory from config."""
-        path = config.get("system.output_dir", "")
-        return path
+        return config.system.output_dir
 
     def validate_output_dir(self, path: str) -> bool:
         """

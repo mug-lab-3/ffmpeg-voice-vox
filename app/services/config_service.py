@@ -29,14 +29,14 @@ def get_config_handler() -> ConfigResponse:
     voicevox_available = vv_client.is_available()
 
     full_cfg = APIConfigSchema(
-        **config.get("synthesis"),
-        ffmpeg=config.get("ffmpeg"),
-        resolve=config.get("resolve"),
+        **config.synthesis.model_dump(),
+        ffmpeg=config.ffmpeg.model_dump(),
+        resolve=config.resolve.model_dump(),
     )
 
     return ConfigResponse(
         config=full_cfg,
-        outputDir=config.get("system.output_dir"),
+        outputDir=config.system.output_dir,
         resolve_available=resolve_available,
         voicevox_available=voicevox_available,
     )
@@ -44,42 +44,52 @@ def get_config_handler() -> ConfigResponse:
 
 def update_config_handler(new_config: dict) -> ConfigResponse:
     """Updates configuration and returns the updated state."""
-    # Mapping for backward compatibility with frontend
-    mapping = {
-        "speaker": "synthesis.speaker_id",
-        "speedScale": "synthesis.speed_scale",
-        "pitchScale": "synthesis.pitch_scale",
-        "intonationScale": "synthesis.intonation_scale",
-        "volumeScale": "synthesis.volume_scale",
-        "prePhonemeLength": "synthesis.pre_phoneme_length",
-        "postPhonemeLength": "synthesis.post_phoneme_length",
-        "pauseLengthScale": "synthesis.pause_length_scale",
-        "audioTrackIndex": "resolve.audio_track_index",
-        "videoTrackIndex": "resolve.video_track_index",
-        "templateBin": "resolve.template_bin",
-        "templateName": "resolve.template_name",
+    # Synthesis updates
+    synthesis_fields = {
+        "speaker": "speaker_id",
+        "speedScale": "speed_scale",
+        "pitchScale": "pitch_scale",
+        "intonationScale": "intonation_scale",
+        "volumeScale": "volume_scale",
+        "prePhonemeLength": "pre_phoneme_length",
+        "postPhonemeLength": "post_phoneme_length",
+        "pauseLengthScale": "pause_length_scale",
     }
+    for client_key, schema_key in synthesis_fields.items():
+        if client_key in new_config:
+            setattr(config.synthesis, schema_key, new_config[client_key])
 
-    for client_key, config_key in mapping.items():
+    # Resolve updates
+    resolve_fields = {
+        "audioTrackIndex": "audio_track_index",
+        "videoTrackIndex": "video_track_index",
+        "templateBin": "target_bin",  # Note: frontend templateBin -> schema target_bin
+        "templateName": "template_name",
+    }
+    for client_key, schema_key in resolve_fields.items():
         if client_key in new_config:
             val = new_config[client_key]
-
-            # Reject empty strings for critical resolve settings
-            if client_key in ["templateBin", "templateName"] and not str(val).strip():
+            if isinstance(val, str) and not val.strip():
                 continue
-
-            config.update(config_key, val)
+            setattr(config.resolve, schema_key, val)
 
     # Handle output directory
     if "outputDir" in new_config:
-        config.update("system.output_dir", new_config["outputDir"])
-        # We need access to processor to reload history
-        # (This will be handled in the route or via events)
+        config.system.output_dir = new_config["outputDir"]
 
     # Handle FFmpeg config
     if "ffmpeg" in new_config:
         for k, v in new_config["ffmpeg"].items():
-            config.update(f"ffmpeg.{k}", v)
+            if hasattr(config.ffmpeg, k):
+                setattr(config.ffmpeg, k, v)
+
+    config.save_config_ex()
+
+    from app.core.events import event_manager
+
+    event_manager.publish("config_update", {})
+
+    return get_config_handler()
 
     from app.core.events import event_manager
 

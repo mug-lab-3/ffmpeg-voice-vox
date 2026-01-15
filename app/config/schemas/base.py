@@ -1,5 +1,5 @@
 from typing import Any, Dict, TypeVar, Type
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, ConfigDict
 
 T = TypeVar("T", bound="BaseConfigModel")
 
@@ -9,6 +9,7 @@ class BaseConfigModel(BaseModel):
     Base class for all configuration schemas.
     Provides a best-effort loading mechanism.
     """
+    model_config = ConfigDict(validate_assignment=True, extra="ignore")
 
     @classmethod
     def load_best_effort(cls: Type[T], data: Any) -> T:

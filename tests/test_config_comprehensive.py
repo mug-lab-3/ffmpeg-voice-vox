@@ -191,26 +191,24 @@ class TestConfigComprehensive:
         # 3. server: completely normal
         mixed_data = {
             "synthesis": {
-                "speed_scale": 1.2,       # VALID
-                "speaker_id": -5          # INVALID (ge=0)
+                "speed_scale": 1.2,  # VALID
+                "speaker_id": -5,  # INVALID (ge=0)
             },
-            "ffmpeg": "I AM A STRING",    # INVALID (should be dict)
-            "server": {
-                "host": "192.168.1.100"   # VALID
-            }
+            "ffmpeg": "I AM A STRING",  # INVALID (should be dict)
+            "server": {"host": "192.168.1.100"},  # VALID
         }
         self.write_config_raw(mixed_data)
-        
+
         config = self.manager.load_config_ex()
-        
+
         # 1. Synthesis: Check precision
         # speed_scale should be PRESERVED (1.2)
         assert config.synthesis.speed_scale == 1.2
         # speaker_id should be RESET to default (1)
         assert config.synthesis.speaker_id == ConfigSchema().synthesis.speaker_id
-        
+
         # 2. Ffmpeg: Should be completely reset because the input wasn't even a dict
         assert config.ffmpeg.queue_length == ConfigSchema().ffmpeg.queue_length
-        
+
         # 3. Server: Should be PRESERVED
         assert config.server.host == "192.168.1.100"

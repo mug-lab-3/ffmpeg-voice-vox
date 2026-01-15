@@ -2,7 +2,7 @@ import pytest
 import tempfile
 import shutil
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 from app.core.database import DatabaseManager
 from app.services.processor import StreamProcessor
 from app.core.audio import AudioManager
@@ -15,15 +15,12 @@ class TestNegativeDuration:
     def setup_teardown(self):
         self.test_dir = tempfile.mkdtemp()
         with (
-            patch.object(
-                config,
-                "get",
-                side_effect=lambda k, d=None: (
-                    self.test_dir if k == "system.output_dir" else d
-                ),
-            ),
-            patch("app.config.config.save_config"),
+            patch("app.core.database.config") as mock_db_config,
+            patch("app.core.audio.config") as mock_audio_config,
+            patch("app.config.config.save_config_ex"),
         ):
+            mock_db_config.system.output_dir = self.test_dir
+            mock_audio_config.system.output_dir = self.test_dir
             self.db_manager = DatabaseManager()
             self.audio_manager = AudioManager()
             self.mock_vv = MagicMock(spec=VoiceVoxClient)

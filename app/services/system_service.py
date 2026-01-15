@@ -16,7 +16,7 @@ ffmpeg_client = FFmpegClient()
 
 def get_audio_devices_handler() -> DevicesResponse:
     """Lists available audio devices."""
-    ffmpeg_path = config.get("ffmpeg.ffmpeg_path")
+    ffmpeg_path = config.ffmpeg.ffmpeg_path
     if not ffmpeg_path:
         raise ValueError("FFmpeg path not configured on server")
 

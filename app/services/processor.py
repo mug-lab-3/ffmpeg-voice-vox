@@ -144,15 +144,15 @@ class StreamProcessor:
         print(f"Processing: {text}")
 
         # 1. Prepare Config (Current global UI state for NEW item)
-        speaker_id = config.get("synthesis.speaker_id", 1)
+        speaker_id = config.synthesis.speaker_id
         current_config = {
-            "speed_scale": config.get("synthesis.speed_scale", 1.0),
-            "pitch_scale": config.get("synthesis.pitch_scale", 0.0),
-            "intonation_scale": config.get("synthesis.intonation_scale", 1.0),
-            "volume_scale": config.get("synthesis.volume_scale", 1.0),
-            "pre_phoneme_length": config.get("synthesis.pre_phoneme_length", 0.1),
-            "post_phoneme_length": config.get("synthesis.post_phoneme_length", 0.1),
-            "pause_length_scale": config.get("synthesis.pause_length_scale", 1.0),
+            "speed_scale": config.synthesis.speed_scale,
+            "pitch_scale": config.synthesis.pitch_scale,
+            "intonation_scale": config.synthesis.intonation_scale,
+            "volume_scale": config.synthesis.volume_scale,
+            "pre_phoneme_length": config.synthesis.pre_phoneme_length,
+            "post_phoneme_length": config.synthesis.post_phoneme_length,
+            "pause_length_scale": config.synthesis.pause_length_scale,
         }
 
         # 2. Add to DB first (Pending state) using Model
@@ -171,7 +171,7 @@ class StreamProcessor:
 
         generated_file = None
         actual_duration = -1.0
-        timing = config.get("synthesis.timing", "immediate")
+        timing = config.synthesis.timing
 
         if timing == "immediate":
             try:
@@ -410,7 +410,7 @@ class StreamProcessor:
         else:
             # If not in DB, try to find in cache just to get current state (useful for tests)
             print(f"[Processor] Record {db_id} not found in DB for text update.")
-            speaker_id = config.get("synthesis.speaker_id", 1)
+            speaker_id = config.synthesis.speaker_id
             for log in self.received_logs:
                 if log.get("id") == db_id:
                     old_filename = log.get("filename")

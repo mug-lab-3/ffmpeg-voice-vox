@@ -96,13 +96,9 @@ if __name__ == "__main__":
     kill_previous_instances()
 
     # 1. Determine Port (Auto-select available)
-    host = config.get("server.host", "127.0.0.1")
-    # Start checking from configured port or default 3000
-    start_port = config.get("server.port") or 3000
-    if isinstance(start_port, str) and start_port.isdigit():
-        start_port = int(start_port)
-    elif not isinstance(start_port, int):
-        start_port = 3000
+    host = config.server.host
+    # Start checking from configured port
+    start_port = config.server.port
 
     port = find_free_port(start_port)
 

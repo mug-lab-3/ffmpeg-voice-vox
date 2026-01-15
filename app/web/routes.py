@@ -76,9 +76,10 @@ def start_voicevox_poller():
                     event_manager.publish(
                         "voicevox_status", {"available": current_status}
                     )
-                    if not current_status and config.get("system.is_synthesis_enabled"):
+                    if not current_status and config.is_synthesis_enabled:
                         ffmpeg_client.stop_process()
-                        config.update("system.is_synthesis_enabled", False)
+                        config.is_synthesis_enabled = False
+                        config.save_config_ex()
                         event_manager.publish("state_update", {"is_enabled": False})
                     last_status = current_status
             except:

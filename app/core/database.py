@@ -44,7 +44,7 @@ class DatabaseManager:
 
     def _get_db_path(self):
         """Get the database path based on the current output directory."""
-        output_dir = config.get("system.output_dir", "")
+        output_dir = config.system.output_dir
         if not output_dir:
             return None
         return os.path.join(output_dir, "transcriptions.db")

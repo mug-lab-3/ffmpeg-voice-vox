@@ -57,7 +57,7 @@ def handle_control_state():
 
         return jsonify(
             ControlStateResponse(
-                enabled=config.get("system.is_synthesis_enabled"),
+                enabled=config.is_synthesis_enabled,
                 playback=status,
                 resolve_available=resolve_available,
                 voicevox_available=voicevox_available,

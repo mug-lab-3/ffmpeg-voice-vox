@@ -9,8 +9,6 @@ from .schema_resolve import ResolveConfig
 
 
 class ConfigSchema(BaseConfigModel):
-    model_config = ConfigDict(extra="ignore")
-
     server: ServerConfig = Field(default_factory=ServerConfig)
     voicevox: VoiceVoxConfig = Field(default_factory=VoiceVoxConfig)
     synthesis: SynthesisConfig = Field(default_factory=SynthesisConfig)

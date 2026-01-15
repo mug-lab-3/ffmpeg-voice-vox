@@ -117,7 +117,7 @@ function setupStoreListeners() {
 
 function setupUIListeners() {
     // Voicevox Config Inputs
-    const vvKeys = ['speaker', 'speedScale', 'pitchScale', 'intonationScale', 'volumeScale', 'prePhonemeLength', 'postPhonemeLength', 'pauseLengthScale', 'synthesisTiming'];
+    const vvKeys = ['speedScale', 'pitchScale', 'intonationScale', 'volumeScale', 'prePhonemeLength', 'postPhonemeLength', 'pauseLengthScale', 'synthesisTiming'];
     vvKeys.forEach(key => {
         elements[key].addEventListener('input', (e) => {
             if (valueDisplays[key]) {
@@ -127,15 +127,12 @@ function setupUIListeners() {
 
         elements[key].addEventListener('change', async (e) => {
             let val;
-            if (key === 'speaker') {
-                val = parseInt(e.target.value);
-            } else if (key === 'synthesisTiming') {
+            if (key === 'synthesisTiming') {
                 val = e.target.value; // Keep as string ("immediate" or "on_demand")
             } else {
                 val = parseFloat(e.target.value);
             }
             const mapping = {
-                'speaker': 'speaker_id',
                 'speedScale': 'speed_scale',
                 'pitchScale': 'pitch_scale',
                 'intonationScale': 'intonation_scale',

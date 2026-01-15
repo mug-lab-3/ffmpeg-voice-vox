@@ -13,7 +13,7 @@ def protect_config():
     """本番のconfig.jsonがテストで書き換えられないように保護する"""
     from unittest.mock import patch
 
-    with patch("app.config.config.save_config"):
+    with patch("app.config.config.save_config_ex"):
         yield
 
 
@@ -21,6 +21,9 @@ def protect_config():
 def temp_output_dir():
     """一時的な出力ディレクトリを作成するフィクスチャ"""
     temp_dir = tempfile.mkdtemp()
+    # Ensure the directory exists physically
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
     yield temp_dir
     # SQLiteがファイルを掴んでいる可能性があるため、Windowsではエラーを無視するか
     # 接続を確実に閉じる必要があります。ここでは簡易的にエラーを無視します。
@@ -35,7 +38,7 @@ def test_dynamic_db_switching(temp_output_dir):
     # テスト用ディレクトリA
     dir_a = os.path.join(temp_output_dir, "dir_a")
     os.makedirs(dir_a)
-    config.update("system.output_dir", dir_a)
+    config.system.output_dir = dir_a
 
     # Aで1件追加
     id_a1 = db_manager.add_transcription("test a1", 1, {})
@@ -45,7 +48,7 @@ def test_dynamic_db_switching(temp_output_dir):
     # テスト用ディレクトリB
     dir_b = os.path.join(temp_output_dir, "dir_b")
     os.makedirs(dir_b)
-    config.update("system.output_dir", dir_b)
+    config.system.output_dir = dir_b
 
     # Bで1件追加 -> IDは1から始まるはず
     id_b1 = db_manager.add_transcription("test b1", 1, {})
@@ -53,13 +56,14 @@ def test_dynamic_db_switching(temp_output_dir):
     assert os.path.exists(os.path.join(dir_b, "transcriptions.db"))
 
     # 再びAに戻る
-    config.update("system.output_dir", dir_a)
+    config.system.output_dir = dir_a
     id_a2 = db_manager.add_transcription("test a2", 1, {})
     assert id_a2 == 2
 
 
-def test_audio_filename_padding():
+def test_audio_filename_padding(temp_output_dir):
     """AudioManagerが渡されたファイル名で正しく保存できることを確認"""
+    config.system.output_dir = temp_output_dir
     audio_manager = AudioManager()
 
     # AudioManager.save_audio now accepts (audio_data, filename) -> duration
@@ -77,7 +81,7 @@ def test_audio_filename_padding():
 def test_db_no_fallback_when_empty():
     """output_dirが空の場合、DBコネクションが確立されず、ファイルも作成されないことを確認"""
     db_manager = DatabaseManager()
-    config.update("system.output_dir", "")
+    config.system.output_dir = ""
 
     path = db_manager._get_db_path()
     assert path is None

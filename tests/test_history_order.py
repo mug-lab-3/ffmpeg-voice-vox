@@ -3,7 +3,7 @@ import sqlite3
 import os
 import tempfile
 import shutil
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 from app.core.database import DatabaseManager
 from app.services.processor import StreamProcessor
 from app.core.voicevox import VoiceVoxClient
@@ -14,16 +14,15 @@ class TestHistoryOrder:
     @pytest.fixture(autouse=True)
     def setup_teardown(self):
         self.test_dir = tempfile.mkdtemp()
-        # Patch BOTH get (to return test_dir) AND save_config (to prevent disk write)
+        # Patch system.output_dir property directly or via manager attribute
+        # Patch at the source where it's used
         with (
-            patch(
-                "app.config.config.get",
-                side_effect=lambda key, default=None: (
-                    self.test_dir if key == "system.output_dir" else default
-                ),
-            ),
-            patch("app.config.config.save_config"),
+            patch("app.core.database.config") as mock_db_config,
+            patch("app.core.audio.config") as mock_audio_config,
+            patch("app.config.config.save_config_ex"),
         ):
+            mock_db_config.system.output_dir = self.test_dir
+            mock_audio_config.system.output_dir = self.test_dir
             self.db_manager = DatabaseManager()
             self.audio_manager = AudioManager()
             self.mock_vv = MagicMock(spec=VoiceVoxClient)
