@@ -125,8 +125,8 @@ def ensure_audio_file(db_id: int, audio_manager, processor) -> str:
     if not record:
         raise ValueError(f"Record not found: {db_id}")
 
-    filename = record["output_path"]
-    duration = record["audio_duration"]
+    filename = record.output_path
+    duration = record.audio_duration
 
     output_dir = audio_manager.get_output_dir()
 
@@ -166,7 +166,7 @@ def resolve_insert_handler(
 
     client = get_resolve_client()
 
-    text = transcription.get("text")
+    text = transcription.text
 
     if not client.insert_file(abs_path, text=text):
         raise ValueError("Failed to insert into Resolve timeline")
