@@ -219,7 +219,7 @@ class ConfigManager:
             print(
                 f"[Config] Synchronizing changes (repairs or defaults) to {self.config_path}"
             )
-            self.save_config(config_obj)
+            self.save_config_ex(config_obj)
 
         print(f"[Config] Configuration loaded (Clean)")
         return config_obj
@@ -277,7 +277,7 @@ class ConfigManager:
         return ConfigSchema(**repaired_data)
 
     def save_config(self, config_to_save: Any = None):
-        """Save current config to file."""
+        """Save current config to file. (Legacy version, use save_config_ex)"""
         obj = config_to_save if config_to_save is not None else self._config_obj
         # Propagate exceptions to caller so API can return error
         data = obj.model_dump() if hasattr(obj, "model_dump") else obj
@@ -292,6 +292,32 @@ class ConfigManager:
                 os.fsync(f.fileno())
             except OSError:
                 pass
+
+    def save_config_ex(self, config_obj: ConfigSchema = None):
+        """
+        New clean save logic.
+        Type-safe and uses ConfigSchema explicitly.
+        """
+        obj = config_obj if config_obj is not None else self._config_obj
+        data = obj.model_dump()
+
+        # Ensure directory exists
+        path_dir = os.path.dirname(self.config_path)
+        if path_dir:
+            os.makedirs(path_dir, exist_ok=True)
+
+        try:
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+                f.flush()
+                # Force write to physical disk
+                try:
+                    os.fsync(f.fileno())
+                except OSError:
+                    pass
+        except Exception as e:
+            print(f"[Config] Failed to save {self.config_path}: {e}")
+            raise
 
     def get(self, key: str, default=None):
         """Get a value by dot notation (e.g. 'server.host')."""
