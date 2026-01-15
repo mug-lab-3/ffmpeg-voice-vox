@@ -9,9 +9,10 @@ Please ensure any changes here are synchronized with the specification.
 
 from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
-from app.services.config_service import get_config_handler, update_config_handler
 from app.web.routes import vv_client, get_resolve_client, processor
 from app.api.schemas.config import (
+    ConfigResponse,
+    APIConfigSchema,
     SynthesisUpdate,
     ResolveUpdate,
     SystemUpdate,
@@ -23,9 +24,36 @@ from app.config import config
 config_bp = Blueprint("config_api", __name__)
 
 
+def _save_and_notify(additional_data=None):
+    """Internal helper to save config and publish update event."""
+    config.save_config_ex()
+    from app.core.events import event_manager
+
+    event_manager.publish("config_update", additional_data or {})
+
+
+def _get_config_state() -> ConfigResponse:
+    """Internal helper to get current full config state."""
+    resolve_available = get_resolve_client().is_available()
+    voicevox_available = vv_client.is_available()
+
+    full_cfg = APIConfigSchema(
+        **config.synthesis.model_dump(),
+        ffmpeg=config.ffmpeg.model_dump(),
+        resolve=config.resolve.model_dump(),
+    )
+
+    return ConfigResponse(
+        config=full_cfg,
+        outputDir=config.system.output_dir,
+        resolve_available=resolve_available,
+        voicevox_available=voicevox_available,
+    )
+
+
 def handle_validation_error(e: ValidationError):
     """Standardized validation error response including current config state."""
-    response_data = get_config_handler(config, vv_client, get_resolve_client()).model_dump()
+    response_data = _get_config_state().model_dump()
     response_data.update(
         {
             "status": "error",
@@ -38,8 +66,7 @@ def handle_validation_error(e: ValidationError):
 
 @config_bp.route("/api/config", methods=["GET"])
 def get_config():
-    result = get_config_handler(config, vv_client, get_resolve_client())
-    return jsonify(result.model_dump())
+    return jsonify(_get_config_state().model_dump())
 
 
 @config_bp.route("/api/config/synthesis", methods=["POST"])
@@ -50,11 +77,8 @@ def update_synthesis():
             if hasattr(config.synthesis, k):
                 setattr(config.synthesis, k, v)
 
-        config.save_config_ex()
-        from app.core.events import event_manager
-
-        event_manager.publish("config_update", {})
-        return jsonify(get_config_handler(config, vv_client, get_resolve_client()).model_dump())
+        _save_and_notify()
+        return jsonify(_get_config_state().model_dump())
     except ValidationError as e:
         return handle_validation_error(e)
 
@@ -67,11 +91,8 @@ def update_resolve():
             if hasattr(config.resolve, k):
                 setattr(config.resolve, k, v)
 
-        config.save_config_ex()
-        from app.core.events import event_manager
-
-        event_manager.publish("config_update", {})
-        return jsonify(get_config_handler(config, vv_client, get_resolve_client()).model_dump())
+        _save_and_notify()
+        return jsonify(_get_config_state().model_dump())
     except ValidationError as e:
         return handle_validation_error(e)
 
@@ -82,14 +103,7 @@ def update_system():
         data = SystemUpdate(**request.json)
         if data.output_dir is not None:
             config.system.output_dir = data.output_dir
-            config.save_config_ex()
-
-            from app.core.events import event_manager
-
-            event_manager.publish("config_update", {"outputDir": data.output_dir})
-
-            from app.web.routes import processor
-
+            _save_and_notify({"outputDir": data.output_dir})
             processor.reload_history()
         return jsonify({"status": "ok"})
     except ValidationError as e:
@@ -104,10 +118,7 @@ def update_ffmpeg():
             if hasattr(config.ffmpeg, k):
                 setattr(config.ffmpeg, k, v)
 
-        config.save_config_ex()
-        from app.core.events import event_manager
-
-        event_manager.publish("config_update", {})
+        _save_and_notify()
         return jsonify({"status": "ok"})
     except ValidationError as e:
         return handle_validation_error(e)
@@ -146,12 +157,3 @@ def get_resolve_clips():
     return jsonify({"status": "ok", "clips": clips})
 
 
-# Compatibility route
-@config_bp.route("/api/config", methods=["POST"])
-def update_config_legacy():
-    # This remains for backward compatibility but is no longer the preferred way
-    data = request.json
-    result = update_config_handler(config, data, vv_client, get_resolve_client())
-    if "outputDir" in data:
-        processor.reload_history()
-    return jsonify(result.model_dump())
