@@ -73,6 +73,13 @@ def handle_control_state():
 
 @control_bp.route("/api/control/resolve_insert", methods=["POST"])
 def handle_resolve_insert():
+    client = get_resolve_client()
+    if not client.is_available():
+        return (
+            jsonify({"status": "error", "message": "DaVinci Resolve is not connected"}),
+            503,
+        )
+
     data = request.json
     try:
         req = ItemIdRequest(**data)

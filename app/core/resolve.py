@@ -302,9 +302,6 @@ class ResolveClient:
         """
         self._log(f"Attempting to insert: {file_path}")
 
-        if not self.is_available():
-            return False
-
         with self._lock:
             if not self._ensure_connected():
                 self._log("Resolve not connected")
