@@ -117,7 +117,7 @@ function setupStoreListeners() {
 
 function setupUIListeners() {
     // Voicevox Config Inputs
-    const vvKeys = ['speedScale', 'pitchScale', 'intonationScale', 'volumeScale', 'prePhonemeLength', 'postPhonemeLength', 'pauseLengthScale', 'synthesisTiming'];
+    const vvKeys = ['speaker', 'style', 'speedScale', 'pitchScale', 'intonationScale', 'volumeScale', 'prePhonemeLength', 'postPhonemeLength', 'pauseLengthScale', 'synthesisTiming'];
     vvKeys.forEach(key => {
         elements[key].addEventListener('input', (e) => {
             if (valueDisplays[key]) {

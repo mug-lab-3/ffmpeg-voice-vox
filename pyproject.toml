@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
+    "pytest-playwright>=0.7.2",
     "pytest-watch>=4.2.0",
     "sounddevice>=0.5.3",
     "soundfile>=0.13.1",

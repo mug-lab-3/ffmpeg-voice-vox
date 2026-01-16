@@ -54,7 +54,6 @@ class BaseConfigModel(BaseModel):
                 print(
                     f"[Config] Field '{cls.__name__}.{field_name}' is invalid. Skipping."
                 )
-                pass
             except Exception:
                 # Unforeseen error
                 pass

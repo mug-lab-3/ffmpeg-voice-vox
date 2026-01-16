@@ -39,6 +39,7 @@ def kill_previous_instances():
                                 proc.kill()
                                 killed_count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                # Ignore processes that we cannot access or that disappear during scan
                 pass
 
         if killed_count == 0:
@@ -126,7 +127,7 @@ if __name__ == "__main__":
 
             cleanup_resources()
         except KeyboardInterrupt:
-            # Allow forced exit during cleanup
+            # Allow forced exit during cleanup without error message
             pass
         except Exception as e:
             print(f"[Startup] Error during cleanup: {e}")

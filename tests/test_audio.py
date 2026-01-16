@@ -196,4 +196,5 @@ def test_play_audio_locks(mock_audio_manager_deps):
     # checking status inside that window is race-prone in a unit test.
     # Skipping exact status check during playback for this basic test suite
     # as the queue test already verifies the serialized nature.
-    pass
+    # Skipping exact status check during playback for this basic test suite
+    # as the queue test already verifies the serialized nature.
