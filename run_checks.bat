@@ -12,3 +12,4 @@ if errorlevel 1 (
 )
 
 echo [SUCCESS] all checks passed.
+echo [INFO] Coverage report generated at: htmlcov/index.html
