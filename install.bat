@@ -179,6 +179,8 @@ try {
 
     # ConvertTo-Json を通すとバックスラッシュは自動的にエスケープ (\ -> \\) されます。
     # これによりユーザーの要望通りの JSON 形式になります。
+    # 最新の構成（tools/ffmpeg）から ffmpeg.exe を再取得
+    $existingFfmpeg = Get-ChildItem -Path $toolDir -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
     $ffmpegPath = $existingFfmpeg.FullName
     $modelPath = $whisperFile
     $vadPath = $vadFile
@@ -217,6 +219,7 @@ try {
 
     Write-Host '[8/8] 起動用バッチを更新中...' -ForegroundColor Cyan
     $runBatPath = Join-Path $finalDir 'run.bat'
+    # tools\uv\uv.exe run ... で uv もポータブル版を明示的に使用
     $runBatContent = "@echo off`r`nchcp 65001 >nul`r`necho [Run] Starting application...`r`ntools\uv\uv.exe run voicevox_controller.py`r`nif %errorlevel% neq 0 (`r`n  echo.`r`n  echo [ERROR] Application exited with code %errorlevel%`r`n)`r`npause"
     [System.IO.File]::WriteAllText($runBatPath, $runBatContent, $Utf8NoBom)
 
