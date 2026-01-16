@@ -181,7 +181,8 @@ def monitor_resolve_process(shared_status, running_event):
 
 
 class ResolveClient:
-    def __init__(self):
+    def __init__(self, config: "ResolveConfig" = None):
+        self.config = config
         self.resolve = None
         self._lock = threading.Lock()
 
@@ -301,9 +302,6 @@ class ResolveClient:
         """
         self._log(f"Attempting to insert: {file_path}")
 
-        if not self.is_available():
-            return False
-
         with self._lock:
             if not self._ensure_connected():
                 self._log("Resolve not connected")
@@ -319,11 +317,13 @@ class ResolveClient:
                 media_pool = project.GetMediaPool()
 
                 # --- 0. Template Management ---
-                from app.config import config
+                if not self.config:
+                    self._log("ResolveClient not initialized with config")
+                    return False
 
                 # Use 'target_bin' from config (renamed from template_bin)
-                target_bin_name = config.get("resolve.target_bin", "VoiceVox Captions")
-                target_clip_name = config.get("resolve.template_name", "Auto")
+                target_bin_name = self.config.target_bin
+                target_clip_name = self.config.template_name
 
                 root_folder = media_pool.GetRootFolder()
                 target_bin = None
@@ -443,12 +443,8 @@ class ResolveClient:
                     duration_frames = self._timecode_to_frames(duration_tc, fps_str)
 
                 # --- Track Management ---
-                target_track_video = config.get(
-                    "resolve.video_track_index", DEFAULT_VIDEO_TRACK
-                )
-                target_track_audio = config.get(
-                    "resolve.audio_track_index", DEFAULT_AUDIO_TRACK
-                )
+                target_track_video = self.config.video_track_index
+                target_track_audio = self.config.audio_track_index
 
                 # Ensure Video Tracks exist
                 video_track_count = timeline.GetTrackCount("video")

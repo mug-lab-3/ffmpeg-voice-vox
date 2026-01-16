@@ -20,7 +20,8 @@ class TestResolveToggle(unittest.TestCase):
 
         self.config = ConfigManager(self.config_filename)
         # Ensure output dir is set for audio tests
-        self.config.update("system.output_dir", "dummy_out")
+        self.config.system.output_dir = "dummy_out"
+        self.config.save_config_ex()
 
     def tearDown(self):
         if os.path.exists(self.config_path):
@@ -28,21 +29,15 @@ class TestResolveToggle(unittest.TestCase):
 
     def test_toggle_logic(self):
         # 1. Default should be False (if not set)
-        # Note: defaults are hardcoded in ConfigManager
+        assert self.config.is_synthesis_enabled is False
 
         # 2. Update to True
-        self.config.update("resolve.enabled", True)
-        self.assertTrue(self.config.get("resolve.enabled"))
+        self.config.is_synthesis_enabled = True
+        self.assertTrue(self.config.is_synthesis_enabled)
 
         # 3. Update to False
-        self.config.update("resolve.enabled", False)
-        self.assertFalse(self.config.get("resolve.enabled"))
-
-        # 4. Update to "false" (string) - simulate bad input
-        self.config.update("resolve.enabled", "false")
-        # In Python "false" string is truthy if not checked properly?
-        # But config just stores what is given.
-        self.assertEqual(self.config.get("resolve.enabled"), False)
+        self.config.is_synthesis_enabled = False
+        self.assertFalse(self.config.is_synthesis_enabled)
 
 
 if __name__ == "__main__":

@@ -31,6 +31,7 @@ from app.web.routes import (
     processor,
     get_resolve_client,
 )
+from app.config import config
 
 control_bp = Blueprint("control_api", __name__)
 
@@ -44,7 +45,14 @@ def handle_control_state():
 
         try:
             enabled = handle_control_state_logic(
-                data["enabled"], vv_client, audio_manager, ffmpeg_client, request.host
+                data["enabled"],
+                vv_client,
+                audio_manager,
+                ffmpeg_client,
+                request.host,
+                config.system.output_dir,
+                config.ffmpeg,
+                config,
             )
             return jsonify({"status": "ok", "enabled": enabled})
         except ValueError as e:
@@ -53,11 +61,9 @@ def handle_control_state():
         status = audio_manager.get_playback_status()
         resolve_available = get_resolve_client().is_available()
         voicevox_available = vv_client.is_available()
-        from app.config import config
-
         return jsonify(
             ControlStateResponse(
-                enabled=config.get("system.is_synthesis_enabled"),
+                enabled=config.is_synthesis_enabled,
                 playback=status,
                 resolve_available=resolve_available,
                 voicevox_available=voicevox_available,
@@ -67,6 +73,13 @@ def handle_control_state():
 
 @control_bp.route("/api/control/resolve_insert", methods=["POST"])
 def handle_resolve_insert():
+    client = get_resolve_client()
+    if not client.is_available():
+        return (
+            jsonify({"status": "error", "message": "DaVinci Resolve is not connected"}),
+            503,
+        )
+
     data = request.json
     try:
         req = ItemIdRequest(**data)
@@ -139,6 +152,8 @@ def handle_update_text():
     try:
         update_text_handler(db_id, new_text, processor)
         return jsonify({"status": "ok"})
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

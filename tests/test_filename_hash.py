@@ -15,7 +15,8 @@ def mock_dependencies():
 def test_filename_generation_format(mock_dependencies):
     """Verify _generate_filename produces ID_HASH_PREFIX.wav format."""
     client, audio_manager = mock_dependencies
-    processor = StreamProcessor(client, audio_manager)
+    mock_syn_config = MagicMock()
+    processor = StreamProcessor(client, audio_manager, mock_syn_config)
 
     text = "こんにちは世界"
     db_id = 123
@@ -33,7 +34,8 @@ def test_filename_generation_format(mock_dependencies):
 def test_hash_consistency(mock_dependencies):
     """Verify same inputs produce same hash in filename."""
     client, audio_manager = mock_dependencies
-    processor = StreamProcessor(client, audio_manager)
+    mock_syn_config = MagicMock()
+    processor = StreamProcessor(client, audio_manager, mock_syn_config)
 
     text = "TestingConsistency"
     db_id = 1
@@ -48,7 +50,8 @@ def test_hash_consistency(mock_dependencies):
 def test_hash_sensitivity_text(mock_dependencies):
     """Verify different text produces different hash."""
     client, audio_manager = mock_dependencies
-    processor = StreamProcessor(client, audio_manager)
+    mock_syn_config = MagicMock()
+    processor = StreamProcessor(client, audio_manager, mock_syn_config)
 
     db_id = 1
     config = {"speaker_id": 1}
@@ -66,7 +69,8 @@ def test_hash_sensitivity_text(mock_dependencies):
 def test_hash_sensitivity_config(mock_dependencies):
     """Verify different config produces different hash."""
     client, audio_manager = mock_dependencies
-    processor = StreamProcessor(client, audio_manager)
+    mock_syn_config = MagicMock()
+    processor = StreamProcessor(client, audio_manager, mock_syn_config)
 
     text = "SameText"
     db_id = 1
@@ -86,7 +90,8 @@ def test_hash_sensitivity_config(mock_dependencies):
 def test_hash_ignores_irrelevant_config(mock_dependencies):
     """Verify irrelevant config keys don't change hash."""
     client, audio_manager = mock_dependencies
-    processor = StreamProcessor(client, audio_manager)
+    mock_syn_config = MagicMock()
+    processor = StreamProcessor(client, audio_manager, mock_syn_config)
 
     text = "SameText"
     db_id = 1

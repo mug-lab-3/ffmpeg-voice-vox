@@ -19,10 +19,11 @@ This application orchestrates voice recognition using **FFmpeg (v8.0+) with its 
 The goal is to provide a streamlined, high-quality audio synthesis and subtitling workflow with precise manual control.
 
 ## 3. Technical Requirements
-- **Runtime**: Python 3.10+
+- **Runtime**: Python 3.10+ (Managed via **uv**)
 - **Framework**: Flask (Web UI & API)
 - **Unit Testing**: 
     - Always use **pytest** for unit tests.
+    - Run tests using `uv run pytest`.
     - Tests are located in the `tests/` directory.
 - **Verification**: 
     - Perform final verification by running **`run_checks.bat`**. This script runs the auto-formatter (black) and the test suite via `scripts/run_tests.py`.

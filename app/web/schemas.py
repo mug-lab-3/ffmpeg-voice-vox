@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from app.schemas import FfmpegConfig, ResolveConfig
+from app.config.schemas import FfmpegConfig, ResolveConfig
 
 # --- API Schemas ---
 

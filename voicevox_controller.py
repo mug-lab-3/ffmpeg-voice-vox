@@ -39,6 +39,7 @@ def kill_previous_instances():
                                 proc.kill()
                                 killed_count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                # Ignore processes that we cannot access or that disappear during scan
                 pass
 
         if killed_count == 0:
@@ -96,13 +97,9 @@ if __name__ == "__main__":
     kill_previous_instances()
 
     # 1. Determine Port (Auto-select available)
-    host = config.get("server.host", "127.0.0.1")
-    # Start checking from configured port or default 3000
-    start_port = config.get("server.port") or 3000
-    if isinstance(start_port, str) and start_port.isdigit():
-        start_port = int(start_port)
-    elif not isinstance(start_port, int):
-        start_port = 3000
+    host = config.server.host
+    # Start checking from configured port
+    start_port = config.server.port
 
     port = find_free_port(start_port)
 
@@ -130,7 +127,7 @@ if __name__ == "__main__":
 
             cleanup_resources()
         except KeyboardInterrupt:
-            # Allow forced exit during cleanup
+            # Allow forced exit during cleanup without error message
             pass
         except Exception as e:
             print(f"[Startup] Error during cleanup: {e}")

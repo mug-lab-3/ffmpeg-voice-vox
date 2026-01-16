@@ -15,6 +15,7 @@ __MACOSX/
 **/__pycache__/
 *.pyc
 .coverage
+MagicMock/
 
 # IDE / Env
 .vscode/

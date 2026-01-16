@@ -84,14 +84,6 @@ export class ApiClient {
         });
     }
 
-    async updateConfig(config) {
-        // Fallback for legacy calls
-        return this._fetchJson(this.endpoints.CONFIG, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config)
-        });
-    }
 
     async getLogs() {
         return this._fetchJson(this.endpoints.LOGS);

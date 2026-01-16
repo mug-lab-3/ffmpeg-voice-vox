@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 from app.core.resolve import ResolveClient
 
 
@@ -75,7 +75,10 @@ class TestResolveClips:
         mock_mp.GetRootFolder.return_value = mock_root
         mock_root.GetSubFolderList.return_value = []
 
-        with patch("app.config.config.get", return_value="MissingClip"):
+        with patch("app.config.config") as mock_conf:
+            mock_conf.resolve = MagicMock()
+            mock_conf.resolve.target_bin = "VoiceVox Captions"
+            mock_conf.resolve.template_name = "MissingClip"
             # Should fail because target_clip_name is "MissingClip" (not auto)
             success = client.insert_file("test.wav", "some text")
             assert success is False

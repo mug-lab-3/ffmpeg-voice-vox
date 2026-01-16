@@ -13,10 +13,13 @@ from multiprocessing import current_process
 web = Blueprint("web", __name__)
 
 # Initialize services
-vv_client = VoiceVoxClient()
-audio_manager = AudioManager()
-processor = StreamProcessor(vv_client, audio_manager)
-ffmpeg_client = FFmpegClient()
+vv_client = VoiceVoxClient(config.voicevox)
+audio_manager = AudioManager(config.system)
+from app.core.database import db_manager
+
+db_manager.set_config(config.system)
+processor = StreamProcessor(vv_client, audio_manager, config.synthesis)
+ffmpeg_client = FFmpegClient(config.ffmpeg)
 
 _resolve_client = None
 
@@ -24,7 +27,7 @@ _resolve_client = None
 def get_resolve_client():
     global _resolve_client
     if _resolve_client is None:
-        _resolve_client = ResolveClient()
+        _resolve_client = ResolveClient(config.resolve)
     return _resolve_client
 
 
@@ -76,9 +79,10 @@ def start_voicevox_poller():
                     event_manager.publish(
                         "voicevox_status", {"available": current_status}
                     )
-                    if not current_status and config.get("system.is_synthesis_enabled"):
+                    if not current_status and config.is_synthesis_enabled:
                         ffmpeg_client.stop_process()
-                        config.update("system.is_synthesis_enabled", False)
+                        config.is_synthesis_enabled = False
+                        config.save_config_ex()
                         event_manager.publish("state_update", {"is_enabled": False})
                     last_status = current_status
             except:
@@ -126,7 +130,7 @@ def whisper_receiver():
 
 @web.route("/api/speakers", methods=["GET"])
 def get_speakers():
-    return jsonify(vv_client.get_speakers())
+    return jsonify([s.model_dump() for s in vv_client.get_speakers()])
 
 
 @web.route("/api/logs", methods=["GET"])

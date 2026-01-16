@@ -11,32 +11,31 @@ import sys
 
 @pytest.fixture
 def mock_audio_manager_deps():
-    with patch("app.core.audio.sd") as mock_sd, patch(
-        "app.core.audio.sf"
-    ) as mock_sf, patch("app.core.audio.config") as mock_config, patch(
-        "app.core.events.event_manager"
-    ) as mock_event_manager:
-
+    with (
+        patch("app.core.audio.sd") as mock_sd,
+        patch("app.core.audio.sf") as mock_sf,
+        patch("app.core.events.event_manager") as mock_event_manager,
+    ):
         mock_sf.read.return_value = (b"mock_audio_data", 44100)
-        # Mock sf.info().duration
         mock_sf.info.return_value = MagicMock(duration=0.1)
 
-        # Output dir
-        mock_config.get.return_value = "dummy_output_dir"
-
         # Mock os.path
-        with patch("app.core.audio.os.path.exists") as mock_exists, patch(
-            "app.core.audio.os.path.join"
-        ) as mock_join:
-
+        with (
+            patch("app.core.audio.os.path.exists") as mock_exists,
+            patch("app.core.audio.os.path.join") as mock_join,
+        ):
             mock_exists.return_value = True
             mock_join.side_effect = lambda d, f: f"{d}/{f}"
+
+            # Create a mock SystemConfig for AudioManager injection
+            mock_sys_config = MagicMock()
+            mock_sys_config.output_dir = "dummy_output_dir"
 
             yield {
                 "sd": mock_sd,
                 "sf": mock_sf,
                 "event_manager": mock_event_manager,
-                "config": mock_config,
+                "sys_config": mock_sys_config,
             }
 
 
@@ -45,7 +44,7 @@ def test_audio_queueing(mock_audio_manager_deps):
     from app.core.audio import AudioManager
 
     # Instantiate AudioManager (starts worker thread)
-    am = AudioManager()
+    am = AudioManager(mock_audio_manager_deps["sys_config"])
 
     # We need to ensure get_wav_duration returns a small value so tests run fast
     # calling get_wav_duration will call sf.info(path).duration
@@ -102,7 +101,7 @@ def test_audio_shutdown(mock_audio_manager_deps):
     """Test graceful shutdown logic: queue drain and event emission."""
     from app.core.audio import AudioManager
 
-    am = AudioManager()
+    am = AudioManager(mock_audio_manager_deps["sys_config"])
 
     # 1. Enqueue multiple items
     # We mock get_wav_duration to avoid file access
@@ -186,7 +185,7 @@ def test_play_audio_locks(mock_audio_manager_deps):
     """Test that internal lock logic is working (indirectly via status check)."""
     from app.core.audio import AudioManager
 
-    am = AudioManager()
+    am = AudioManager(mock_audio_manager_deps["sys_config"])
 
     # Mock sleep to be longer so we can check status during playback
     # We can't easily mock time.sleep inside the running thread without patching before import
@@ -197,4 +196,5 @@ def test_play_audio_locks(mock_audio_manager_deps):
     # checking status inside that window is race-prone in a unit test.
     # Skipping exact status check during playback for this basic test suite
     # as the queue test already verifies the serialized nature.
-    pass
+    # Skipping exact status check during playback for this basic test suite
+    # as the queue test already verifies the serialized nature.

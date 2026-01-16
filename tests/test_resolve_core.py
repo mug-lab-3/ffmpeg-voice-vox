@@ -200,10 +200,10 @@ class TestResolveInsertion:
         self.patcher_config = patch("app.config.config")
         self.mock_config = self.patcher_config.start()
         # Set defaults similar to what we expect
-        self.mock_config.get.side_effect = lambda k, default=None: {
-            "resolve.target_bin": "VoiceVox Captions",
-            "resolve.template_name": "DefaultTemplate",
-        }.get(k, default)
+        self.mock_config.resolve.target_bin = "VoiceVox Captions"
+        self.mock_config.resolve.template_name = "DefaultTemplate"
+        self.mock_config.resolve.video_track_index = 2
+        self.mock_config.resolve.audio_track_index = 1
         # Prevent Process spawning
         self.patcher_process = patch("app.core.resolve.multiprocessing.Process")
         self.mock_process_cls = self.patcher_process.start()
@@ -237,7 +237,7 @@ class TestResolveInsertion:
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
     def test_insert_file_flow(self, mock_is_avail, mock_ensure):
         """Verify the full flow of inserting a file."""
-        client = ResolveClient()
+        client = ResolveClient(self.mock_config.resolve)
         client.resolve = self.mock_resolve
         mock_ensure.return_value = True
 
@@ -294,7 +294,7 @@ class TestResolveInsertion:
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
     def test_insert_with_template_text_update(self, mock_is_avail, mock_ensure):
         """Verify text update and track logic when template IS found."""
-        client = ResolveClient()
+        client = ResolveClient(self.mock_config.resolve)
         client.resolve = self.mock_resolve
         mock_ensure.return_value = True
 
@@ -379,15 +379,13 @@ class TestResolveInsertion:
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
     def test_insert_file_root_bin(self, mock_is_avail, mock_ensure):
         """Test inserting file directly into root folder."""
-        client = ResolveClient()
+        client = ResolveClient(self.mock_config.resolve)
         client.resolve = self.mock_resolve  # Correctly inject mock
         mock_ensure.return_value = True
 
         # Setup config to use "root"
-        self.mock_config.get.side_effect = lambda k, default=None: {
-            "resolve.target_bin": "root",
-            "resolve.template_name": "Auto",
-        }.get(k, default)
+        self.mock_config.resolve.target_bin = "root"
+        self.mock_config.resolve.template_name = "Auto"
 
         # Mock ImportMedia
         mock_clip = MagicMock()
@@ -423,14 +421,12 @@ class TestResolveInsertion:
     @patch("app.core.resolve.ResolveClient.is_available", return_value=True)
     def test_insert_file_missing_bin_fails(self, mock_is_avail, mock_ensure):
         """Test failure when target bin does not exist (auto-create disabled)."""
-        client = ResolveClient()
+        client = ResolveClient(self.mock_config.resolve)
         client.resolve = self.mock_resolve  # Correctly inject mock
         mock_ensure.return_value = True
 
         # Config asking for a non-existent bin
-        self.mock_config.get.side_effect = lambda k, default=None: {
-            "resolve.target_bin": "NonExistentBin",
-        }.get(k, default)
+        self.mock_config.resolve.target_bin = "NonExistentBin"
 
         # Mock Root with NO subfolders
         mock_root = MagicMock()

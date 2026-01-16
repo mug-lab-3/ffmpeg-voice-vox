@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from app.schemas import (
+from app.config.schemas import (
     ConfigSchema,
     ServerConfig,
     VoiceVoxConfig,

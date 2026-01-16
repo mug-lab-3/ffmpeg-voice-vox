@@ -2,7 +2,7 @@ import pytest
 import tempfile
 import shutil
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 from app.core.database import DatabaseManager
 from app.services.processor import StreamProcessor
 from app.core.audio import AudioManager
@@ -14,26 +14,33 @@ class TestNegativeDuration:
     @pytest.fixture(autouse=True)
     def setup_teardown(self):
         self.test_dir = tempfile.mkdtemp()
-        with patch.object(
-            config,
-            "get",
-            side_effect=lambda k, d=None: (
-                self.test_dir if k == "system.output_dir" else d
-            ),
-        ), patch("app.config.config.save_config"):
-            self.db_manager = DatabaseManager()
-            self.audio_manager = AudioManager()
+        with (patch("app.config.config.save_config_ex"),):
+            # configure db_manager global
+            from app.core.database import db_manager
+
+            mock_sys_config = MagicMock()
+            mock_sys_config.output_dir = self.test_dir
+
+            # Save original
+            self.original_db_config = db_manager.config
+            db_manager.set_config(mock_sys_config)
+            self.db_manager = db_manager
+
+            self.audio_manager = AudioManager(mock_sys_config)
             self.mock_vv = MagicMock(spec=VoiceVoxClient)
 
             yield
 
-        shutil.rmtree(self.test_dir)
+            # Restore
+            self.db_manager.set_config(self.original_db_config)
+
+        shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_default_duration_is_negative_one(self):
         # Test that adding a new transcription sets duration to -1.0
         db_id = self.db_manager.add_transcription("test text", 1, {})
         transcription = self.db_manager.get_transcription(db_id)
-        assert transcription["audio_duration"] == -1.0
+        assert transcription.audio_duration == -1.0
 
     def test_update_text_resets_duration_to_negative_one(self):
         # First add with explicit duration
@@ -41,29 +48,31 @@ class TestNegativeDuration:
             "test text", 1, {}, audio_duration=5.0
         )
         t1 = self.db_manager.get_transcription(db_id)
-        assert t1["audio_duration"] == 5.0
+        assert t1.audio_duration == 5.0
 
         # Update text
         self.db_manager.update_transcription_text(db_id, "updated text")
 
         # Check duration is now -1.0
         t2 = self.db_manager.get_transcription(db_id)
-        assert t2["audio_duration"] == -1.0
+        assert t2.audio_duration == -1.0
 
     def test_processor_cache_update(self):
         # Create a processor and mock its internal state to test log update
-        processor = StreamProcessor(self.mock_vv, self.audio_manager)
+        mock_syn_config = MagicMock()
+        processor = StreamProcessor(self.mock_vv, self.audio_manager, mock_syn_config)
 
         # Inject a fake log entry
         fake_log = {"id": 99, "text": "Old", "duration": "5.00s", "filename": "old.wav"}
         processor.received_logs = [fake_log]
 
         # Mock DB update since we test that separately
-        with patch(
-            "app.services.processor.db_manager.update_transcription_text"
-        ) as mock_db_update, patch(
-            "app.core.events.event_manager.publish"
-        ) as mock_publish:
+        with (
+            patch(
+                "app.services.processor.db_manager.update_transcription_text"
+            ) as mock_db_update,
+            patch("app.core.events.event_manager.publish") as mock_publish,
+        ):
 
             processor.update_log_text(99, "New")
 

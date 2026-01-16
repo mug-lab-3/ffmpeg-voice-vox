@@ -1,22 +1,11 @@
-"""
-Service Handlers for System Domain.
-
-IMPORTANT:
-The implementation in this file must strictly follow the specifications
-documented in `docs/specification/api-server.md`.
-Please ensure any changes here are synchronized with the specification.
-"""
-
-from app.config import config
 from app.core.ffmpeg import FFmpegClient
 from app.api.schemas.system import DevicesResponse
 
-ffmpeg_client = FFmpegClient()
 
-
-def get_audio_devices_handler() -> DevicesResponse:
+def get_audio_devices_handler(
+    ffmpeg_client: FFmpegClient, ffmpeg_path: str
+) -> DevicesResponse:
     """Lists available audio devices."""
-    ffmpeg_path = config.get("ffmpeg.ffmpeg_path")
     if not ffmpeg_path:
         raise ValueError("FFmpeg path not configured on server")
 

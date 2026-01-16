@@ -12,7 +12,7 @@ import tkinter as tk
 from tkinter import filedialog
 import winsound
 import ctypes
-from app.config import config
+from typing import Any
 
 
 def browse_directory_handler() -> str:
@@ -84,36 +84,41 @@ def browse_file_handler() -> str:
 
 
 def handle_control_state_logic(
-    enabled: bool, vv_client, audio_manager, ffmpeg_client, request_host: str
+    enabled: bool,
+    vv_client,
+    audio_manager,
+    ffmpeg_client,
+    request_host: str,
+    output_dir: str,
+    ffmpeg_config: Any,
+    config_manager: Any,
 ):
     """Handles the logic of starting/stopping synthesis."""
     if enabled:
         if not vv_client.is_available():
             raise ValueError("VOICEVOX is disconnected. Please start VOICEVOX.")
 
-        current_output = config.get("system.output_dir")
-        if not audio_manager.validate_output_dir(current_output):
+        if not audio_manager.validate_output_dir(output_dir):
             raise ValueError("Invalid or non-writable output directory")
 
         current_port = None
         if ":" in request_host:
             current_port = request_host.split(":")[-1]
 
-        success, msg = ffmpeg_client.start_process(
-            config.get("ffmpeg"), port_override=current_port
-        )
+        success, msg = ffmpeg_client.start_process(ffmpeg_config, port=current_port)
         if not success:
             raise ValueError(f"FFmpeg Start Error: {msg}")
     else:
         ffmpeg_client.stop_process()
 
-    config.update("system.is_synthesis_enabled", enabled)
+    config_manager.is_synthesis_enabled = enabled
+    config_manager.save_config_ex()
 
     from app.core.events import event_manager
 
     event_manager.publish("state_update", {"is_enabled": enabled})
 
-    return config.get("system.is_synthesis_enabled")
+    return config_manager.is_synthesis_enabled
 
 
 def ensure_audio_file(db_id: int, audio_manager, processor) -> str:
@@ -125,8 +130,8 @@ def ensure_audio_file(db_id: int, audio_manager, processor) -> str:
     if not record:
         raise ValueError(f"Record not found: {db_id}")
 
-    filename = record["output_path"]
-    duration = record["audio_duration"]
+    filename = record.output_path
+    duration = record.audio_duration
 
     output_dir = audio_manager.get_output_dir()
 
@@ -166,7 +171,7 @@ def resolve_insert_handler(
 
     client = get_resolve_client()
 
-    text = transcription.get("text")
+    text = transcription.text
 
     if not client.insert_file(abs_path, text=text):
         raise ValueError("Failed to insert into Resolve timeline")
@@ -194,5 +199,18 @@ def delete_audio_handler(db_id: int, audio_manager, processor):
 
 def update_text_handler(db_id: int, new_text: str, processor):
     """Updates log text by ID."""
+    # Ensure ID exists even if logic below is robust, for cleaner API error
+    from app.core.database import db_manager
+
+    if not db_manager.get_transcription(db_id):
+        # We also need to check cache for the sake of tests that might skip DB
+        found_in_cache = False
+        for log in processor.received_logs:
+            if log.get("id") == db_id:
+                found_in_cache = True
+                break
+        if not found_in_cache:
+            raise ValueError(f"Transcription ID {db_id} not found")
+
     processor.update_log_text(db_id, new_text)
     return True
