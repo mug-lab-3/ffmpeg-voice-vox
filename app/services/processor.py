@@ -109,6 +109,11 @@ class StreamProcessor:
                         print(f"Error processing chunk: {e}")
                         continue
 
+    def handle_text(self, text: str):
+        """Processes a plain text transcription."""
+        data = {"text": text}
+        self._handle_transcription(data)
+
     def _process_json_chunk(self, json_str):
         try:
             data = json.loads(json_str)

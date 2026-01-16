@@ -3,6 +3,7 @@ import json
 import pytest
 from app.config import ConfigManager
 from pydantic import ValidationError
+from app.config.schemas import TranscriptionConfig
 
 
 @pytest.fixture(autouse=True)
@@ -23,6 +24,18 @@ def clean_env(tmp_path):
     return config_dir, config_file
 
 
+def test_beam_size_validation(clean_env):
+    config_dir, config_file = clean_env
+    # Try to break beam_size with a value that Pydantic 2.x won't coerce to a valid int within range
+    invalid_data = {"transcription": {"beam_size": 100}}  # Range is 1-10
+    with open(config_file, "w", encoding="utf-8") as f:
+        json.dump(invalid_data, f)
+
+    manager = ConfigManager("config.json", data_dir=str(config_dir))
+    # Our repair logic should have reset it
+    assert manager.transcription.beam_size == 5
+
+
 def test_fresh_start_and_corruption(clean_env):
     config_dir, config_file = clean_env
 
@@ -40,65 +53,54 @@ def test_fresh_start_and_corruption(clean_env):
     assert len(backups) == 1
 
     # Verify defaults loaded
-    assert manager.ffmpeg.host == "127.0.0.1"
+    assert manager.transcription.beam_size == 5
 
 
 def test_schema_relaxation(clean_env):
     config_dir, config_file = clean_env
     manager = ConfigManager("config.json", data_dir=str(config_dir))
 
-    # 1. Test None for model_path (should fail as backend is strict)
-    from pydantic import ValidationError
-
+    # 1. Test invalid value for model_size
     with pytest.raises(ValidationError):
-        manager.ffmpeg.model_path = None
+        # Directly validating an invalid literal should raise
+        TranscriptionConfig.model_validate(
+            {"model_size": "base", "device": "invalid_device"}
+        )
 
-    # 2. Test None for queue_length (should fail)
+    # 2. Test None for beam_size (should fail on direct model validation)
     with pytest.raises(ValidationError):
-        manager.ffmpeg.queue_length = None
+        TranscriptionConfig.model_validate({"beam_size": None})
 
+    # 3. Language validation
+    # Valid language
+    manager.transcription.language = "ja"
+    assert manager.transcription.language == "ja"
+    manager.transcription.language = ""
+    assert manager.transcription.language == ""
 
-def test_host_validation(clean_env):
-    config_dir, config_file = clean_env
-    manager = ConfigManager("config.json", data_dir=str(config_dir))
-
-    # 1. Valid Host
-    manager.ffmpeg.host = "192.168.1.1"
-    assert manager.ffmpeg.host == "192.168.1.1"
-    manager.ffmpeg.host = "localhost"
-    assert manager.ffmpeg.host == "localhost"
-    manager.ffmpeg.host = "my-server.local"
-    assert manager.ffmpeg.host == "my-server.local"
-
-    # 2. Invalid Host (Empty string -> should fail based on schema)
-    from pydantic import ValidationError
-
+    # Invalid language (Too long)
     with pytest.raises(ValidationError):
-        manager.ffmpeg.host = ""
-
-    # 3. Invalid Host (Bad chars)
-    with pytest.raises(ValidationError):
-        manager.ffmpeg.host = "http://bad-url"
+        manager.transcription.language = "japanese"
 
 
 def test_robust_update(clean_env):
     config_dir, config_file = clean_env
 
-    # Create file with one invalid field in ffmpeg section to test repair on load
+    # Create file with one invalid field in transcription section to test repair on load
     initial_data = {
-        "ffmpeg": {"ffmpeg_path": "valid/path", "queue_length": 999}  # Invalid (max 30)
+        "transcription": {"model_size": "medium", "beam_size": 999}  # Invalid (max 10)
     }
     with open(config_file, "w") as f:
         json.dump(initial_data, f)
 
-    # Load (should repair queue_length to 10 via load_best_effort, keep ffmpeg_path)
+    # Load (should repair beam_size to 5 via load_best_effort, keep model_size)
     manager = ConfigManager("config.json", data_dir=str(config_dir))
-    assert manager.ffmpeg.queue_length == 10
-    assert manager.ffmpeg.ffmpeg_path == "valid/path"
+    assert manager.transcription.beam_size == 5
+    assert manager.transcription.model_size == "medium"
 
     # Now try to update a valid field
-    manager.ffmpeg.input_device = "Microphone"
-    assert manager.ffmpeg.input_device == "Microphone"
+    manager.transcription.input_device = "Microphone"
+    assert manager.transcription.input_device == "Microphone"
 
 
 if __name__ == "__main__":

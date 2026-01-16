@@ -18,7 +18,7 @@ def test_migration_complex_scenarios(test_data_dir):
     # 複雑な異常系データ
     # 1. systemセクションが完全に欠落
     # 2. synthesisセクションに有効な値と、バリデーションエラーになる値が混在
-    # 3. ffmpegセクションが辞書ではなく文字列になっている
+    # 3. transcriptionセクションが辞書ではなく文字列になっている
     # 4. resolveセクションに未知のキーが含まれている
     initial_data = {
         "synthesis": {
@@ -27,7 +27,7 @@ def test_migration_complex_scenarios(test_data_dir):
             "pitch_scale": 0.1,  # 有効
             "pre_phoneme_length": "invalid",  # 型異常 -> デフォルトに戻るべき
         },
-        "ffmpeg": "should_be_dict_but_is_string",
+        "transcription": "should_be_dict_but_is_string",
         "resolve": {
             "enabled": True,
             "audio_track_index": 5,
@@ -52,9 +52,9 @@ def test_migration_complex_scenarios(test_data_dir):
     assert config_obj.synthesis.pitch_scale == 0.1
     assert config_obj.synthesis.pre_phoneme_length == 0.1  # "invalid" -> 0.1 (default)
 
-    # 検証: ffmpeg (構造破壊 -> セクションごとデフォルト)
-    assert config_obj.ffmpeg.queue_length == 10
-    assert config_obj.ffmpeg.host == "127.0.0.1"
+    # 検証: transcription (構造破壊 -> セクションごとデフォルト)
+    assert config_obj.transcription.beam_size == 5
+    assert config_obj.transcription.device == "cpu"
 
     # 検証: resolve (有効なものは保持、未知のキーは無視)
     assert config_obj.resolve.enabled is True
@@ -68,7 +68,7 @@ def test_migration_preserves_custom_output_dir_even_on_other_errors(test_data_di
     initial_data = {
         "system": {"output_dir": "D:/MyRecordings"},
         "synthesis": {"speed_scale": "very fast"},  # Error
-        "ffmpeg": None,  # Error
+        "transcription": None,  # Error
         "extra_top_level_junk": 123,
     }
 

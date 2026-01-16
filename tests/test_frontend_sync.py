@@ -15,19 +15,21 @@ DEFAULT_CONFIG = {
         "pause_length_scale": 1.0,
         "timing": "immediate",
     },
-    "ffmpeg": {
-        "ffmpeg_path": "C:/mock/ffmpeg.exe",
+    "transcription": {
+        "model_size": "base",
+        "device": "cpu",
+        "compute_type": "int8",
         "input_device": "",
         "model_path": "",
-        "vad_model_path": "",
-        "queue_length": 10,
-        "host": "localhost",
+        "beam_size": 5,
+        "language": "ja",
     },
     "resolve": {
         "audio_track_index": 1,
         "video_track_index": 2,
         "target_bin": "root",
         "template_name": "Auto",
+        "enabled": True,
     },
     "system": {"output_dir": "C:/mock/output"},
 }
@@ -46,26 +48,17 @@ def setup_mock_routes(page: Page, config_state=None):
     if config_state is None:
         config_state = DEFAULT_CONFIG.copy()
 
-    # 1. Base URL override (to load static files from local disk)
-    # Note: We will use `page.route` to intercept specific API calls,
-    # but for static assets (css, js), we need to handle them carefully if we open a "file://".
-    # However, loading "file://" directly can cause CORS issues with modules.
-    # So we'll stick to a fake URL "http://app.test" and intercept EVERYTHING.
-
-    # Static Files: Map http://app.test/static/... to local folder
+    # Static Files Mocking
     static_root = os.path.abspath(os.path.join(os.getcwd(), "static"))
     templates_root = os.path.abspath(os.path.join(os.getcwd(), "templates"))
 
     def handle_static(route):
         url = route.request.url
-        # e.g. http://app.test/static/css/style.css -> static/css/style.css
         start_idx = url.find("/static/")
         if start_idx != -1:
-            rel_path = url[start_idx + 1 :]  # static/css/style.css
+            rel_path = url[start_idx + 1 :]
             local_path = os.path.join(os.getcwd(), rel_path.replace("/", os.sep))
             if os.path.exists(local_path):
-                # Determine content type manually or let Playwright guess?
-                # Playwright's fulfill needs body.
                 with open(local_path, "rb") as f:
                     content = f.read()
                 ct = (
@@ -88,9 +81,7 @@ def setup_mock_routes(page: Page, config_state=None):
 
     page.route("http://app.test/", handle_index)
 
-    # --- API Mocks ---
-
-    # GET /api/config
+    # API Mocks
     page.route(
         "**/api/config",
         lambda route: route.fulfill(
@@ -99,19 +90,17 @@ def setup_mock_routes(page: Page, config_state=None):
                 "config": config_state,
                 "outputDir": config_state["system"]["output_dir"],
                 "resolve_available": False,
+                "voicevox_available": True,
             },
         ),
     )
 
-    # GET /api/speakers
     page.route(
         "**/api/speakers", lambda route: route.fulfill(status=200, json=MOCK_SPEAKERS)
     )
 
-    # GET /api/logs
     page.route("**/api/logs", lambda route: route.fulfill(status=200, json=[]))
 
-    # GET /api/control/state
     page.route(
         "**/api/control/state",
         lambda route: route.fulfill(
@@ -125,10 +114,6 @@ def setup_mock_routes(page: Page, config_state=None):
         ),
     )
 
-    # GET /api/stream (SSE)
-    # We will mock this by fulfilling with an empty stream slightly delayed,
-    # or just hanging it to prevent connection errors.
-    # For H-Sync tests, we might want to manually trigger events via JS evaluation.
     page.route(
         "**/api/stream",
         lambda route: route.fulfill(
@@ -154,11 +139,9 @@ def test_l_sync_slider_ui(page: Page):
     page.goto("http://app.test/")
     page.click('button[data-tab="tab-voicevox"]')
 
-    # リクエスト内容を検証するための変数
     request_payloads = []
 
     def handle_synthesis_update(route):
-        # リクエストJSONをキャプチャ
         try:
             data = route.request.post_data_json
             request_payloads.append(data)
@@ -166,28 +149,17 @@ def test_l_sync_slider_ui(page: Page):
             pass
         route.fulfill(status=200, json={"config": DEFAULT_CONFIG})
 
-    # POST /api/config/synthesis をインターセプト
     page.route("**/api/config/synthesis", handle_synthesis_update)
 
-    # 操作: スライダーを動かす (inputイベント)
     slider = page.locator("#speedScale")
     slider.evaluate("el => { el.value = 1.25; el.dispatchEvent(new Event('input')); }")
 
-    # L-Sync検証: リクエスト完了を待たずにUIは即時1.25になる
     expect(page.locator("#val-speedScale")).to_have_text("1.25")
 
-    # 確定操作: changeイベントでAPIリクエストが飛ぶ
     slider.evaluate("el => { el.dispatchEvent(new Event('change')); }")
 
-    # リクエストが捕捉されたか検証
-    # (非同期タイミングによっては少し待つ必要があるかもしれないが、playwrightはevaluate完了を待つ)
-    # 念のため、少し待って確認するか、expectでリトライさせた方が良いが、
-    # ここではシンプルなassertで確認し、失敗ならWaitを入れる方針。
     assert len(request_payloads) > 0, "API request was not sent"
-
     payload = request_payloads[-1]
-    assert "speed_scale" in payload
-    # JSの浮動小数点の誤差を考慮しつつ比較 (1.25は正確に表現できるが念のため)
     assert payload["speed_scale"] == 1.25
 
 
@@ -197,7 +169,6 @@ def test_validation_error_alert(page: Page):
     page.goto("http://app.test/")
     page.click('button[data-tab="tab-voicevox"]')
 
-    # エラーを返すようにモック
     page.route(
         "**/api/config/synthesis",
         lambda route: route.fulfill(
@@ -205,40 +176,22 @@ def test_validation_error_alert(page: Page):
             json={
                 "status": "error",
                 "message": "Too fast!",
-                "config": DEFAULT_CONFIG["synthesis"],
+                # Rollback value
+                "speed_scale": 1.0,
             },
-            # configにはロールバック用の元の値(1.0)が含まれると想定
         ),
     )
 
-    # 不正な操作 (例: 1.5) -> モックがエラーを返す
     slider = page.locator("#speedScale")
     slider.evaluate("el => { el.value = 1.5; el.dispatchEvent(new Event('change')); }")
 
-    # アラート確認
-    # style.cssの実装を見ると、modal-overlay active クラスが付与される
     expect(page.locator("#alert-modal")).to_have_class("modal-overlay active")
     expect(page.locator("#alert-msg")).to_contain_text("Too fast!")
 
-    # OKクリック
     page.click("#alert-ok")
     expect(page.locator("#alert-modal")).not_to_have_class("active")
 
-    # ロールバック確認 (1.0に戻る)
-    # handleServerEventか、APIエラーハンドリング内で store.setConfig を呼ぶ実装になっているか確認が必要だが、
-    # 通常はエラー時にリロードするか、レスポンスのconfigで上書きする
-    # main.js の実装によれば `api.getConfig()` を呼ぶロジックは SSEの config_update 時のみかもしれないが
-    # バリデーションエラー時はUIのアニメーションだけで戻らない場合、明示的に戻す処理があるか？
-    # -> main.js のスライダーハンドラにはエラー時のロールバック処理は明示されていない場合がある。
-    #    しかし、ストアの状態(1.0)とUI(1.5)がズレたままになるのを防ぐため、
-    #    alert後に再描画が走るか検証。もし走らないならバグ発見となる。
-
-    # updateConfig (logics.js/main.js) -> api call -> if fail -> alert.
-    # 値を戻すロジックがないとL-Syncした1.5のままになる。
-    # 既存の実装では `api.getConfig` を呼び直すなどの処理がないと戻らない可能性が高い。
-    # テストとして「戻ること」を期待値とするなら、リロードまたはgetConfigが必要。
-
-    # 一旦、値が戻っているか確認 (失敗したら実装修正が必要)
+    # ロールバックの確認 (1.00に戻る)
     expect(page.locator("#val-speedScale")).to_have_text("1.00")
 
 
@@ -246,23 +199,12 @@ def test_h_sync_sse_update(page: Page):
     """H-Sync: SSEイベント受信によりUIが更新されるか"""
     setup_mock_routes(page)
     page.goto("http://app.test/")
-    page.click('button[data-tab="tab-ffmpeg"]')
+    page.click('button[data-tab="tab-transcription"]')
 
-    # 初期値確認
-    expect(page.locator("#val-cfg-queue-length")).to_have_text("10")
+    # 初期値確認 (デフォルトは 5)
+    expect(page.locator("#val-cfg-beam-size")).to_have_text("5")
 
-    # SSEイベントを模擬的に発火
-    # ブラウザ内の handleServerEvent を直接呼ぶか、MessageEventを発火させる
-    # ここでは window.handleServerEvent が露出していないため、Workerからのメッセージをシミュレートするのは難しい
-    # 代わりに、EventSourceのonmessageを叩く...のも難しいので、
-    # api.getConfig が呼ばれるきっかけとなる config_update をシミュレートしたいが、
-    # 最も確実なのは、playwrightで `window.dispatchEvent` 等を使うことだが、
-    # main.js の EventSource 実装は内部隠蔽されている。
-
-    # 代案: main.js が `handleServerEvent` をグローバルまたはモジュールスコープで持っているか？
-    # type="module" なので外からは見えない。
-
-    # 解決策: api/stream へのルートで、最初に config_update イベントを送りつける
+    # 2回目以降の getConfig で新しい値を返すようにモックを更新
     page.route(
         "**/api/config",
         lambda route: route.fulfill(
@@ -270,16 +212,20 @@ def test_h_sync_sse_update(page: Page):
             json={
                 "config": {
                     **DEFAULT_CONFIG,
-                    "ffmpeg": {**DEFAULT_CONFIG["ffmpeg"], "queue_length": 25},
+                    "transcription": {
+                        **DEFAULT_CONFIG["transcription"],
+                        "beam_size": 8,
+                    },
                 },
-                "outputDir": "",
+                "outputDir": "C:/mock/output",
                 "resolve_available": False,
+                "voicevox_available": True,
             },
         ),
     )
 
-    # SSE接続が確立された後にデータを流すのは page.route だけでは制御が難しい（ストリームなので）。
-    # しかし、WebUI起動時に /api/stream に接続しに行くので、そのレスポンスでイベントを流せる。
+    # SSEイベントを模擬的に発火させるために、 reload() で接続を再確立させ、
+    # そのレスポンスに config_update を含める
     page.route(
         "**/api/stream",
         lambda route: route.fulfill(
@@ -289,9 +235,12 @@ def test_h_sync_sse_update(page: Page):
         ),
     )
 
-    # リロードして新しいSSEレスポンスを読み込ませる
     page.reload()
-    page.click('button[data-tab="tab-ffmpeg"]')
+    page.click('button[data-tab="tab-transcription"]')
 
-    # SSE経由で config_update -> getConfig (モックで queue_length=25) -> UI更新
-    expect(page.locator("#val-cfg-queue-length")).to_have_text("25")
+    # UI更新の検証 (beam_size=8)
+    expect(page.locator("#val-cfg-beam-size")).to_have_text("8")
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

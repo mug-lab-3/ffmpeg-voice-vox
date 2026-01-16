@@ -6,7 +6,7 @@ from app.config.schemas import (
     VoiceVoxConfig,
     SynthesisConfig,
     SystemConfig,
-    FfmpegConfig,
+    TranscriptionConfig,
     ResolveConfig,
 )
 from unittest.mock import patch
@@ -35,13 +35,12 @@ class TestConfigSchema:
         # System
         assert config.system.output_dir == ""
 
-        # Ffmpeg
-        assert config.ffmpeg.ffmpeg_path == ""
-        assert config.ffmpeg.input_device == ""
-        assert config.ffmpeg.model_path == ""
-        assert config.ffmpeg.vad_model_path == ""
-        assert config.ffmpeg.host == "127.0.0.1"
-        assert config.ffmpeg.queue_length == 10
+        # Transcription
+        assert config.transcription.model_size == "base"
+        assert config.transcription.input_device == ""
+        assert config.transcription.device == "cpu"
+        assert config.transcription.compute_type == "int8"
+        assert config.transcription.beam_size == 5
 
         # Resolve
         assert config.resolve.enabled is False
@@ -76,22 +75,22 @@ class TestConfigSchema:
         with pytest.raises(ValidationError):
             SynthesisConfig(intonation_scale=val)
 
-    # --- Ffmpeg Validation ---
-    @pytest.mark.parametrize("queue_len", [0, 31])
-    def test_ffmpeg_queue_invalid(self, queue_len):
+    # --- Transcription Validation ---
+    @pytest.mark.parametrize("beam_size", [0, 11])
+    def test_transcription_beam_invalid(self, beam_size):
         with pytest.raises(ValidationError):
-            FfmpegConfig(queue_length=queue_len)
+            TranscriptionConfig(beam_size=beam_size)
 
-    def test_ffmpeg_path_warning(self, capsys):
-        """Test that non-existent ffmpeg path triggers a warning print but passes validation."""
+    def test_transcription_path_warning(self, capsys):
+        """Test that non-existent model_path triggers a warning print but passes validation."""
         # capsys fixture captures stdout/stderr
-        path = "non_existent_ffmpeg.exe"
-        config = FfmpegConfig(ffmpeg_path=path)
+        path = "non_existent_model.bin"
+        config = TranscriptionConfig(model_path=path)
 
-        assert config.ffmpeg_path == path
+        assert config.model_path == path
 
         captured = capsys.readouterr()
-        assert f"[Config] Warning: ffmpeg_path does not exist: {path}" in captured.out
+        assert f"[Config] Warning: model_path does not exist: {path}" in captured.out
 
     # --- System Validation ---
     def test_output_dir_warning(self, capsys):

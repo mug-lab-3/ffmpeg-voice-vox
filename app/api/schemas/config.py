@@ -7,10 +7,10 @@ documented in `docs/specification/api-server.md`.
 Please ensure any changes here are synchronized with the specification.
 """
 
+from typing import Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
 from app.api.schemas.base import BaseResponse
-from app.config.schemas import FfmpegConfig, ResolveConfig
+from app.config.schemas import TranscriptionConfig, ResolveConfig
 
 
 class SynthesisUpdate(BaseModel):
@@ -37,13 +37,14 @@ class SystemUpdate(BaseModel):
     output_dir: Optional[str] = None
 
 
-class FfmpegUpdate(BaseModel):
-    ffmpeg_path: Optional[str] = None
+class TranscriptionUpdate(BaseModel):
+    model_size: Optional[str] = None
+    device: Optional[Literal["cpu", "cuda", "auto"]] = None
+    compute_type: Optional[str] = None
     input_device: Optional[str] = None
-    model_path: Optional[str] = None
-    vad_model_path: Optional[str] = None
-    host: Optional[str] = None
-    queue_length: Optional[int] = Field(None, ge=1, le=30)
+    sample_rate: Optional[int] = None
+    beam_size: Optional[int] = None
+    language: Optional[str] = None
 
 
 class APIConfigSchema(BaseModel):
@@ -58,7 +59,7 @@ class APIConfigSchema(BaseModel):
     post_phoneme_length: float
     pause_length_scale: float
     timing: str
-    ffmpeg: FfmpegConfig
+    transcription: TranscriptionConfig
     resolve: ResolveConfig
 
 

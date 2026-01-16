@@ -6,7 +6,8 @@ from app.core.audio import AudioManager
 from app.services.processor import StreamProcessor
 from app.core.events import event_manager
 from app.core.resolve import ResolveClient
-from app.core.ffmpeg import FFmpegClient
+from app.core.capture import AudioCaptureService
+from app.core.transcription import TranscriptionService
 import threading
 from multiprocessing import current_process
 
@@ -19,7 +20,8 @@ from app.core.database import db_manager
 
 db_manager.set_config(config.system)
 processor = StreamProcessor(vv_client, audio_manager, config.synthesis)
-ffmpeg_client = FFmpegClient(config.ffmpeg)
+capture_service = AudioCaptureService()
+transcription_service = TranscriptionService(config.transcription)
 
 _resolve_client = None
 
@@ -35,8 +37,10 @@ def cleanup_resources():
     global _resolve_client
     if _resolve_client:
         _resolve_client.shutdown()
-    if ffmpeg_client:
-        ffmpeg_client.stop_process()
+    if capture_service:
+        capture_service.stop_capture()
+    if transcription_service:
+        transcription_service.stop()
     if audio_manager:
         audio_manager.shutdown()
     voicevox_stop_event.set()
@@ -80,7 +84,8 @@ def start_voicevox_poller():
                         "voicevox_status", {"available": current_status}
                     )
                     if not current_status and config.is_synthesis_enabled:
-                        ffmpeg_client.stop_process()
+                        capture_service.stop_capture()
+                        transcription_service.stop()
                         config.is_synthesis_enabled = False
                         config.save_config_ex()
                         event_manager.publish("state_update", {"is_enabled": False})

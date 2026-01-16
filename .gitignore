@@ -22,3 +22,6 @@ MagicMock/
 .idea/
 venv/
 .venv/
+
+models/
+tools/

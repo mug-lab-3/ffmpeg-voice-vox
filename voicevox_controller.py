@@ -96,7 +96,15 @@ if __name__ == "__main__":
     # 0. Single Instance Check
     kill_previous_instances()
 
-    # 1. Determine Port (Auto-select available)
+    # 1. Setup Runtime Dependencies (NVIDIA GPU Check & DL)
+    try:
+        from app.core.dependencies import check_and_setup
+        check_and_setup()
+    except Exception as e:
+        print(f"[Startup] Warning: Dependency setup failed: {e}")
+        print("[Startup] Continuing with default environment...")
+
+    # 2. Determine Port (Auto-select available)
     host = config.server.host
     # Start checking from configured port
     start_port = config.server.port

@@ -8,6 +8,7 @@ Please ensure any changes here are synchronized with the specification.
 """
 
 from typing import List, Optional
+from pydantic import BaseModel
 from app.api.schemas.base import BaseResponse
 
 

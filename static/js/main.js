@@ -30,12 +30,12 @@ const elements = {
 
     // Settings (Direct Inputs)
     cfgInputs: {
-        ffmpegPath: document.getElementById('cfg-ffmpeg-path'),
         inputDevice: document.getElementById('cfg-input-device'),
-        modelPath: document.getElementById('cfg-model-path'),
-        vadPath: document.getElementById('cfg-vad-path'),
-        queueLength: document.getElementById('cfg-queue-length'),
-        host: document.getElementById('cfg-host'),
+        modelSize: document.getElementById('cfg-model-size'),
+        language: document.getElementById('cfg-language'),
+        device: document.getElementById('cfg-device'),
+        computeType: document.getElementById('cfg-compute-type'),
+        beamSize: document.getElementById('cfg-beam-size'),
         audioTrackIndex: document.getElementById('cfg-audio-track-index'),
         videoTrackIndex: document.getElementById('cfg-video-track-index'),
         targetBin: document.getElementById('cfg-target-bin'),
@@ -51,7 +51,7 @@ const valueDisplays = {
     prePhonemeLength: document.getElementById('val-prePhonemeLength'),
     postPhonemeLength: document.getElementById('val-postPhonemeLength'),
     pauseLengthScale: document.getElementById('val-pauseLengthScale'),
-    queueLength: document.getElementById('val-cfg-queue-length'),
+    beamSize: document.getElementById('val-cfg-beam-size'),
     audioTrackIndex: document.getElementById('val-cfg-audio-track-index'),
     videoTrackIndex: document.getElementById('val-cfg-video-track-index')
 };
@@ -80,11 +80,12 @@ async function init() {
 
     // Initial Load
     try {
-        const [speakersRes, configRes, controlRes, logsRes] = await Promise.all([
+        const [speakersRes, configRes, controlRes, logsRes, devicesRes] = await Promise.all([
             api.getSpeakers(),
             api.getConfig(),
             api.getControlState(),
-            api.getLogs()
+            api.getLogs(),
+            api.getAudioDevices()
         ]);
 
         if (speakersRes.ok) store.setSpeakers(speakersRes.data);
@@ -95,6 +96,14 @@ async function init() {
         }
         if (controlRes.ok) store.setControlState(controlRes.data.enabled, controlRes.data.playback, controlRes.data.resolve_available, controlRes.data.voicevox_available);
         if (logsRes.ok) store.setLogs(logsRes.data);
+
+        // Populate devices AFTER config is set, so restoration works
+        if (devicesRes.ok && devicesRes.data.status === 'ok') {
+            populateDeviceSelect(devicesRes.data.devices);
+        }
+
+        // Start checking for downloaded models
+        startModelPolling();
 
     } catch (e) {
         console.error("Initialization failed", e);
@@ -171,17 +180,16 @@ function setupUIListeners() {
 
         try {
             let res;
-            if (domain === 'ffmpeg') {
-
-                const currentFFmpeg = {
-                    ffmpeg_path: sanitizeStr(elements.cfgInputs.ffmpegPath.value),
+            if (domain === 'transcription') {
+                const currentTranscription = {
                     input_device: sanitizeStr(elements.cfgInputs.inputDevice.value),
-                    model_path: sanitizeStr(elements.cfgInputs.modelPath.value),
-                    vad_model_path: sanitizeStr(elements.cfgInputs.vadPath.value),
-                    queue_length: sanitizeInt(elements.cfgInputs.queueLength.value, 10),
-                    host: sanitizeStr(elements.cfgInputs.host.value) || "127.0.0.1" // Host requires valid value or default
+                    model_size: sanitizeStr(elements.cfgInputs.modelSize.value),
+                    language: sanitizeStr(elements.cfgInputs.language.value),
+                    device: sanitizeStr(elements.cfgInputs.device.value),
+                    compute_type: sanitizeStr(elements.cfgInputs.computeType.value),
+                    beam_size: sanitizeInt(elements.cfgInputs.beamSize.value, 5)
                 };
-                res = await api.updateFFmpegConfig(currentFFmpeg);
+                res = await api.updateTranscriptionConfig(currentTranscription);
             } else if (domain === 'resolve') {
                 const updates = {};
                 const audioIdx = parseInt(elements.cfgInputs.audioTrackIndex.value);
@@ -203,7 +211,7 @@ function setupUIListeners() {
                     // L-Sync: Immediately update store with returned data
                     store.setConfig(res.data.config, res.data.outputDir, res.data.resolve_available, res.data.voicevox_available);
                 }
-                // FFmpeg is H-Sync, we wait for SSE
+                // Transcription is H-Sync, we wait for SSE
             } else if (res && !res.ok) {
                 const title = res.status === 422 ? "Validation Error" : "Save Error (Check Console)";
                 const msg = res.data?.message || "Unknown error occurred";
@@ -233,7 +241,7 @@ function setupUIListeners() {
         }
 
         input.addEventListener('change', () => {
-            const domain = ['audioTrackIndex', 'videoTrackIndex', 'targetBin', 'templateName'].includes(key) ? 'resolve' : 'ffmpeg';
+            const domain = ['audioTrackIndex', 'videoTrackIndex', 'targetBin', 'templateName'].includes(key) ? 'resolve' : 'transcription';
             saveDomainConfig(domain);
         });
     });
@@ -241,17 +249,11 @@ function setupUIListeners() {
     // Device Refresh
     const refreshBtn = document.getElementById('refresh-devices');
     refreshBtn.addEventListener('click', async () => {
-        const ffmpegPath = elements.cfgInputs.ffmpegPath.value;
-        if (!ffmpegPath) {
-            await showAlert("Notice", "Please set FFmpeg path first");
-            return;
-        }
-
-        refreshBtn.classList.add('rotating'); // Add rotation class if we have one, or just disable
+        refreshBtn.classList.add('rotating');
         refreshBtn.disabled = true;
 
         try {
-            const res = await api.getAudioDevices(ffmpegPath);
+            const res = await api.getAudioDevices();
             if (res.ok && res.data.status === 'ok') {
                 populateDeviceSelect(res.data.devices);
             } else {
@@ -317,36 +319,6 @@ function setupUIListeners() {
         }
     });
 
-    // Browse Buttons
-    const setupBrowse = (btnId, inputKey) => {
-        const btn = document.getElementById(btnId);
-        btn.addEventListener('click', async () => {
-            try {
-                const res = await api.browseFile();
-                if (res.ok && res.data.status === 'ok') {
-                    elements.cfgInputs[inputKey].value = res.data.path;
-                    // Trigger save
-                    await saveDomainConfig('ffmpeg');
-
-                    // If we just set ffmpeg path, might want to refresh devices
-                    if (inputKey === 'ffmpegPath') {
-                        // Auto-trigger refresh handled by user click for now, or we can do it automatically?
-                        // Let's do it if device list is empty
-                        if (elements.cfgInputs.inputDevice.options.length <= 1) {
-                            refreshBtn.click();
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error("Browse failed", e);
-            }
-        });
-    };
-
-    setupBrowse('browse-ffmpeg-path', 'ffmpegPath');
-    setupBrowse('browse-model-path', 'modelPath');
-    setupBrowse('browse-vad-path', 'vadPath');
-
 
     // Output Directory Browse
     elements.browseBtn.addEventListener('click', async () => {
@@ -405,6 +377,49 @@ function setupUIListeners() {
     });
 }
 
+const state = {
+    availableModels: [] // List of downloaded models
+};
+
+async function updateModelSelect() {
+    const sel = elements.cfgInputs.modelSize;
+    if (!sel) return;
+
+    try {
+        const res = await api.getAvailableModels();
+        if (res.ok) {
+            state.availableModels = res.data;
+            const options = sel.options;
+            for (let i = 0; i < options.length; i++) {
+                const opt = options[i];
+                const size = opt.value;
+                const isDownloaded = state.availableModels.includes(size);
+
+                // Update label to show status
+                const baseLabel = size === 'large-v3-turbo' ? 'large-v3-turbo' : size;
+                if (isDownloaded) {
+                    opt.textContent = baseLabel;
+                    opt.style.color = '';
+                    opt.disabled = false;
+                } else {
+                    opt.textContent = `${baseLabel} (Not Downloaded)`;
+                    opt.style.color = '#888';
+                    opt.disabled = true;
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to update models", e);
+    }
+}
+
+function startModelPolling() {
+    // Initial check
+    updateModelSelect();
+    // Poll every 10 seconds to detect new downloads
+    setInterval(updateModelSelect, 10000);
+}
+
 function populateDeviceSelect(devices) {
     const select = elements.cfgInputs.inputDevice;
     const currentValue = select.value; // Try to preserve selection if possible or logic relies on config
@@ -430,19 +445,27 @@ function populateDeviceSelect(devices) {
     // Restore value from store if matches, or current value if just refreshing
     // Actually store.config has the authoritative value.
     // But if we just opened app, renderConfig might have set value but options weren't there.
-    if (store.config?.ffmpeg?.input_device) {
-        select.value = store.config.ffmpeg.input_device;
+    if (store.config?.transcription?.input_device) {
+        select.value = store.config.transcription.input_device;
     } else if (currentValue) {
         select.value = currentValue;
     }
 
     // [FIX] Auto-selection Sync
-    // If the select has a value (auto-selected first option or fallback), but it differs from what backend knows,
+    // Determine the actual selected value in the DOM
+    const actualValue = select.value;
+
+    // If store thinks we have a device, but it's not in the list (so actualValue is empty),
+    // we should probably let the UI show empty and disable start (handled by renderStartStopUI logic update).
+    // If we successfully restored, actualValue matches store.
+
+    // Trigger validation update
+    renderStartStopUI();
     // we must sync it. This happens when implicit selection occurs (e.g. invalid config, or first load with empty config).
     // Note: select.value will be the first option if we didn't set it above and options exist (browser default behavior),
     // OR it might be empty if we set it to "" explicitly.
     // We only care if it reflects a real device.
-    if (select.value && select.value !== store.config?.ffmpeg?.input_device) {
+    if (select.value && select.value !== store.config?.transcription?.input_device) {
         // Trigger save to assume this new default
         // We can't access saveDomainConfig directly here as it's scoped in setupUIListeners.
         // But we can trigger a change event which listeners handle.
@@ -654,8 +677,8 @@ async function handleServerEvent(msg) {
             const cRes = await api.getConfig();
             if (cRes.ok) {
                 let fullConfig = cRes.data.config || cRes.data;
-                if (cRes.data.ffmpeg) {
-                    fullConfig = { ...fullConfig, ffmpeg: cRes.data.ffmpeg };
+                if (cRes.data.transcription) {
+                    fullConfig = { ...fullConfig, transcription: cRes.data.transcription };
                 }
                 store.setConfig(fullConfig, cRes.data.outputDir, cRes.data.resolve_available);
             }
@@ -797,6 +820,16 @@ function renderConfig() {
     setIfExists(elements.postPhonemeLength, config.post_phoneme_length);
     setIfExists(elements.pauseLengthScale, config.pause_length_scale);
     setIfExists(elements.synthesisTiming, config.timing);
+
+    if (config.transcription) {
+        setIfExists(elements.cfgInputs.inputDevice, config.transcription.input_device);
+        setIfExists(elements.cfgInputs.modelSize, config.transcription.model_size);
+        setIfExists(elements.cfgInputs.language, config.transcription.language);
+        setIfExists(elements.cfgInputs.device, config.transcription.device);
+        setIfExists(elements.cfgInputs.computeType, config.transcription.compute_type);
+        setIfExists(elements.cfgInputs.beamSize, config.transcription.beam_size);
+        if (valueDisplays.beamSize) valueDisplays.beamSize.textContent = config.transcription.beam_size;
+    }
 
     // Update value displays
     if (config.speed_scale !== undefined) valueDisplays.speedScale.textContent = config.speed_scale.toFixed(2);
@@ -978,10 +1011,12 @@ function renderStartStopUI() {
         const reasons = [];
 
         // Check if config is loaded
-        const ffmpeg = store.config?.ffmpeg;
-        if (!ffmpeg) {
+        const config = store.config;
+        if (!config || !config.transcription) {
             reasons.push("- Loading configuration...");
         } else {
+            const transcription = config.transcription;
+
             if (!hasDir) {
                 reasons.push("- Output directory is not set.");
             }
@@ -989,18 +1024,11 @@ function renderStartStopUI() {
                 reasons.push("- VOICEVOX is disconnected. Please start VOICEVOX.");
             }
 
-            if (!ffmpeg.ffmpeg_path) {
-                reasons.push("- FFmpeg path is not set.");
-            }
-            if (!ffmpeg.input_device) {
+            if (!transcription.input_device || elements.cfgInputs.inputDevice.value === "") {
                 reasons.push("- Input device is not selected.");
             }
-            if (!ffmpeg.model_path) {
-                reasons.push("- Whisper model path is not set.");
-            }
-            if (!ffmpeg.vad_model_path) {
-                reasons.push("- VAD model path is not set.");
-            }
+            // model_size is usually 'base' by default, so it's likely set.
+            // compute_type, device, etc are also defaulted.
         }
 
         if (reasons.length === 0) {

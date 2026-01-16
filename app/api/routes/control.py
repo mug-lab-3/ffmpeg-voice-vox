@@ -27,7 +27,8 @@ from app.api.schemas.system import BrowseResponse
 from app.web.routes import (
     vv_client,
     audio_manager,
-    ffmpeg_client,
+    capture_service,
+    transcription_service,
     processor,
     get_resolve_client,
 )
@@ -48,10 +49,11 @@ def handle_control_state():
                 data["enabled"],
                 vv_client,
                 audio_manager,
-                ffmpeg_client,
-                request.host,
+                capture_service,
+                transcription_service,
+                processor,
                 config.system.output_dir,
-                config.ffmpeg,
+                config.transcription,
                 config,
             )
             return jsonify({"status": "ok", "enabled": enabled})

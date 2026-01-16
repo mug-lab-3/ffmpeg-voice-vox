@@ -4,7 +4,7 @@ from .server_config import ServerConfig
 from .voicevox_config import VoiceVoxConfig
 from .synthesis_config import SynthesisConfig
 from .system_config import SystemConfig
-from .ffmpeg_config import FfmpegConfig
+from .transcription_config import TranscriptionConfig
 from .resolve_config import ResolveConfig
 
 
@@ -13,5 +13,5 @@ class ConfigSchema(BaseConfigModel):
     voicevox: VoiceVoxConfig = Field(default_factory=VoiceVoxConfig)
     synthesis: SynthesisConfig = Field(default_factory=SynthesisConfig)
     system: SystemConfig = Field(default_factory=SystemConfig)
-    ffmpeg: FfmpegConfig = Field(default_factory=FfmpegConfig)
+    transcription: TranscriptionConfig = Field(default_factory=TranscriptionConfig)
     resolve: ResolveConfig = Field(default_factory=ResolveConfig)

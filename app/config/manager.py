@@ -1,17 +1,16 @@
 import json
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from pydantic import ValidationError, BaseModel
 from .schemas.config_schema import ConfigSchema
 from .schemas import (
-    BaseModel,
     ServerConfig,
     VoiceVoxConfig,
     SynthesisConfig,
     SystemConfig,
-    FfmpegConfig,
+    TranscriptionConfig,
     ResolveConfig,
 )
-from pydantic import ValidationError
 
 
 class ConfigManager:
@@ -106,15 +105,15 @@ class ConfigManager:
         pass
 
     @property
-    def ffmpeg(self) -> FfmpegConfig:
-        return self._config_obj.ffmpeg
+    def transcription(self) -> TranscriptionConfig:
+        return self._config_obj.transcription
 
-    @ffmpeg.setter
-    def ffmpeg(self, value: FfmpegConfig):
-        self._config_obj.ffmpeg = value
+    @transcription.setter
+    def transcription(self, value: TranscriptionConfig):
+        self._config_obj.transcription = value
 
-    @ffmpeg.deleter
-    def ffmpeg(self):
+    @transcription.deleter
+    def transcription(self):
         pass
 
     @property
@@ -268,8 +267,8 @@ class ConfigManager:
         self.save_config_ex(self._config_obj)
         return True
 
-    def update_ffmpeg(self, update: FfmpegConfig) -> bool:
-        self._config_obj.ffmpeg = update
+    def update_transcription(self, update: TranscriptionConfig) -> bool:
+        self._config_obj.transcription = update
         self.save_config_ex(self._config_obj)
         return True
 

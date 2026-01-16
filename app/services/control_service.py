@@ -87,29 +87,39 @@ def handle_control_state_logic(
     enabled: bool,
     vv_client,
     audio_manager,
-    ffmpeg_client,
-    request_host: str,
+    capture_service,
+    transcription_service,
+    processor,
     output_dir: str,
-    ffmpeg_config: Any,
+    transcription_config: Any,
     config_manager: Any,
 ):
-    """Handles the logic of starting/stopping synthesis."""
+    """Handles the logic of starting/stopping capture and transcription."""
     if enabled:
         if not vv_client.is_available():
             raise ValueError("VOICEVOX is disconnected. Please start VOICEVOX.")
 
+        if capture_service.is_capturing:
+            print("[Service] Already running, ignoring start request.")
+            return True
+
         if not audio_manager.validate_output_dir(output_dir):
             raise ValueError("Invalid or non-writable output directory")
 
-        current_port = None
-        if ":" in request_host:
-            current_port = request_host.split(":")[-1]
+        # 1. Start Transcription Service
+        transcription_service.start(on_transcription=processor.handle_text)
 
-        success, msg = ffmpeg_client.start_process(ffmpeg_config, port=current_port)
+        # 2. Start Capture Service
+        success, msg = capture_service.start_capture(
+            device_name=transcription_config.input_device,
+            callback=transcription_service.push_audio,
+        )
         if not success:
-            raise ValueError(f"FFmpeg Start Error: {msg}")
+            transcription_service.stop()
+            raise ValueError(f"Capture Start Error: {msg}")
     else:
-        ffmpeg_client.stop_process()
+        capture_service.stop_capture()
+        transcription_service.stop()
 
     config_manager.is_synthesis_enabled = enabled
     config_manager.save_config_ex()

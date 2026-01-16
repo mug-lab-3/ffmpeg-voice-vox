@@ -13,7 +13,7 @@ const ENDPOINTS = {
     CONTROL_UPDATE_TEXT: '/api/control/update_text',
     SYSTEM_BROWSE: '/api/system/browse',
     SYSTEM_BROWSE_FILE: '/api/system/browse_file',
-    FFMPEG_DEVICES: '/api/ffmpeg/devices',
+    TRANSCRIPTION_DEVICES: '/api/transcription/devices',
     STREAM: '/api/stream'
 };
 
@@ -76,8 +76,8 @@ export class ApiClient {
         });
     }
 
-    async updateFFmpegConfig(config) {
-        return this._fetchJson(`${this.endpoints.CONFIG}/ffmpeg`, {
+    async updateTranscriptionConfig(config) {
+        return this._fetchJson(`${this.endpoints.CONFIG}/transcription`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config)
@@ -145,8 +145,12 @@ export class ApiClient {
         });
     }
 
+    async getAvailableModels() {
+        return this._fetchJson('/api/transcription/models');
+    }
+
     async getAudioDevices() {
-        return this._fetchJson(this.endpoints.FFMPEG_DEVICES);
+        return this._fetchJson(this.endpoints.TRANSCRIPTION_DEVICES);
     }
 
     async getResolveBins() {

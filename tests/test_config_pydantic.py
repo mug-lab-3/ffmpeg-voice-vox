@@ -48,17 +48,15 @@ def test_config_validation():
     print("\n--- Test 3a: Range validation (out of bounds) ---")
     with open(test_config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    data["synthesis"][
-        "speed_scale"
-    ] = 5.0  # Max is 2.0 (but wait, repair logic might use defaults)
-    data["ffmpeg"]["queue_length"] = 500  # Max is 30
+    data["synthesis"]["speed_scale"] = 5.0
+    data["transcription"] = {"beam_size": 500}  # Max is 10
     with open(test_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
     cm3a = ConfigManager(config_filename, data_dir=test_data_dir)
     # Check robustness of loading
     assert cm3a.synthesis.speed_scale == 1.0  # Repaired to default
-    assert cm3a.ffmpeg.queue_length == 10  # Repaired to default
+    assert cm3a.transcription.beam_size == 5  # Repaired to default
     print("Test 3a passed: Out of range values corrected to defaults.")
 
     print("\n--- Test 4: Custom validation (warning only) ---")

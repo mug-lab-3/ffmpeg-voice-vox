@@ -116,12 +116,12 @@ class TestSSEEvents(unittest.TestCase):
         finally:
             event_manager.unsubscribe(q)
 
-    def test_config_update_event_on_ffmpeg_change(self):
-        """FFmpeg設定の変更時に config_update イベントが発行されるか検証"""
+    def test_config_update_event_on_transcription_change(self):
+        """Transcription設定の変更時に config_update イベントが発行されるか検証"""
         q = event_manager.subscribe()
         try:
             res = self.client.post(
-                "/api/config/ffmpeg", json={"ffmpeg_path": "dummy/path"}
+                "/api/config/transcription", json={"model_size": "medium"}
             )
             self.assertEqual(res.status_code, 200)
 

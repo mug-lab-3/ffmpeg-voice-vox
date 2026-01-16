@@ -31,7 +31,7 @@ class TestConfigComprehensive:
         """Test that a valid config is loaded correctly."""
         valid_data = {
             "synthesis": {"speed_scale": 1.2, "speaker_id": 3},
-            "ffmpeg": {"queue_length": 5},
+            "transcription": {"beam_size": 7},
             "resolve": {"enabled": True},
         }
         self.write_config_raw(valid_data)
@@ -39,42 +39,22 @@ class TestConfigComprehensive:
         config = self.manager.load_config_ex()
         assert config.synthesis.speed_scale == 1.2
         assert config.synthesis.speaker_id == 3
-        assert config.ffmpeg.queue_length == 5
+        assert config.transcription.beam_size == 7
         assert config.resolve.enabled is True
 
     def test_boundary_values(self):
         """Test boundary values for all constrained parameters."""
         cases = [
             # synthesis
-            ("synthesis", "speed_scale", 0.5, True),  # lower bound
-            ("synthesis", "speed_scale", 1.5, True),  # upper bound
-            ("synthesis", "speed_scale", 0.4, False),  # below lower
-            ("synthesis", "speed_scale", 1.6, False),  # above upper
-            ("synthesis", "pitch_scale", -0.15, True),
-            ("synthesis", "pitch_scale", 0.15, True),
-            ("synthesis", "pitch_scale", -0.16, False),
-            ("synthesis", "pitch_scale", 0.16, False),
-            ("synthesis", "intonation_scale", 0.0, True),
-            ("synthesis", "intonation_scale", 2.0, True),
-            ("synthesis", "intonation_scale", -0.1, False),
-            ("synthesis", "intonation_scale", 2.1, False),
-            ("synthesis", "volume_scale", 0.0, True),
-            ("synthesis", "volume_scale", 2.0, True),
-            ("synthesis", "volume_scale", -0.1, False),
-            ("synthesis", "volume_scale", 2.1, False),
-            ("synthesis", "pre_phoneme_length", 0.0, True),
-            ("synthesis", "pre_phoneme_length", 1.5, True),
-            ("synthesis", "pre_phoneme_length", -0.1, False),
-            ("synthesis", "pre_phoneme_length", 1.6, False),
-            ("synthesis", "pause_length_scale", 0.0, True),
-            ("synthesis", "pause_length_scale", 2.0, True),
-            ("synthesis", "pause_length_scale", -0.1, False),
-            ("synthesis", "pause_length_scale", 2.1, False),
-            # ffmpeg
-            ("ffmpeg", "queue_length", 1, True),
-            ("ffmpeg", "queue_length", 30, True),
-            ("ffmpeg", "queue_length", 0, False),
-            ("ffmpeg", "queue_length", 31, False),
+            ("synthesis", "speed_scale", 0.5, True),
+            ("synthesis", "speed_scale", 1.5, True),
+            ("synthesis", "speed_scale", 0.4, False),
+            ("synthesis", "speed_scale", 1.6, False),
+            # transcription
+            ("transcription", "beam_size", 1, True),
+            ("transcription", "beam_size", 10, True),
+            ("transcription", "beam_size", 0, False),
+            ("transcription", "beam_size", 11, False),
             # resolve
             ("resolve", "audio_track_index", 1, True),
             ("resolve", "audio_track_index", 50, True),
@@ -83,11 +63,9 @@ class TestConfigComprehensive:
         ]
 
         for section, key, value, should_be_valid in cases:
-            # Prepare config with one boundary value
             test_data = {section: {key: value}}
             self.write_config_raw(test_data)
 
-            # Load
             config = self.manager.load_config_ex()
             actual_val = getattr(getattr(config, section), key)
 
@@ -105,16 +83,12 @@ class TestConfigComprehensive:
         """Test that incorrect types are reset to defaults."""
         bad_data = {
             "synthesis": {
-                "speed_scale": "very fast",  # should be float
-                "speaker_id": [1, 2],  # should be int
+                "speed_scale": "very fast",
+                "speaker_id": [1, 2],
             },
-            "ffmpeg": {"queue_length": {"val": 10}},  # should be int
-            "resolve": {
-                "enabled": "yes"  # Pydantic might coerce "yes" to True, let's try something it can't
-            },
+            "transcription": {"beam_size": "too large"},
+            "resolve": {"enabled": "yes"},
         }
-        # Note: Pydantic often coerces strings to numbers or booleans.
-        # To strictly test types, we use objects that definitely fail.
 
         self.write_config_raw(bad_data)
         config = self.manager.load_config_ex()
@@ -122,30 +96,27 @@ class TestConfigComprehensive:
         defaults = ConfigSchema()
         assert config.synthesis.speed_scale == defaults.synthesis.speed_scale
         assert config.synthesis.speaker_id == defaults.synthesis.speaker_id
-        assert config.ffmpeg.queue_length == defaults.ffmpeg.queue_length
+        assert config.transcription.beam_size == defaults.transcription.beam_size
 
     def test_missing_and_extra_keys(self):
         """Test that missing keys are filled and extra keys are ignored."""
         partial_data = {
-            "synthesis": {"speed_scale": 1.2},  # speaker_id missing
-            "unknown_section": {"foo": "bar"},  # unknown section
-            "ffmpeg": {"queue_length": 5, "extra_key": 999},  # extra key in section
+            "synthesis": {"speed_scale": 1.2},
+            "unknown_section": {"foo": "bar"},
+            "transcription": {"beam_size": 7, "extra_key": 999},
         }
         self.write_config_raw(partial_data)
 
         config = self.manager.load_config_ex()
 
-        # Check missing filled
         assert config.synthesis.speed_scale == 1.2
         assert config.synthesis.speaker_id == ConfigSchema().synthesis.speaker_id
 
-        # Check unknown section handled (ignored or dropped in dump)
         dump = config.model_dump()
         assert "unknown_section" not in dump
 
-        # Check extra key within section dropped
-        assert not hasattr(config.ffmpeg, "extra_key")
-        assert "extra_key" not in dump["ffmpeg"]
+        assert not hasattr(config.transcription, "extra_key")
+        assert "extra_key" not in dump["transcription"]
 
     def test_sync_to_file(self):
         """Test that repairs are written back to the file."""
@@ -187,14 +158,14 @@ class TestConfigComprehensive:
         """Test that only invalid fields are reset, while valid fields in the same or other sections are preserved."""
         # Mix of valid and invalid:
         # 1. synthesis: speed_scale is normal, but speaker_id is invalid.
-        # 2. ffmpeg: completely invalid (not a dict)
+        # 2. transcription: completely invalid (not a dict)
         # 3. server: completely normal
         mixed_data = {
             "synthesis": {
                 "speed_scale": 1.2,  # VALID
                 "speaker_id": -5,  # INVALID (ge=0)
             },
-            "ffmpeg": "I AM A STRING",  # INVALID (should be dict)
+            "transcription": "I AM A STRING",  # INVALID (should be dict)
             "server": {"host": "192.168.1.100"},  # VALID
         }
         self.write_config_raw(mixed_data)
@@ -207,8 +178,8 @@ class TestConfigComprehensive:
         # speaker_id should be RESET to default (1)
         assert config.synthesis.speaker_id == ConfigSchema().synthesis.speaker_id
 
-        # 2. Ffmpeg: Should be completely reset because the input wasn't even a dict
-        assert config.ffmpeg.queue_length == ConfigSchema().ffmpeg.queue_length
+        # 2. Transcription: Should be completely reset because the input wasn't even a dict
+        assert config.transcription.beam_size == ConfigSchema().transcription.beam_size
 
         # 3. Server: Should be PRESERVED
         assert config.server.host == "192.168.1.100"

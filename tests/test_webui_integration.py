@@ -137,19 +137,19 @@ def test_system_config_output_dir_flow(client, event_queue):
         pytest.fail(f"SSE event 'config_update' for system was not received: {e}")
 
 
-def test_ffmpeg_config_update_flow(client, event_queue):
-    """FFmpeg設定の更新フローを検証"""
-    new_path = "C:/fake/pytest_ffmpeg.exe"
-    payload = {"ffmpeg_path": new_path}
+def test_transcription_config_update_flow(client, event_queue):
+    """Transcription設定の更新フローを検証"""
+    new_size = "medium"
+    payload = {"model_size": new_size}
 
     # 1. API Request
-    response = client.post("/api/config/ffmpeg", json=payload)
+    response = client.post("/api/config/transcription", json=payload)
     assert response.status_code == 200
 
     # 2. Verify persistence
     with open(config.config_path, "r", encoding="utf-8") as f:
         saved_data = json.load(f)
-        assert saved_data.get("ffmpeg", {}).get("ffmpeg_path") == new_path
+        assert saved_data.get("transcription", {}).get("model_size") == new_size
 
     # 3. Verify SSE
     try:
@@ -157,7 +157,9 @@ def test_ffmpeg_config_update_flow(client, event_queue):
         event = json.loads(msg.replace("data: ", "").strip())
         assert event["type"] == "config_update"
     except Exception as e:
-        pytest.fail(f"SSE event 'config_update' for ffmpeg was not received: {e}")
+        pytest.fail(
+            f"SSE event 'config_update' for transcription was not received: {e}"
+        )
 
 
 def test_resolve_config_update_flow(client, event_queue):

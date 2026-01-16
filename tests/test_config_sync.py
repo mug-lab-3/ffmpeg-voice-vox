@@ -69,16 +69,16 @@ class TestConfigSync(unittest.TestCase):
         self.assertIn("config", data)
         self.assertEqual(data["config"]["resolve"]["audio_track_index"], 3)
 
-    def test_ffmpeg_update_returns_status_only_hsync(self):
-        """H-Sync: FFmpeg設定の更新がステータスのみを返す(全データは返さない)か検証"""
+    def test_transcription_update_returns_status_only_hsync(self):
+        """H-Sync: Transcription設定の更新がステータスのみを返す(全データは返さない)か検証"""
         res = self.client.post(
-            "/api/config/ffmpeg", json={"ffmpeg_path": "Z:/ffmpeg.exe"}
+            "/api/config/transcription", json={"model_size": "medium"}
         )
         self.assertEqual(res.status_code, 200)
 
         data = res.get_json()
         self.assertEqual(data["status"], "ok")
-        # should NOT contain full config state to minimize heavy response during dialog flow
+        # should NOT contain full config state
         self.assertNotIn("config", data)
 
     def test_system_update_returns_status_only_hsync(self):

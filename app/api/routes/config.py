@@ -16,7 +16,7 @@ from app.api.schemas.config import (
     SynthesisUpdate,
     ResolveUpdate,
     SystemUpdate,
-    FfmpegUpdate,
+    TranscriptionUpdate,
 )
 from app.api.schemas.base import BaseResponse
 from app.config import config
@@ -39,7 +39,7 @@ def _get_config_state() -> ConfigResponse:
 
     full_cfg = APIConfigSchema(
         **config.synthesis.model_dump(),
-        ffmpeg=config.ffmpeg.model_dump(),
+        transcription=config.transcription.model_dump(),
         resolve=config.resolve.model_dump(),
     )
 
@@ -110,13 +110,13 @@ def update_system():
         return handle_validation_error(e)
 
 
-@config_bp.route("/api/config/ffmpeg", methods=["POST"])
-def update_ffmpeg():
+@config_bp.route("/api/config/transcription", methods=["POST"])
+def update_transcription():
     try:
-        data = FfmpegUpdate(**request.json)
+        data = TranscriptionUpdate(**request.json)
         for k, v in data.model_dump(exclude_unset=True).items():
-            if hasattr(config.ffmpeg, k):
-                setattr(config.ffmpeg, k, v)
+            if hasattr(config.transcription, k):
+                setattr(config.transcription, k, v)
 
         _save_and_notify()
         return jsonify({"status": "ok"})
