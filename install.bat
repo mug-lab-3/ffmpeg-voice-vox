@@ -9,8 +9,11 @@ echo  [Portable Setup Mode]
 echo ======================================================
 echo.
 
-:: PowerShell を起動し、このファイルの中身をスクリプトとして実行
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines = Get-Content -LiteralPath '%~f0' -Encoding UTF8; $start = $false; $script = ($lines | ForEach-Object { if ($start) { $_ } if ($_.Trim() -eq '###_POWERSHELL_START_###') { $start = $true } }) -join [Environment]::NewLine; if ($script) { iex $script } else { Write-Error 'PowerShell section not found' }"
+:: 環境変数に自身のフルパスをセット（引用符で囲む）
+set "SCRIPT_PATH=%~f0"
+
+:: PowerShell を起動し、環境変数からパスを取得してファイルの中身を実行
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines = Get-Content -LiteralPath $env:SCRIPT_PATH -Encoding UTF8; $start = $false; $script = ($lines | ForEach-Object { if ($start) { $_ } if ($_.Trim() -eq '###_POWERSHELL_START_###') { $start = $true } }) -join [Environment]::NewLine; if ($script) { iex $script } else { Write-Error 'PowerShell section not found' }"
 
 if %errorlevel% neq 0 (
     echo.
@@ -119,8 +122,16 @@ try {
         # 7z ファイルのサポートは最近の Windows 11 で追加されました 
         & tar.exe -xf $ffmpeg7z -C $toolDir
         Remove-Item -LiteralPath $ffmpeg7z -ErrorAction SilentlyContinue
+
+        # docs/setup.md の推奨構成 (tools/ffmpeg) に合わせるためリネーム
+        $ffmpegTargetDir = Join-Path $toolDir 'ffmpeg'
+        $extractedFfmpegDir = Get-ChildItem -Path $toolDir -Directory -Filter "ffmpeg-git-*" | Select-Object -First 1
+        if ($extractedFfmpegDir) {
+            if (Test-Path -LiteralPath $ffmpegTargetDir) { Remove-Item -Path $ffmpegTargetDir -Recurse -Force }
+            Move-Item -Path $extractedFfmpegDir.FullName -Destination $ffmpegTargetDir -Force
+        }
         Write-Host '  -> 完了'
-        $existingFfmpeg = Get-ChildItem -Path $toolDir -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
+        $existingFfmpeg = Get-ChildItem -Path $ffmpegTargetDir -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
     } else {
         Write-Host "  -> Whisper 対応版 FFmpeg が既に存在します: $($existingFfmpeg.FullName)" -ForegroundColor Yellow
     }
