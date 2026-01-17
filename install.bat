@@ -181,6 +181,8 @@ try {
 
     # ConvertTo-Json を通すとバックスラッシュは自動的にエスケープ (\ -> \\) されます。
     # これによりユーザーの要望通りの JSON 形式になります。
+    # 最新の構成（tools/ffmpeg）から ffmpeg.exe を再取得
+    $existingFfmpeg = Get-ChildItem -Path $toolDir -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
     $ffmpegPath = $existingFfmpeg.FullName
     $modelPath = $whisperFile
     $vadPath = $vadFile
