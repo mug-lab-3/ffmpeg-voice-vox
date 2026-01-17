@@ -71,9 +71,12 @@ class FFmpegClient:
             def _escape(path):
                 if not path:
                     return ""
-                # Use relative path to avoid drive letter (C:) issues
+                # Calculate relative path from the project root (not CWD)
                 try:
-                    p = os.path.relpath(path).replace("\\", "/")
+                    # Get the directory where ffmpeg.py exists (app/core) and find the project root (..)
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    project_root = os.path.dirname(os.path.dirname(script_dir))
+                    p = os.path.relpath(path, project_root).replace("\\", "/")
                 except Exception:
                     p = os.path.abspath(path).replace("\\", "/")
                 

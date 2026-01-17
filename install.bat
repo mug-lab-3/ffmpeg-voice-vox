@@ -108,6 +108,7 @@ try {
         
         if ($existingFfmpeg) {
             Write-Host '  -> 非対応の FFmpeg を入れ替えます...'
+            $targetToRemove = $null
             $oldDir = $existingFfmpeg.Directory
             while ($oldDir -and $oldDir.FullName -ne $toolDir) {
                 $targetToRemove = $oldDir
@@ -119,8 +120,12 @@ try {
         Download-Fast $ffmpegUrl $ffmpeg7z
         Write-Host '  -> 展開中...'
         # Windows 11/10 (1803以降) 標準の tar.exe を使用
-        # 7z ファイルのサポートは最近の Windows 11 で追加されました 
         & tar.exe -xf $ffmpeg7z -C $toolDir
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host '  [WARNING] tar.exe による展開に失敗しました。' -ForegroundColor Yellow
+            Write-Host '  古い Windows では .7z 形式に非対応の場合があります。OSを更新するか、手動で展開してください。' -ForegroundColor Yellow
+            throw "FFmpeg の展開に失敗しました。"
+        }
         Remove-Item -LiteralPath $ffmpeg7z -Force -ErrorAction SilentlyContinue
         # docs/setup.md の推奨構成 (tools/ffmpeg) に合わせるためリネーム
         $ffmpegTargetDir = Join-Path $toolDir 'ffmpeg'
