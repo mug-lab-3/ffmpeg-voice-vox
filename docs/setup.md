@@ -56,7 +56,10 @@
 アプリを動かすために必要なツールをダウンロードし、アプリのフォルダ内の `tools` や `models` に配置します。
 
 ### フォルダ構成のイメージ
-以下のような構成を目指してファイルを配置していきます。
+
+> [!IMPORTANT]  
+> 以下のような構成を目指してファイルを配置していきます。
+
 ```text
 ffmpeg-voice-vox/（アプリのルート）
 ├── tools/
@@ -74,30 +77,29 @@ ffmpeg-voice-vox/（アプリのルート）
 通常の FFmpeg ではなく、音声認識機能 (Whisper) が内蔵されたものが必要です。
 
 - **Windows**: [Gyan.dev (配布ページ)](https://www.gyan.dev/ffmpeg/builds/) から [ffmpeg-git-full.7z (直接ダウンロード)](https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z) を入手・展開します。展開されたフォルダの中にある `bin` などのフォルダを、まるごと `tools/ffmpeg/` にコピーしてください。
-  - > [!TIP]  
-    > `tools/ffmpeg/bin/ffmpeg.exe` というフォルダ構成になれば正解です。
+   > [!TIP]  
+   > `tools/ffmpeg/bin/ffmpeg.exe` というフォルダ構成になれば正解です。
 - **Mac**: [Evermeet.cx](https://evermeet.cx/ffmpeg/) 等から最新のビルドを入手するか、Whisper フィルターが有効なビルドを準備してください。
-  - > [!TIP]
-    > Mac 版は通常 **`ffmpeg` という 1 つの実行ファイルのみ**です。これを `tools/ffmpeg/` フォルダの直下に配置してください。
+   > [!TIP]
+   > Mac 版は通常 **`ffmpeg` という 1 つの実行ファイルのみ**です。これを `tools/ffmpeg/` フォルダの直下に配置してください。
 
 ### 3-2 VOICEVOX
 音声合成エンジンです。  
 セットアップ手順簡略化のため、エディタ版（通常版）を用意します。
 
 1. [VOICEVOX 公式サイト](https://voicevox.hiroshiba.jp/) からダウンロードします。
-   > [!TIP]
-   > **どのバージョンを選べばいい？**
-   > - **対応OS**: お使いの PC に合わせて選択してください。
-   > - **モード**: 
-   >   - **GPU (DirectML / NVIDIA) [推奨]**: 高性能なグラフィックボード（GPU）を利用して高速に音声を生成します。GPU がない場合でも自動的に CPU で動作するため、**基本的にはこちらを選べば OK** です。
-   >   - **CPU**: ダウンロードサイズが小さく非常に軽量です。古い PC や、ディスク容量を極限まで節約したい場合のみ選択してください。
-   > - **パッケージ形式**: 
-   >   - **インストーラー版 [推奨]**: 公式で推奨されている形式です。PC にインストールして起動しておくだけで本アプリと自動的に連携します。
-   >   - **ZIP版**: アプリをインストールしたくない場合や、特定のフォルダでポータブルに管理したい場合に使用します。
-   >
-   > ![VOICEVOXのダウンロード](images/setup/voicevox-options.png)
 2. ダウンロードしたファイルを実行してインストール（インストーラー版）、または任意の場所に展開（ZIP版）してください。
-
+> [!TIP]
+> **どのバージョンを選べばいい？**
+> - **対応OS**: お使いの PC に合わせて選択してください。
+> - **モード**: 
+>   - **GPU (DirectML / NVIDIA) [推奨]**: 高性能なグラフィックボード（GPU）を利用して高速に音声を生成します。GPU がない場合でも自動的に CPU で動作するため、**基本的にはこちらを選べば OK** です。
+>   - **CPU**: ダウンロードサイズが小さく非常に軽量です。古い PC や、ディスク容量を極限まで節約したい場合のみ選択してください。
+> - **パッケージ形式**: 
+>   - **インストーラー版 [推奨]**: 公式で推奨されている形式です。PC にインストールして起動しておくだけで本アプリと自動的に連携します。
+>   - **ZIP版**: アプリをインストールしたくない場合や、特定のフォルダでポータブルに管理したい場合に使用します。
+>
+> ![VOICEVOXのダウンロード](images/setup/voicevox-options.png)
 
 
 ### 3-3 学習済みモデル (Whisper / VAD)
@@ -107,20 +109,20 @@ ffmpeg-voice-vox/（アプリのルート）
 #### 3-3-1 Whisper モデル（音声 → 文字 の変換）
 録音された音声を解析し、言葉（テキスト）に書き起こすための中心的なモデルです。
 
-1. **ダウンロード**: [ggerganov/whisper.cpp (公式リポジトリ)](https://huggingface.co/ggerganov/whisper.cpp/tree/main) から **[ggml-large-v3-turbo.bin (直接ダウンロード)](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin)** を入手します。
-   > [!TIP]  
-   > **PC スペックに応じたモデルの選び方**
-   > - `ggml-large-v3-turbo.bin` (**推奨**): 速度と精度のバランスが良く、多くの方に最適です。
-   > - `ggml-large-v3.bin`: 最も高精度ですが、動作が重くなります。（VRAM 10GB 以上推奨）
-   > - `ggml-small.bin`: 動作が非常に軽く、古い PC や CPU のみで動かす場合に適しています。
-   >
-   > 他のモデルは [ggerganov/whisper.cpp (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/tree/main) から入手可能です。
+**ダウンロード**: [ggerganov/whisper.cpp (公式リポジトリ)](https://huggingface.co/ggerganov/whisper.cpp/tree/main) から **[ggml-large-v3-turbo.bin (直接ダウンロード)](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin)** を入手します。
+> [!TIP]  
+> **PC スペックに応じたモデルの選び方**
+> - `ggml-large-v3-turbo.bin` (**推奨**): 速度と精度のバランスが良く、多くの方に最適です。
+> - `ggml-large-v3.bin`: 最も高精度ですが、動作が重くなります。（VRAM 10GB 以上推奨）
+> - `ggml-small.bin`: 動作が非常に軽く、古い PC や CPU のみで動かす場合に適しています。
+>
+> 他のモデルは [ggerganov/whisper.cpp (Hugging Face)](https://huggingface.co/ggerganov/whisper.cpp/tree/main) から入手可能です。
 
 #### 3-3-2 VAD モデル（発話区間の検出）
 「いま人が話しているか、いないか」を判断するためのモデルです。  
 無音部分をカットし、Whisper が処理すべき箇所を正しく教える役割を担います。
 
-1. **ダウンロード**: [ggml-org/whisper-vad (公式リポジトリ)](https://huggingface.co/ggml-org/whisper-vad) から **[ggml-silero-v6.2.0.bin (直接ダウンロード)](https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v6.2.0.bin)** を入手します。
+**ダウンロード**: [ggml-org/whisper-vad (公式リポジトリ)](https://huggingface.co/ggml-org/whisper-vad) から **[ggml-silero-v6.2.0.bin (直接ダウンロード)](https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v6.2.0.bin)** を入手します。
 
 ---
 
@@ -174,5 +176,6 @@ ffmpeg-voice-vox/（アプリのルート）
 1. 画面右上の **[START]** ボタンを押します。
 2. マイクに向かって話し、Web UIに文字起こし結果が表示されれば成功です！
 ![文字起こし結果](images/setup/transcription.png)
+
 
 
