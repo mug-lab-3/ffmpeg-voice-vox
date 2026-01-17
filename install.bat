@@ -9,11 +9,9 @@ echo  [Portable Setup Mode]
 echo ======================================================
 echo.
 
-:: 環境変数に自身のフルパスをセット（引用符で囲む）
-set "SCRIPT_PATH=%~f0"
-
-:: PowerShell を起動し、環境変数からパスを取得してファイルの中身を実行
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines = Get-Content -LiteralPath $env:SCRIPT_PATH -Encoding UTF8; $start = $false; $script = ($lines | ForEach-Object { if ($start) { $_ } if ($_.Trim() -eq '###_POWERSHELL_START_###') { $start = $true } }) -join [Environment]::NewLine; if ($script) { iex $script } else { Write-Error 'PowerShell section not found' }"
+:: PowerShell を起動し、このファイルの中身をスクリプトとして実行
+set "SELF_PATH=%~f0"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$m='###_POWERSHELL' + '_START_###'; $c=Get-Content -LiteralPath $env:SELF_PATH -Raw -Encoding UTF8; $i=$c.IndexOf($m); if($i -ge 0){iex ($c.Substring($i+$m.Length))}"
 
 if %errorlevel% neq 0 (
     echo.
@@ -25,7 +23,8 @@ exit /b %errorlevel%
 ###_POWERSHELL_START_###
 # --- PowerShell Script Section ---
 
-# PowerShell の進捗表示を無効化
+# uv のリンクモードをコピーに強制（クラウド同期フォルダ/OneDrive対策）
+$env:UV_LINK_MODE = 'copy'
 $ProgressPreference = 'SilentlyContinue'
 
 # コンソール出力の安定化
@@ -85,13 +84,12 @@ try {
         Write-Host '  -> 既に存在するためスキップします。' -ForegroundColor Yellow
     }
 
-    Write-Host '[4/8] 仮想環境を構築・更新中...' -ForegroundColor Cyan
-    if (-not (Test-Path -LiteralPath (Join-Path $finalDir '.venv'))) {
-        & $uvExe venv --python 3
-    }
-    # 依存関係更新を確実にするため常に実行
-    & $uvExe pip install -r requirements.txt
-    if ($LASTEXITCODE -ne 0) { throw "依存ライブラリのインストールに失敗しました。" }
+    Write-Host '[4/8] 実行環境を構築・更新中 (uv sync)...' -ForegroundColor Cyan
+    # uv sync を使用することで、システムPythonに依存せず、.python-version に基づく
+    # 正しいバージョンの Python が自動的にダウンロード・使用されます。
+    # 冒頭で環境変数 UV_LINK_MODE=copy を設定しているため、ここではフラグを省略します。
+    & "$uvExe" sync
+    if ($LASTEXITCODE -ne 0) { throw "実行環境の構築（uv sync）に失敗しました。" }
 
     Write-Host '[5/8] 外部ツールをダウンロード中...' -ForegroundColor Cyan
     
@@ -111,27 +109,35 @@ try {
         
         if ($existingFfmpeg) {
             Write-Host '  -> 非対応の FFmpeg を入れ替えます...'
-            $oldDir = $existingFfmpeg.Directory.Parent
-            if ($oldDir.Name -eq 'bin') { $oldDir = $oldDir.Parent }
-            Remove-Item -Path $oldDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            $targetToRemove = $null
+            $oldDir = $existingFfmpeg.Directory
+            while ($oldDir -and $oldDir.FullName -ne $toolDir) {
+                $targetToRemove = $oldDir
+                $oldDir = $oldDir.Parent
+            }
+            if ($targetToRemove) { Remove-Item -Path $targetToRemove.FullName -Recurse -Force -ErrorAction SilentlyContinue }
         }
 
         Download-Fast $ffmpegUrl $ffmpeg7z
-        Write-Host '  -> 展開中 (Windows 標準の tar を使用)...'
+        Write-Host '  -> 展開中...'
         # Windows 11/10 (1803以降) 標準の tar.exe を使用
-        # 7z ファイルのサポートは最近の Windows 11 で追加されました 
         & tar.exe -xf $ffmpeg7z -C $toolDir
-        Remove-Item -LiteralPath $ffmpeg7z -ErrorAction SilentlyContinue
-
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host '  [WARNING] tar.exe による展開に失敗しました。' -ForegroundColor Yellow
+            Write-Host '  古い Windows では .7z 形式に非対応の場合があります。OSを更新するか、手動で展開してください。' -ForegroundColor Yellow
+            throw "FFmpeg の展開に失敗しました。"
+        }
+        Remove-Item -LiteralPath $ffmpeg7z -Force -ErrorAction SilentlyContinue
         # docs/setup.md の推奨構成 (tools/ffmpeg) に合わせるためリネーム
         $ffmpegTargetDir = Join-Path $toolDir 'ffmpeg'
-        $extractedFfmpegDir = Get-ChildItem -Path $toolDir -Directory -Filter "ffmpeg-git-*" | Select-Object -First 1
+        # ffmpeg-* に一致するディレクトリを探す
+        $extractedFfmpegDir = Get-ChildItem -Path $toolDir -Directory -Filter "ffmpeg-*" | Select-Object -First 1
         if ($extractedFfmpegDir) {
+            Write-Host "  -> ディレクトリを整理中: $($extractedFfmpegDir.Name) -> ffmpeg"
             if (Test-Path -LiteralPath $ffmpegTargetDir) { Remove-Item -Path $ffmpegTargetDir -Recurse -Force }
             Move-Item -Path $extractedFfmpegDir.FullName -Destination $ffmpegTargetDir -Force
         }
         Write-Host '  -> 完了'
-        $existingFfmpeg = Get-ChildItem -Path $ffmpegTargetDir -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
     } else {
         Write-Host "  -> Whisper 対応版 FFmpeg が既に存在します: $($existingFfmpeg.FullName)" -ForegroundColor Yellow
     }
@@ -219,8 +225,7 @@ try {
 
     Write-Host '[8/8] 起動用バッチを更新中...' -ForegroundColor Cyan
     $runBatPath = Join-Path $finalDir 'run.bat'
-    # tools\uv\uv.exe run ... で uv もポータブル版を明示的に使用
-    $runBatContent = "@echo off`r`nchcp 65001 >nul`r`necho [Run] Starting application...`r`ntools\uv\uv.exe run voicevox_controller.py`r`nif %errorlevel% neq 0 (`r`n  echo.`r`n  echo [ERROR] Application exited with code %errorlevel%`r`n)`r`npause"
+    $runBatContent = "@echo off`r`nchcp 65001 >nul`r`nset UV_LINK_MODE=copy`r`necho [Run] Starting application...`r`ntools\uv\uv.exe run voicevox_controller.py`r`nif %errorlevel% neq 0 (`r`n  echo.`r`n  echo [ERROR] Application exited with code %errorlevel%`r`n  pause`r`n)"
     [System.IO.File]::WriteAllText($runBatPath, $runBatContent, $Utf8NoBom)
 
     Write-Host '------------------------------------------------------' -ForegroundColor Green
