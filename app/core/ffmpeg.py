@@ -70,40 +70,39 @@ class FFmpegClient:
 
             def _escape(path):
                 if not path:
-                    return "''"
-                # Pattern based on user provided working example:
-                # model='C\:\\Users...'
-                # destination=http\\://...
-
-                # 1. Escape backslashes (literal \ -> \\)
-                # We must do this FIRST so we don't escape the backslashes we add for colons later.
-                p = path.replace("\\", "\\\\")
-                # 2. Escape colons (literal : -> \:)
-                p = p.replace(":", "\\:")
-
-                return f"'{p}'"
+                    return ""
+                # Use relative path to avoid drive letter (C:) issues
+                try:
+                    p = os.path.relpath(path).replace("\\", "/")
+                except Exception:
+                    p = os.path.abspath(path).replace("\\", "/")
+                
+                # Double escape colons and spaces for FFmpeg filter parsing
+                p = p.replace(":", r"\\:").replace(",", r"\\,").replace(" ", r"\\ ")
+                return p
 
             def _escape_url(path):
-                # Using double backslash for URL colons to match user example
-                # destination=http\\://...
-                p = path.replace("\\", "\\\\")
-                p = p.replace(":", "\\\\:")
-                return p
+                # Double escape URL colons
+                return path.replace(":", r"\\:")
 
             model_path_esc = _escape(model_path)
             vad_model_path_esc = _escape(vad_model_path)
 
             # Destination URL construction
-            # http://localhost:3000 -> http\\://localhost\\:3000
             dest_url_base = f"http://{host}:{port}"
             dest_url = _escape_url(dest_url_base)
 
-            # Enclose the entire filter argument in double quotes as requested -> NO, this breaks subprocess
-            # We revert to raw string but keep the inner escaping
-            # raw_filter = f"whisper=model={model_path_esc}:queue={queue_length}:destination={dest_url}:format=json:vad_model={vad_model_path_esc}"
-            # filter_arg = f'"{raw_filter}"'
+            # Build filter arguments and join with colons
+            filter_parts = [
+                f"model={model_path_esc}",
+                f"queue={queue_length}",
+                f"destination={dest_url}",
+                "format=json"
+            ]
+            if vad_model_path_esc:
+                filter_parts.append(f"vad_model={vad_model_path_esc}")
 
-            filter_arg = f"whisper=model={model_path_esc}:queue={queue_length}:destination={dest_url}:format=json:vad_model={vad_model_path_esc}"
+            filter_arg = f"whisper={':'.join(filter_parts)}"
 
             # OS-specific input format and null device
             if platform.system() == "Darwin":
@@ -118,7 +117,7 @@ class FFmpegClient:
                 )
             else:
                 input_format = "dshow"
-                null_device = "NUL"
+                null_device = "nul"
                 formatted_input = f"audio={input_device}"
 
             cmd = [
