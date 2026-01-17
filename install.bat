@@ -87,7 +87,8 @@ try {
     Write-Host '[4/8] 実行環境を構築・更新中 (uv sync)...' -ForegroundColor Cyan
     # uv sync を使用することで、システムPythonに依存せず、.python-version に基づく
     # 正しいバージョンの Python が自動的にダウンロード・使用されます。
-    & "$uvExe" sync --link-mode=copy
+    # 冒頭で環境変数 UV_LINK_MODE=copy を設定しているため、ここではフラグを省略します。
+    & "$uvExe" sync
     if ($LASTEXITCODE -ne 0) { throw "実行環境の構築（uv sync）に失敗しました。" }
 
     Write-Host '[5/8] 外部ツールをダウンロード中...' -ForegroundColor Cyan
@@ -135,8 +136,6 @@ try {
             Write-Host "  -> ディレクトリを整理中: $($extractedFfmpegDir.Name) -> ffmpeg"
             if (Test-Path -LiteralPath $ffmpegTargetDir) { Remove-Item -Path $ffmpegTargetDir -Recurse -Force }
             Move-Item -Path $extractedFfmpegDir.FullName -Destination $ffmpegTargetDir -Force
-            # リネーム後のパスで既存チェック変数を更新
-            $existingFfmpeg = Get-ChildItem -Path $ffmpegTargetDir -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
         }
         Write-Host '  -> 完了'
     } else {
